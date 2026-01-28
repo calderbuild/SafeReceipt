@@ -323,12 +323,6 @@ function App() {
             <span className="font-display font-semibold text-white">SafeReceipt</span>
           </div>
 
-          <div className="flex items-center space-x-6 text-sm text-slate-500">
-            <span>Rebel in Paradise 2026</span>
-            <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
-            <span>Consensus HK 2026</span>
-          </div>
-
           <div className="flex items-center space-x-4">
             <a href="https://github.com/calderbuild/SafeReceipt" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white transition-colors cursor-pointer">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
