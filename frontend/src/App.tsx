@@ -1,4 +1,8 @@
+import { useState } from 'react'
+import { Toaster, toast } from 'react-hot-toast'
 import { WalletConnect } from './components/WalletConnect'
+import { CreateReceiptModal } from './components/CreateReceiptModal'
+import { VerifyProofModal } from './components/VerifyProofModal'
 
 // Heroicons (MIT License) - Shield Check
 const ShieldCheckIcon = () => (
@@ -35,13 +39,6 @@ const FingerprintIcon = () => (
   </svg>
 )
 
-// Clock
-const ClockIcon = () => (
-  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-)
-
 // Arrow Right
 const ArrowRightIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -58,9 +55,36 @@ const MonadLogo = () => (
 )
 
 function App() {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false)
+
+  const handleCreateSuccess = (receiptId: string, txHash: string) => {
+    toast.success(`Receipt #${receiptId} created successfully!`, {
+      duration: 5000,
+      style: {
+        background: '#1E293B',
+        color: '#F1F5F9',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+      },
+    })
+  }
 
   return (
     <div className="min-h-screen">
+      {/* Toast Container */}
+      <Toaster position="top-right" />
+
+      {/* Modals */}
+      <CreateReceiptModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleCreateSuccess}
+      />
+      <VerifyProofModal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+      />
+
       {/* Floating Navbar */}
       <nav className="navbar-float">
         <div className="flex items-center space-x-3">
@@ -105,13 +129,19 @@ function App() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button className="btn-primary flex items-center space-x-2 text-lg">
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="btn-primary flex items-center space-x-2 text-lg"
+              >
                 <DocumentCheckIcon />
                 <span>Create Receipt</span>
               </button>
-              <button className="btn-secondary flex items-center space-x-2 text-lg">
-                <span>View Demo</span>
-                <ArrowRightIcon />
+              <button
+                onClick={() => setIsVerifyModalOpen(true)}
+                className="btn-secondary flex items-center space-x-2 text-lg"
+              >
+                <ShieldCheckIcon />
+                <span>Verify Proof</span>
               </button>
             </div>
           </section>
@@ -159,14 +189,14 @@ function App() {
                   step: '02',
                   title: 'Assess Risk',
                   description: '6 automated rules evaluate the transaction risk: allowance limits, unknown contracts, patterns.',
-                  color: 'from-accent to-accent-light',
+                  color: 'from-amber-500 to-amber-600',
                 },
                 {
                   icon: <CubeIcon />,
                   step: '03',
                   title: 'Record On-Chain',
                   description: 'Intent hash + proof hash stored on Monad. Immutable evidence for dispute resolution.',
-                  color: 'from-crypto-cyan to-crypto-blue',
+                  color: 'from-cyan-500 to-blue-500',
                 },
               ].map((item, i) => (
                 <div key={i} className="glass-card-hover p-8 group">
@@ -208,9 +238,9 @@ function App() {
                   <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-colors cursor-pointer">
                     <div className="flex items-center space-x-4">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold ${
-                        item.weight >= 25 ? 'bg-crypto-red/20 text-crypto-red' :
-                        item.weight >= 10 ? 'bg-accent/20 text-accent' :
-                        'bg-crypto-green/20 text-crypto-green'
+                        item.weight >= 25 ? 'bg-red-500/20 text-red-400' :
+                        item.weight >= 10 ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-emerald-500/20 text-emerald-400'
                       }`}>
                         +{item.weight}
                       </div>
@@ -229,7 +259,7 @@ function App() {
           <section className="grid md:grid-cols-2 gap-6 mb-20">
             <div className="glass-card-hover p-8 group">
               <div className="flex items-start justify-between mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-crypto-blue flex items-center justify-center text-white">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-blue-500 flex items-center justify-center text-white">
                   <DocumentCheckIcon />
                 </div>
                 <span className="badge-info">Available</span>
@@ -238,7 +268,10 @@ function App() {
               <p className="text-slate-400 mb-6">
                 Generate cryptographic receipts for Approve and BatchPay transactions with automated risk analysis.
               </p>
-              <button className="btn-primary w-full flex items-center justify-center space-x-2">
+              <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="btn-primary w-full flex items-center justify-center space-x-2"
+              >
                 <span>Start Creating</span>
                 <ArrowRightIcon />
               </button>
@@ -246,7 +279,7 @@ function App() {
 
             <div className="glass-card-hover p-8 group">
               <div className="flex items-start justify-between mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-crypto-green to-crypto-cyan flex items-center justify-center text-white">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white">
                   <ShieldCheckIcon />
                 </div>
                 <span className="badge-success">Available</span>
@@ -255,7 +288,10 @@ function App() {
               <p className="text-slate-400 mb-6">
                 Verify on-chain receipts against local digest. Prove data integrity and establish accountability.
               </p>
-              <button className="btn-secondary w-full flex items-center justify-center space-x-2">
+              <button
+                onClick={() => setIsVerifyModalOpen(true)}
+                className="btn-secondary w-full flex items-center justify-center space-x-2"
+              >
                 <span>Verify Receipt</span>
                 <ArrowRightIcon />
               </button>
@@ -281,7 +317,7 @@ function App() {
       <footer className="border-t border-white/5 py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-crypto-cyan flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-cyan-500 flex items-center justify-center">
               <ShieldCheckIcon />
             </div>
             <span className="font-display font-semibold text-white">SafeReceipt</span>

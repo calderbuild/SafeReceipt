@@ -157,7 +157,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
     return (
       <div className={`glass-card p-6 ${className}`}>
         <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent-dark rounded-xl flex items-center justify-center text-white">
+          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center text-white">
             <WalletIcon />
           </div>
           <div className="flex-1">
@@ -247,7 +247,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-crypto-green rounded-full border-2 border-dark animate-pulse"></div>
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-crypto-green rounded-full border-2 border-slate-900 animate-pulse"></div>
         </div>
 
         <div className="flex-1">
