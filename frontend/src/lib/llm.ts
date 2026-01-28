@@ -41,12 +41,24 @@ const INTENT_PARSE_PROMPT = `You are an expert at parsing cryptocurrency transac
 
 Given a user's natural language description, extract the structured transaction intent.
 
+KNOWN ADDRESSES (Monad Testnet - use these when user mentions these names):
+Tokens:
+- USDC: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+- USDT: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+- WETH: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+- DAI: 0x6B175474E89094C44Da98b954EescdeCB5BAd
+
+Protocols/Spenders:
+- Uniswap (Router): 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D
+- 1inch: 0x1111111254fb6c44bac0bed2854e76f90643097d
+- OpenSea: 0x00000000006c3852cbEf3e08E8dF289169EdE581
+
 RULES:
 1. For token approvals (ERC20 approve):
    - Extract: token address, spender address, amount
-   - "unlimited" or "max" means isUnlimited=true
-   - Common tokens: USDC, USDT, ETH, WETH, DAI
-   - Common spenders: Uniswap, 1inch, OpenSea, etc.
+   - "unlimited", "max", "无限" means isUnlimited=true
+   - If user mentions a known name (like "USDC", "Uniswap"), use the address from KNOWN ADDRESSES above
+   - Amount should be in wei (multiply by 10^decimals, USDC/USDT=6, others=18)
 
 2. For batch payments:
    - Extract: list of (recipient address, amount) pairs
@@ -54,7 +66,8 @@ RULES:
 
 3. Address format:
    - Must be 0x followed by 40 hex characters
-   - If user gives a name (like "Uniswap"), explain you need the actual address
+   - Use KNOWN ADDRESSES when user mentions known names
+   - If user gives an unknown name, list it in missingInfo
 
 OUTPUT FORMAT (JSON only, no markdown):
 {
@@ -70,7 +83,7 @@ OUTPUT FORMAT (JSON only, no markdown):
     "recipients": [{"address": "0x...", "amount": "..."}]
   },
   "confidence": 0.0-1.0,
-  "reasoning": "brief explanation",
+  "reasoning": "brief explanation in Chinese",
   "missingInfo": ["list of missing required info"] // empty if complete
 }`;
 
