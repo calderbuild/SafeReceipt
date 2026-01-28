@@ -1,0 +1,338 @@
+import { ethers } from 'ethers';
+
+// Contract ABI - Generated from ReceiptRegistry.sol
+export const RECEIPT_REGISTRY_ABI = [
+  {
+    "inputs": [
+      { "internalType": "uint8", "name": "actionType", "type": "uint8" },
+      { "internalType": "bytes32", "name": "intentHash", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "proofHash", "type": "bytes32" },
+      { "internalType": "uint8", "name": "riskScore", "type": "uint8" }
+    ],
+    "name": "createReceipt",
+    "outputs": [
+      { "internalType": "uint256", "name": "receiptId", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "receiptId", "type": "uint256" }
+    ],
+    "name": "getReceipt",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "actor", "type": "address" },
+          { "internalType": "uint8", "name": "actionType", "type": "uint8" },
+          { "internalType": "uint8", "name": "riskScore", "type": "uint8" },
+          { "internalType": "uint40", "name": "timestamp", "type": "uint40" },
+          { "internalType": "bytes32", "name": "intentHash", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "proofHash", "type": "bytes32" }
+        ],
+        "internalType": "struct ReceiptRegistry.Receipt",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "getUserReceipts",
+    "outputs": [
+      { "internalType": "uint256[]", "name": "", "type": "uint256[]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextReceiptId",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "receipts",
+    "outputs": [
+      { "internalType": "address", "name": "actor", "type": "address" },
+      { "internalType": "uint8", "name": "actionType", "type": "uint8" },
+      { "internalType": "uint8", "name": "riskScore", "type": "uint8" },
+      { "internalType": "uint40", "name": "timestamp", "type": "uint40" },
+      { "internalType": "bytes32", "name": "intentHash", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "proofHash", "type": "bytes32" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "", "type": "address" },
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "name": "userReceipts",
+    "outputs": [
+      { "internalType": "uint256", "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "receiptId", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "actor", "type": "address" },
+      { "indexed": true, "internalType": "uint8", "name": "actionType", "type": "uint8" },
+      { "indexed": false, "internalType": "bytes32", "name": "intentHash", "type": "bytes32" },
+      { "indexed": false, "internalType": "bytes32", "name": "proofHash", "type": "bytes32" },
+      { "indexed": false, "internalType": "uint8", "name": "riskScore", "type": "uint8" },
+      { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
+    ],
+    "name": "ReceiptCreated",
+    "type": "event"
+  }
+] as const;
+
+// Contract configuration
+export const CONTRACT_CONFIG = {
+  // This will be updated after deployment
+  address: '0x0000000000000000000000000000000000000000', // Placeholder
+  abi: RECEIPT_REGISTRY_ABI,
+  chainId: 10143, // Monad testnet
+} as const;
+
+// Network configuration
+export const MONAD_TESTNET = {
+  chainId: 10143,
+  name: 'Monad Testnet',
+  rpcUrl: 'https://testnet-rpc.monad.xyz',
+  blockExplorer: 'https://testnet.monadscan.com',
+  nativeCurrency: {
+    name: 'MON',
+    symbol: 'MON',
+    decimals: 18,
+  },
+} as const;
+
+// Types
+export interface Receipt {
+  actor: string;
+  actionType: number;
+  riskScore: number;
+  timestamp: number;
+  intentHash: string;
+  proofHash: string;
+}
+
+export interface ReceiptWithId extends Receipt {
+  receiptId: string;
+}
+
+export enum ActionType {
+  APPROVE = 1,
+  BATCH_PAY = 2,
+}
+
+// Contract interaction class
+export class ReceiptRegistryContract {
+  private contract: ethers.Contract | null = null;
+  private readOnlyContract: ethers.Contract | null = null;
+
+  constructor(
+    private provider: ethers.BrowserProvider | null = null,
+    private signer: ethers.JsonRpcSigner | null = null
+  ) {
+    this.initializeContracts();
+  }
+
+  private initializeContracts() {
+    if (CONTRACT_CONFIG.address === '0x0000000000000000000000000000000000000000') {
+      console.warn('Contract address not set. Please deploy the contract first.');
+      return;
+    }
+
+    // Read-only contract with provider
+    if (this.provider) {
+      this.readOnlyContract = new ethers.Contract(
+        CONTRACT_CONFIG.address,
+        CONTRACT_CONFIG.abi,
+        this.provider
+      );
+    }
+
+    // Write contract with signer
+    if (this.signer) {
+      this.contract = new ethers.Contract(
+        CONTRACT_CONFIG.address,
+        CONTRACT_CONFIG.abi,
+        this.signer
+      );
+    }
+  }
+
+  // Update provider and signer
+  updateProvider(provider: ethers.BrowserProvider | null, signer: ethers.JsonRpcSigner | null) {
+    this.provider = provider;
+    this.signer = signer;
+    this.initializeContracts();
+  }
+
+  // Create a new receipt
+  async createReceipt(
+    actionType: ActionType,
+    intentHash: string,
+    proofHash: string,
+    riskScore: number
+  ): Promise<{ receiptId: string; txHash: string }> {
+    if (!this.contract) {
+      throw new Error('Contract not initialized or signer not available');
+    }
+
+    try {
+      const tx = await this.contract.createReceipt(
+        actionType,
+        intentHash,
+        proofHash,
+        riskScore
+      );
+
+      const receipt = await tx.wait();
+
+      // Extract receipt ID from event logs
+      const receiptCreatedEvent = receipt.logs.find(
+        (log: any) => log.fragment?.name === 'ReceiptCreated'
+      );
+
+      if (!receiptCreatedEvent) {
+        throw new Error('ReceiptCreated event not found in transaction logs');
+      }
+
+      const receiptId = receiptCreatedEvent.args[0].toString();
+
+      return {
+        receiptId,
+        txHash: receipt.hash,
+      };
+    } catch (error: any) {
+      console.error('Failed to create receipt:', error);
+      throw new Error(`Failed to create receipt: ${error.message}`);
+    }
+  }
+
+  // Get a receipt by ID
+  async getReceipt(receiptId: string): Promise<ReceiptWithId> {
+    const contract = this.contract || this.readOnlyContract;
+    if (!contract) {
+      throw new Error('Contract not initialized');
+    }
+
+    try {
+      const receipt = await contract.getReceipt(receiptId);
+
+      return {
+        receiptId,
+        actor: receipt.actor,
+        actionType: receipt.actionType,
+        riskScore: receipt.riskScore,
+        timestamp: Number(receipt.timestamp),
+        intentHash: receipt.intentHash,
+        proofHash: receipt.proofHash,
+      };
+    } catch (error: any) {
+      console.error('Failed to get receipt:', error);
+      throw new Error(`Failed to get receipt: ${error.message}`);
+    }
+  }
+
+  // Get all receipts for a user
+  async getUserReceipts(userAddress: string): Promise<string[]> {
+    const contract = this.contract || this.readOnlyContract;
+    if (!contract) {
+      throw new Error('Contract not initialized');
+    }
+
+    try {
+      const receiptIds = await contract.getUserReceipts(userAddress);
+      return receiptIds.map((id: bigint) => id.toString());
+    } catch (error: any) {
+      console.error('Failed to get user receipts:', error);
+      throw new Error(`Failed to get user receipts: ${error.message}`);
+    }
+  }
+
+  // Get next receipt ID
+  async getNextReceiptId(): Promise<string> {
+    const contract = this.contract || this.readOnlyContract;
+    if (!contract) {
+      throw new Error('Contract not initialized');
+    }
+
+    try {
+      const nextId = await contract.nextReceiptId();
+      return nextId.toString();
+    } catch (error: any) {
+      console.error('Failed to get next receipt ID:', error);
+      throw new Error(`Failed to get next receipt ID: ${error.message}`);
+    }
+  }
+
+  // Listen to ReceiptCreated events
+  onReceiptCreated(
+    callback: (receiptId: string, actor: string, actionType: number, intentHash: string, proofHash: string, riskScore: number, timestamp: number) => void
+  ) {
+    const contract = this.contract || this.readOnlyContract;
+    if (!contract) {
+      throw new Error('Contract not initialized');
+    }
+
+    contract.on('ReceiptCreated', callback);
+
+    // Return cleanup function
+    return () => {
+      contract.off('ReceiptCreated', callback);
+    };
+  }
+
+  // Get contract address
+  getAddress(): string {
+    return CONTRACT_CONFIG.address;
+  }
+
+  // Check if contract is deployed
+  isDeployed(): boolean {
+    return CONTRACT_CONFIG.address !== '0x0000000000000000000000000000000000000000';
+  }
+}
+
+// Utility function to create contract instance
+export const createReceiptRegistryContract = (
+  provider?: ethers.BrowserProvider,
+  signer?: ethers.JsonRpcSigner
+): ReceiptRegistryContract => {
+  return new ReceiptRegistryContract(provider || null, signer || null);
+};
+
+// Utility function to get read-only provider
+export const getReadOnlyProvider = (): ethers.JsonRpcProvider => {
+  return new ethers.JsonRpcProvider(MONAD_TESTNET.rpcUrl);
+};
+
+// Utility function to format receipt for display
+export const formatReceipt = (receipt: ReceiptWithId) => {
+  return {
+    ...receipt,
+    actionTypeString: receipt.actionType === ActionType.APPROVE ? 'Approve' : 'Batch Pay',
+    timestampFormatted: new Date(receipt.timestamp * 1000).toLocaleString(),
+    explorerUrl: `${MONAD_TESTNET.blockExplorer}/tx/${receipt.receiptId}`,
+  };
+};

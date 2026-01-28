@@ -1,0 +1,38 @@
+{
+  "name": "safereceipt",
+  "version": "1.0.0",
+  "description": "Agent Accountability Protocol - On-chain receipts for AI agent transactions",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:monad": "hardhat run scripts/deploy.ts --network monad",
+    "typechain": "hardhat typechain",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "blockchain",
+    "ai",
+    "accountability",
+    "receipts",
+    "monad"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-ethers": "^4.0.4",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "@types/chai": "^5.2.3",
+    "@types/node": "^25.0.10",
+    "chai": "^6.2.2",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.16.0",
+    "hardhat": "^2.17.4",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^4.9.5"
+  }
+}

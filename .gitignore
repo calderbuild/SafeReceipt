@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+artifacts/
+cache/
+typechain-types/
+frontend/dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+coverage.json
+
+# Hardhat
+hardhat-network-fork-*
+
+# Documentation (temporary/generated)
+*.draft.md
+*.wip.md
+*_backup.md
+.notes/
+docs/drafts/
+
+# Claude Code session files
+.claude/projects/*/sessions/
+.claude/projects/*/*.jsonl
