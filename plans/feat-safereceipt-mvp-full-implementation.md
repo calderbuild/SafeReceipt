@@ -242,7 +242,7 @@ interface RiskResult {
     - BatchPay: CSV textarea
   - Acceptance: 可生成有效 normalizedIntent
 
-- [ ] **3.4 Risk Card UI 组件**
+- [x] **3.4 Risk Card UI 组件**
   - File: `frontend/src/components/RiskCard.tsx`
   - 使用 `/ui-ux-pro-max` 或 `/frontend-design` skill 开发
   - Features:
@@ -252,13 +252,13 @@ interface RiskResult {
     - 建议（可复制）
   - Acceptance: 视觉清晰，信息完整
 
-- [ ] **3.5 Liability Notice 组件**
+- [x] **3.5 Liability Notice 组件**
   - File: `frontend/src/components/LiabilityNotice.tsx`
   - 使用 `/frontend-design` skill 开发
   - Features: 醒目警告框，用户必须阅读
   - Acceptance: 在签名前清晰展示
 
-- [ ] **3.6 BatchPay CSV 解析**
+- [x] **3.6 BatchPay CSV 解析**
   - File: `frontend/src/lib/csvParser.ts`
   - Format: `address,amount` per line
   - Validation: 地址格式，金额数值
