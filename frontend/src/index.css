@@ -2,14 +2,172 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@layer base {
+  :root {
+    --color-primary: 139 92 246;
+    --color-accent: 245 158 11;
+  }
+
+  html {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-dark text-slate-100 min-h-screen;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139, 92, 246, 0.15), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(59, 130, 246, 0.1), transparent);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  code, pre {
+    font-family: 'Fira Code', monospace;
+  }
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+@layer components {
+  /* Glassmorphism Card */
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 cursor-pointer;
+  }
+
+  .glass-card-hover:hover {
+    @apply bg-white/10 border-white/20 shadow-glow;
+    transform: translateY(-2px);
+  }
+
+  /* Glow Button */
+  .btn-primary {
+    @apply px-6 py-3 bg-primary-600 hover:bg-primary-500 text-white font-semibold rounded-xl;
+    @apply transition-all duration-200 cursor-pointer;
+    @apply shadow-glow hover:shadow-glow-lg;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl;
+    @apply border border-white/20 hover:border-white/30;
+    @apply transition-all duration-200 cursor-pointer;
+  }
+
+  .btn-accent {
+    @apply px-6 py-3 bg-accent hover:bg-accent-light text-dark font-semibold rounded-xl;
+    @apply transition-all duration-200 cursor-pointer;
+    @apply shadow-glow-accent;
+  }
+
+  /* Status Badges */
+  .badge {
+    @apply px-3 py-1 text-xs font-medium rounded-full;
+  }
+
+  .badge-success {
+    @apply badge bg-crypto-green/20 text-crypto-green border border-crypto-green/30;
+  }
+
+  .badge-danger {
+    @apply badge bg-crypto-red/20 text-crypto-red border border-crypto-red/30;
+  }
+
+  .badge-warning {
+    @apply badge bg-accent/20 text-accent border border-accent/30;
+  }
+
+  .badge-info {
+    @apply badge bg-crypto-blue/20 text-crypto-blue border border-crypto-blue/30;
+  }
+
+  /* Floating Navbar */
+  .navbar-float {
+    @apply fixed top-4 left-4 right-4 z-50;
+    @apply glass-card px-6 py-4;
+    @apply flex items-center justify-between;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-400 via-primary-500 to-crypto-cyan;
+  }
+
+  .gradient-text-accent {
+    @apply bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-accent to-accent-light;
+  }
+
+  /* Input Fields */
+  .input-field {
+    @apply w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl;
+    @apply text-white placeholder-slate-400;
+    @apply focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50;
+    @apply transition-all duration-200;
+  }
+
+  /* Risk Score Display */
+  .risk-score {
+    @apply inline-flex items-center justify-center;
+    @apply w-16 h-16 rounded-2xl text-2xl font-bold;
+  }
+
+  .risk-low {
+    @apply risk-score bg-crypto-green/20 text-crypto-green border-2 border-crypto-green/30;
+  }
+
+  .risk-medium {
+    @apply risk-score bg-accent/20 text-accent border-2 border-accent/30;
+  }
+
+  .risk-high {
+    @apply risk-score bg-crypto-red/20 text-crypto-red border-2 border-crypto-red/30;
+  }
+
+  /* Skeleton Loading */
+  .skeleton {
+    @apply animate-pulse bg-white/10 rounded;
+  }
+
+  /* Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-white/5 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/20 rounded-full hover:bg-white/30;
+  }
+}
+
+@layer utilities {
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-glow-pulse,
+    .animate-float,
+    .animate-gradient-x {
+      animation: none;
+    }
+  }
+
+  /* Glow effects */
+  .text-glow {
+    text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  }
+
+  .text-glow-accent {
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+  }
 }
