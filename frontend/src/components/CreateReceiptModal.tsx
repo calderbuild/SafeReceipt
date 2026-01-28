@@ -365,16 +365,35 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 <textarea
                   value={naturalLanguageInput}
                   onChange={(e) => setNaturalLanguageInput(e.target.value)}
-                  placeholder="例如：&#10;• 授权 Uniswap 使用我的 1000 USDC&#10;• 给 0x1234...abcd 无限授权 USDT&#10;• 批量转账：0x111...给100 ETH，0x222...给200 ETH"
-                  rows={4}
+                  placeholder="用日常语言描述，例如：&#10;授权 Uniswap 使用 1000 USDC&#10;给 Uniswap 无限授权我的 USDT"
+                  rows={3}
                   className="input-field text-sm resize-none"
                   disabled={isParsingAI}
                 />
+              <div className="mt-2 p-3 bg-white/5 rounded-lg">
+                <p className="text-xs text-slate-400 mb-2">支持的代币和协议：</p>
+                <div className="flex flex-wrap gap-2">
+                  {['USDC', 'USDT', 'WETH', 'DAI'].map(t => (
+                    <span key={t} className="px-2 py-0.5 text-xs bg-primary-500/20 text-primary-300 rounded">
+                      {t}
+                    </span>
+                  ))}
+                  {['Uniswap', '1inch', 'OpenSea'].map(p => (
+                    <span key={p} className="px-2 py-0.5 text-xs bg-cyan-500/20 text-cyan-300 rounded">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </div>
               </div>
 
               {aiParseError && (
                 <div className="p-3 bg-crypto-red/10 border border-crypto-red/20 rounded-xl">
-                  <p className="text-sm text-crypto-red">{aiParseError}</p>
+                  <p className="text-sm text-crypto-red">
+                    {aiParseError.includes('Missing information')
+                      ? '无法识别您的描述，请尝试更具体的表达，例如「授权 Uniswap 使用 1000 USDC」'
+                      : aiParseError}
+                  </p>
                 </div>
               )}
 
@@ -414,7 +433,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               </button>
 
               <p className="text-xs text-slate-500 text-center">
-                AI 将解析你的意图并自动填充表单，你可以在下一步确认
+                AI 会自动识别代币和协议名称，解析后你可以确认
               </p>
             </div>
           )}

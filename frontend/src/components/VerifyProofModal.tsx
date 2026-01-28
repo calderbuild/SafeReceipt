@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
 import { useVerify } from '../hooks/useVerify';
-import { getDigest } from '../lib/storage';
+import { getDigest, getUserReceipts } from '../lib/storage';
+import { useWallet } from '../hooks/useWallet';
 
 interface VerifyProofModalProps {
   isOpen: boolean;
@@ -13,9 +14,19 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
   onClose,
 }) => {
   const { verifyProof, isVerifying, lastResult, error } = useVerify();
+  const { address, isConnected } = useWallet();
 
   const [receiptId, setReceiptId] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
+  const [userReceipts, setUserReceipts] = useState<string[]>([]);
+
+  // Load user's receipts when modal opens
+  useEffect(() => {
+    if (isOpen && isConnected && address) {
+      const receipts = getUserReceipts(address);
+      setUserReceipts(receipts);
+    }
+  }, [isOpen, isConnected, address]);
 
   const handleVerify = async () => {
     setInputError(null);
@@ -29,7 +40,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
     const digest = getDigest(receiptId.trim());
 
     if (!digest) {
-      setInputError('No local data found for this receipt. Verification requires the original receipt data stored in your browser.');
+      setInputError('找不到此回执的本地数据。请确保：1) ID 输入正确；2) 使用创建回执时的同一浏览器');
       return;
     }
 
@@ -59,7 +70,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
               type="text"
               value={receiptId}
               onChange={(e) => setReceiptId(e.target.value)}
-              placeholder="Enter receipt ID"
+              placeholder="输入创建回执时获得的 ID"
               className="input-field font-mono text-sm flex-1"
               disabled={isVerifying}
             />
@@ -71,14 +82,42 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
               {isVerifying ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Verify'
+                '验证'
               )}
             </button>
           </div>
           {inputError && (
             <p className="text-crypto-red text-sm mt-2">{inputError}</p>
           )}
+          <p className="text-xs text-slate-500 mt-2">
+            Receipt ID 在创建回执成功后显示，请确保在同一浏览器中验证
+          </p>
         </div>
+
+        {/* User's Receipt History */}
+        {userReceipts.length > 0 && (
+          <div>
+            <p className="text-sm font-medium text-slate-300 mb-2">我的回执</p>
+            <div className="flex flex-wrap gap-2">
+              {userReceipts.slice(0, 10).map((id) => (
+                <button
+                  key={id}
+                  onClick={() => setReceiptId(id)}
+                  className={`px-3 py-1.5 text-xs font-mono rounded-lg transition-colors cursor-pointer ${
+                    receiptId === id
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  #{id}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              点击回执 ID 可自动填入
+            </p>
+          </div>
+        )}
 
         {/* Verification Result */}
         {lastResult && !inputError && (
@@ -218,7 +257,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
           onClick={handleClose}
           className="btn-secondary w-full"
         >
-          Close
+          关闭
         </button>
       </div>
     </Modal>
