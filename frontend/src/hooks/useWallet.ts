@@ -46,7 +46,7 @@ export const useWallet = () => {
 
   // Initialize provider and signer
   const initializeProvider = useCallback(async () => {
-    if (!isMetaMaskInstalled()) return null;
+    if (!isMetaMaskInstalled() || !window.ethereum) return null;
 
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -60,7 +60,7 @@ export const useWallet = () => {
 
   // Connect wallet
   const connect = useCallback(async () => {
-    if (!isMetaMaskInstalled()) {
+    if (!isMetaMaskInstalled() || !window.ethereum) {
       setError({
         code: 'METAMASK_NOT_INSTALLED',
         message: 'MetaMask is not installed. Please install MetaMask to continue.',
@@ -137,7 +137,7 @@ export const useWallet = () => {
 
   // Switch to Monad testnet
   const switchToMonadTestnet = useCallback(async () => {
-    if (!isMetaMaskInstalled()) return;
+    if (!isMetaMaskInstalled() || !window.ethereum) return;
 
     try {
       // Try to switch to Monad testnet
@@ -147,7 +147,7 @@ export const useWallet = () => {
       });
     } catch (error: any) {
       // If the chain doesn't exist, add it
-      if (error.code === 4902) {
+      if (error.code === 4902 && window.ethereum) {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
@@ -202,19 +202,24 @@ export const useWallet = () => {
       }
     };
 
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged', handleChainChanged);
+    const ethereum = window.ethereum;
+    if (ethereum) {
+      ethereum.on('accountsChanged', handleAccountsChanged);
+      ethereum.on('chainChanged', handleChainChanged);
+    }
 
     return () => {
-      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-      window.ethereum.removeListener('chainChanged', handleChainChanged);
+      if (ethereum) {
+        ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        ethereum.removeListener('chainChanged', handleChainChanged);
+      }
     };
   }, [isMetaMaskInstalled, disconnect, connect, state.address]);
 
   // Auto-connect on page load if previously connected
   useEffect(() => {
     const autoConnect = async () => {
-      if (!isMetaMaskInstalled()) return;
+      if (!isMetaMaskInstalled() || !window.ethereum) return;
 
       try {
         const accounts = await window.ethereum.request({

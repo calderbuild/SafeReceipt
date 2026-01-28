@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Modal } from './Modal';
 import { useVerify } from '../hooks/useVerify';
 import { getDigest } from '../lib/storage';
-import type { CanonicalDigest } from '../lib/canonicalize';
 
 interface VerifyProofModalProps {
   isOpen: boolean;
@@ -17,7 +16,6 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
 
   const [receiptId, setReceiptId] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
-  const [localDigest, setLocalDigest] = useState<CanonicalDigest | null>(null);
 
   const handleVerify = async () => {
     setInputError(null);
@@ -29,7 +27,6 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
 
     // First check if we have the digest locally
     const digest = getDigest(receiptId.trim());
-    setLocalDigest(digest);
 
     if (!digest) {
       setInputError('No local data found for this receipt. Verification requires the original receipt data stored in your browser.');
@@ -42,17 +39,11 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
   const handleClose = () => {
     setReceiptId('');
     setInputError(null);
-    setLocalDigest(null);
     onClose();
   };
 
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
-  };
-
-  const truncateHash = (hash: string, length = 12) => {
-    if (hash.length <= length * 2) return hash;
-    return `${hash.slice(0, length)}...${hash.slice(-length)}`;
   };
 
   if (!isOpen) return null;

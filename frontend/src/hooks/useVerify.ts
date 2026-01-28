@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { ethers } from 'ethers';
 import { getDigest } from '../lib/storage';
 import { computeProofHash } from '../lib/canonicalize';
 import { createReceiptRegistryContract, getReadOnlyProvider } from '../lib/contract';
@@ -47,7 +46,7 @@ export function useVerify(): UseVerifyReturn {
           error: 'Digest not found in local storage. Cannot verify proof without original data.',
         };
         setLastResult(result);
-        setError(result.error);
+        setError(result.error ?? null);
         return result;
       }
 
@@ -67,7 +66,7 @@ export function useVerify(): UseVerifyReturn {
           error: 'Contract not deployed. Please deploy the contract first.',
         };
         setLastResult(result);
-        setError(result.error);
+        setError(result.error ?? null);
         return result;
       }
 

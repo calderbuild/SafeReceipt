@@ -58,7 +58,7 @@ function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false)
 
-  const handleCreateSuccess = (receiptId: string, txHash: string) => {
+  const handleCreateSuccess = (receiptId: string, _txHash: string) => {
     toast.success(`Receipt #${receiptId} created successfully!`, {
       duration: 5000,
       style: {
