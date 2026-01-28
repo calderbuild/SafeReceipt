@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import { Modal } from './Modal';
+import { RiskCard } from './RiskCard';
+import { LiabilityNotice } from './LiabilityNotice';
 import { useWallet } from '../hooks/useWallet';
 import { parseApproveIntent, parseBatchPayIntent, createUnlimitedAmount } from '../lib/intentParser';
 import { evaluateApprove, evaluateBatchPay, recordApproval } from '../lib/riskEngine';
@@ -307,12 +309,6 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
     }
   };
 
-  const getRiskLevelClass = (score: number) => {
-    if (score >= 50) return 'risk-high';
-    if (score >= 25) return 'risk-medium';
-    return 'risk-low';
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -560,60 +556,18 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
         </div>
       ) : step === 'review' && riskResult ? (
         <div className="space-y-6">
-          {/* Risk Score */}
-          <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-            <div>
-              <p className="text-sm text-slate-400">Risk Score</p>
-              <p className="text-lg font-semibold text-white">
-                {riskResult.rulesTriggered.length > 0
-                  ? `${riskResult.rulesTriggered.length} rule(s) triggered`
-                  : 'No risks detected'}
-              </p>
-            </div>
-            <div className={`risk-score ${getRiskLevelClass(riskResult.riskScore)}`}>
-              {riskResult.riskScore}
-            </div>
-          </div>
+          {/* Risk Card Component */}
+          <RiskCard
+            result={riskResult}
+            aiExplanation={aiRiskExplanation}
+          />
 
-          {/* Triggered Rules */}
-          {riskResult.ruleDetails.filter(r => r.triggered).length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-slate-300">Triggered Rules</p>
-              {riskResult.ruleDetails
-                .filter(r => r.triggered)
-                .map((rule, i) => (
-                  <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/5">
-                    <div className="flex items-center justify-between mb-1">
-                      <code className="text-sm text-crypto-red">{rule.ruleName}</code>
-                      <span className="text-xs text-slate-500">+{rule.weight} points</span>
-                    </div>
-                    <p className="text-sm text-slate-400">{rule.description}</p>
-                    {rule.recommendation && (
-                      <p className="text-xs text-slate-500 mt-1">{rule.recommendation}</p>
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
-
-          {/* AI Risk Explanation */}
-          {aiRiskExplanation && (
-            <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
-              <div className="flex items-center space-x-2 mb-2">
-                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                </svg>
-                <p className="text-sm font-medium text-purple-400">AI 风险解读</p>
-              </div>
-              <p className="text-sm text-slate-300 whitespace-pre-line">{aiRiskExplanation}</p>
-            </div>
-          )}
-
-          {/* Liability Notice */}
-          <div className="p-4 bg-accent/10 border border-accent/20 rounded-xl">
-            <p className="text-sm font-medium text-accent mb-2">Liability Notice</p>
-            <p className="text-sm text-slate-300">{riskResult.liabilityNotice}</p>
-          </div>
+          {/* Liability Notice Component */}
+          <LiabilityNotice
+            notice={riskResult.liabilityNotice}
+            riskScore={riskResult.riskScore}
+            rulesTriggered={riskResult.rulesTriggered}
+          />
 
           {submitError && (
             <div className="p-4 bg-crypto-red/10 border border-crypto-red/20 rounded-xl">
@@ -626,21 +580,21 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               onClick={() => setStep('form')}
               className="btn-secondary flex-1"
             >
-              Back
+              返回
             </button>
             <button
               onClick={handleSubmit}
               className="btn-primary flex-1"
             >
-              Create Receipt
+              创建回执
             </button>
           </div>
         </div>
       ) : step === 'submitting' ? (
         <div className="text-center py-12">
           <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white font-medium">Creating receipt...</p>
-          <p className="text-sm text-slate-400 mt-2">Please confirm the transaction in your wallet</p>
+          <p className="text-white font-medium">正在创建回执...</p>
+          <p className="text-sm text-slate-400 mt-2">请在钱包中确认交易</p>
         </div>
       ) : step === 'success' ? (
         <div className="text-center py-8">
@@ -649,15 +603,28 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Receipt Created!</h3>
-          <p className="text-slate-400 mb-6">Your receipt has been stored on-chain.</p>
+          <h3 className="text-xl font-bold text-white mb-2">回执创建成功!</h3>
+          <p className="text-slate-400 mb-6">你的回执已存储在链上</p>
 
           <div className="text-left space-y-3 p-4 bg-white/5 rounded-xl mb-6">
             <div>
-              <p className="text-xs text-slate-500">Receipt ID</p>
-              <p className="font-mono text-sm text-white">{receiptId}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-500">Receipt ID</p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(receiptId || '');
+                  }}
+                  className="text-xs text-primary-400 hover:text-primary-300 cursor-pointer"
+                >
+                  复制
+                </button>
+              </div>
+              <p className="font-mono text-lg text-white font-bold">#{receiptId}</p>
+              <p className="text-xs text-amber-400 mt-1">
+                请保存此 ID，用于后续验证
+              </p>
             </div>
-            <div>
+            <div className="pt-3 border-t border-white/10">
               <p className="text-xs text-slate-500">Transaction Hash</p>
               <p className="font-mono text-sm text-white break-all">{txHash}</p>
             </div>
@@ -667,7 +634,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
             onClick={handleClose}
             className="btn-primary w-full"
           >
-            Done
+            完成
           </button>
         </div>
       ) : null}
