@@ -1,3 +1,5 @@
+import { AgentDemo } from '../components/AgentDemo';
+
 interface HomeProps {
   onCreateClick: () => void;
   onVerifyClick: () => void;
@@ -95,6 +97,11 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
               <div className="text-xs text-slate-500">{stat.sublabel}</div>
             </div>
           ))}
+        </section>
+
+        {/* Agent Demo */}
+        <section className="mb-20">
+          <AgentDemo />
         </section>
 
         {/* How It Works */}
