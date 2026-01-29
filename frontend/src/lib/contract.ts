@@ -18,6 +18,17 @@ export const RECEIPT_REGISTRY_ABI = [
   },
   {
     "inputs": [
+      { "internalType": "uint256", "name": "receiptId", "type": "uint256" },
+      { "internalType": "bytes32", "name": "txHash", "type": "bytes32" },
+      { "internalType": "bool", "name": "verified", "type": "bool" }
+    ],
+    "name": "linkExecution",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       { "internalType": "uint256", "name": "receiptId", "type": "uint256" }
     ],
     "name": "getReceipt",
@@ -29,7 +40,9 @@ export const RECEIPT_REGISTRY_ABI = [
           { "internalType": "uint8", "name": "riskScore", "type": "uint8" },
           { "internalType": "uint40", "name": "timestamp", "type": "uint40" },
           { "internalType": "bytes32", "name": "intentHash", "type": "bytes32" },
-          { "internalType": "bytes32", "name": "proofHash", "type": "bytes32" }
+          { "internalType": "bytes32", "name": "proofHash", "type": "bytes32" },
+          { "internalType": "bytes32", "name": "txHash", "type": "bytes32" },
+          { "internalType": "uint8", "name": "status", "type": "uint8" }
         ],
         "internalType": "struct ReceiptRegistry.Receipt",
         "name": "",
@@ -70,7 +83,9 @@ export const RECEIPT_REGISTRY_ABI = [
       { "internalType": "uint8", "name": "riskScore", "type": "uint8" },
       { "internalType": "uint40", "name": "timestamp", "type": "uint40" },
       { "internalType": "bytes32", "name": "intentHash", "type": "bytes32" },
-      { "internalType": "bytes32", "name": "proofHash", "type": "bytes32" }
+      { "internalType": "bytes32", "name": "proofHash", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "txHash", "type": "bytes32" },
+      { "internalType": "uint8", "name": "status", "type": "uint8" }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -100,6 +115,16 @@ export const RECEIPT_REGISTRY_ABI = [
     ],
     "name": "ReceiptCreated",
     "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "receiptId", "type": "uint256" },
+      { "indexed": true, "internalType": "bytes32", "name": "txHash", "type": "bytes32" },
+      { "indexed": false, "internalType": "uint8", "name": "status", "type": "uint8" }
+    ],
+    "name": "ExecutionLinked",
+    "type": "event"
   }
 ] as const;
 
@@ -125,6 +150,13 @@ export const MONAD_TESTNET = {
 } as const;
 
 // Types
+export enum ReceiptStatus {
+  CREATED = 0,
+  EXECUTED = 1,
+  VERIFIED = 2,
+  MISMATCH = 3,
+}
+
 export interface Receipt {
   actor: string;
   actionType: number;
@@ -132,10 +164,27 @@ export interface Receipt {
   timestamp: number;
   intentHash: string;
   proofHash: string;
+  txHash: string;
+  status: ReceiptStatus;
 }
 
 export interface ReceiptWithId extends Receipt {
   receiptId: string;
+}
+
+export function getStatusLabel(status: ReceiptStatus): string {
+  switch (status) {
+    case ReceiptStatus.CREATED:
+      return 'Created';
+    case ReceiptStatus.EXECUTED:
+      return 'Executed';
+    case ReceiptStatus.VERIFIED:
+      return 'Verified';
+    case ReceiptStatus.MISMATCH:
+      return 'Mismatch';
+    default:
+      return 'Unknown';
+  }
 }
 
 export enum ActionType {
@@ -247,10 +296,40 @@ export class ReceiptRegistryContract {
         timestamp: Number(receipt.timestamp),
         intentHash: receipt.intentHash,
         proofHash: receipt.proofHash,
+        txHash: receipt.txHash,
+        status: receipt.status as ReceiptStatus,
       };
     } catch (error: any) {
       console.error('Failed to get receipt:', error);
       throw new Error(`Failed to get receipt: ${error.message}`);
+    }
+  }
+
+  // Link execution transaction to a receipt
+  async linkExecution(
+    receiptId: string,
+    txHash: string,
+    verified: boolean
+  ): Promise<{ txHash: string }> {
+    if (!this.contract) {
+      throw new Error('Contract not initialized or signer not available');
+    }
+
+    try {
+      const tx = await this.contract.linkExecution(
+        receiptId,
+        txHash,
+        verified
+      );
+
+      const receipt = await tx.wait();
+
+      return {
+        txHash: receipt.hash,
+      };
+    } catch (error: any) {
+      console.error('Failed to link execution:', error);
+      throw new Error(`Failed to link execution: ${error.message}`);
     }
   }
 
@@ -332,6 +411,7 @@ export const formatReceipt = (receipt: ReceiptWithId) => {
   return {
     ...receipt,
     actionTypeString: receipt.actionType === ActionType.APPROVE ? 'Approve' : 'Batch Pay',
+    statusString: getStatusLabel(receipt.status),
     timestampFormatted: new Date(receipt.timestamp * 1000).toLocaleString(),
     explorerUrl: `${MONAD_TESTNET.blockExplorer}/tx/${receipt.receiptId}`,
   };

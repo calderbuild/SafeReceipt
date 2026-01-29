@@ -69,6 +69,37 @@ export function deleteDigest(receiptId: string): void {
 }
 
 /**
+ * Update digest status and linked transaction hash
+ *
+ * @param receiptId - Receipt ID
+ * @param status - New status (CREATED, EXECUTED, VERIFIED, MISMATCH)
+ * @param linkedTxHash - Optional transaction hash that was linked
+ */
+export function updateDigestStatus(
+  receiptId: string,
+  status: string,
+  linkedTxHash?: string
+): void {
+  try {
+    const digest = getDigest(receiptId);
+    if (!digest) {
+      throw new Error('Digest not found');
+    }
+
+    const updated = {
+      ...digest,
+      status,
+      linkedTxHash,
+    };
+
+    saveDigest(receiptId, updated);
+  } catch (error) {
+    console.error('Failed to update digest status:', error);
+    throw new Error('Failed to update digest status.');
+  }
+}
+
+/**
  * Save receipt ID to user's receipt list
  *
  * @param address - User address

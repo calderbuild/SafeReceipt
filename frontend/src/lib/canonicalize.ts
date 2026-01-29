@@ -15,6 +15,9 @@ export interface CanonicalDigest {
   rulesTriggered: string[];  // Alphabetically sorted
   liabilityNotice: string;   // Deterministic notice text
   createdAt: number;         // Unix timestamp in seconds (integer)
+  // Runtime fields (not included in hash computation)
+  status?: string;           // CREATED, EXECUTED, VERIFIED, MISMATCH
+  linkedTxHash?: string;     // Transaction hash linked to this receipt
 }
 
 /**

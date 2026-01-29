@@ -33,6 +33,19 @@ function getRiskColor(score: number): string {
   return 'text-emerald-400 bg-emerald-500/20';
 }
 
+function getStatusBadge(status?: string): { color: string; label: string } | null {
+  switch (status) {
+    case 'VERIFIED':
+      return { color: 'bg-emerald-500/20 text-emerald-400', label: 'Verified' };
+    case 'MISMATCH':
+      return { color: 'bg-red-500/20 text-red-400', label: 'Mismatch' };
+    case 'EXECUTED':
+      return { color: 'bg-blue-500/20 text-blue-400', label: 'Executed' };
+    default:
+      return null; // Don't show badge for CREATED status
+  }
+}
+
 function formatDate(timestamp: number): string {
   return new Date(timestamp * 1000).toLocaleString('en-US', {
     year: 'numeric',
@@ -116,6 +129,11 @@ export function MyReceipts() {
                       }`}>
                         {digest.actionType}
                       </span>
+                      {getStatusBadge(digest.status) && (
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusBadge(digest.status)!.color}`}>
+                          {getStatusBadge(digest.status)!.label}
+                        </span>
+                      )}
                     </div>
                     <p className="text-slate-500 text-sm">{formatDate(digest.createdAt)}</p>
                   </div>

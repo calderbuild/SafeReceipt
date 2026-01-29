@@ -2,10 +2,12 @@ import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { useVerify } from '../hooks/useVerify';
-import { getDigest } from '../lib/storage';
+import { useExecutionVerifier } from '../hooks/useExecutionVerifier';
+import { getDigest, updateDigestStatus } from '../lib/storage';
 import { exportAndDownload } from '../lib/exportEvidence';
 import { RiskCard } from '../components/RiskCard';
 import { LiabilityNotice } from '../components/LiabilityNotice';
+import { MONAD_TESTNET } from '../lib/contract';
 import type { CanonicalDigest } from '../lib/canonicalize';
 
 // Heroicons
@@ -30,6 +32,18 @@ const ShieldExclamationIcon = () => (
 const DownloadIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+  </svg>
+);
+
+const LinkIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+  </svg>
+);
+
+const ExternalLinkIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
   </svg>
 );
 
@@ -72,12 +86,28 @@ function formatIntent(intent: object): { label: string; value: string }[] {
   return entries;
 }
 
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'VERIFIED':
+      return { color: 'bg-emerald-500/20 text-emerald-400', label: 'Verified' };
+    case 'MISMATCH':
+      return { color: 'bg-red-500/20 text-red-400', label: 'Mismatch' };
+    case 'EXECUTED':
+      return { color: 'bg-blue-500/20 text-blue-400', label: 'Executed' };
+    default:
+      return { color: 'bg-slate-500/20 text-slate-400', label: 'Created' };
+  }
+}
+
 export function ReceiptDetail() {
   const { id } = useParams<{ id: string }>();
   const { address } = useWallet();
   const { verifyProof, isVerifying, lastResult } = useVerify();
+  const { verifyExecution, isVerifying: isVerifyingExecution, lastResult: executionResult } = useExecutionVerifier();
   const [digest, setDigest] = useState<CanonicalDigest | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
+  const [txHashInput, setTxHashInput] = useState('');
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -95,6 +125,26 @@ export function ReceiptDetail() {
   const handleExport = () => {
     if (!id || !digest || !address) return;
     exportAndDownload(id, digest, address);
+  };
+
+  const handleLinkTransaction = async () => {
+    if (!id || !txHashInput) return;
+    setLinkError(null);
+
+    // Validate tx hash format
+    if (!/^0x[a-fA-F0-9]{64}$/.test(txHashInput)) {
+      setLinkError('Invalid transaction hash format');
+      return;
+    }
+
+    const result = await verifyExecution(id, txHashInput);
+
+    // Update local storage with verification result
+    if (digest) {
+      const status = result.isVerified ? 'VERIFIED' : 'MISMATCH';
+      updateDigestStatus(id, status, txHashInput);
+      setDigest({ ...digest, status, linkedTxHash: txHashInput });
+    }
   };
 
   if (!id) {
@@ -131,6 +181,7 @@ export function ReceiptDetail() {
   }
 
   const intentEntries = formatIntent(digest.normalizedIntent);
+  const statusBadge = getStatusBadge(digest.status || 'CREATED');
 
   return (
     <div className="min-h-screen pt-28 pb-12 px-4">
@@ -154,6 +205,9 @@ export function ReceiptDetail() {
                 }`}>
                   {digest.actionType}
                 </span>
+                <span className={`px-3 py-1 rounded-lg text-sm font-medium ${statusBadge.color}`}>
+                  {statusBadge.label}
+                </span>
               </h1>
               <p className="text-slate-400 text-sm">{formatDate(digest.createdAt)}</p>
             </div>
@@ -166,7 +220,7 @@ export function ReceiptDetail() {
               className="btn-secondary flex items-center space-x-2"
             >
               <ShieldCheckIcon />
-              <span>{isVerifying ? 'Verifying...' : 'Verify'}</span>
+              <span>{isVerifying ? 'Verifying...' : 'Verify Proof'}</span>
             </button>
             <button
               onClick={handleExport}
@@ -178,7 +232,7 @@ export function ReceiptDetail() {
           </div>
         </div>
 
-        {/* Verification Result */}
+        {/* Proof Verification Result */}
         {verified !== null && (
           <div className={`glass-card p-4 mb-6 flex items-center space-x-3 ${
             verified
@@ -191,7 +245,7 @@ export function ReceiptDetail() {
                   <ShieldCheckIcon />
                 </div>
                 <div>
-                  <p className="text-emerald-400 font-medium">Verification Passed</p>
+                  <p className="text-emerald-400 font-medium">Proof Verification Passed</p>
                   <p className="text-slate-400 text-sm">On-chain proof matches local digest</p>
                 </div>
               </>
@@ -201,7 +255,7 @@ export function ReceiptDetail() {
                   <ShieldExclamationIcon />
                 </div>
                 <div>
-                  <p className="text-red-400 font-medium">Verification Failed</p>
+                  <p className="text-red-400 font-medium">Proof Verification Failed</p>
                   <p className="text-slate-400 text-sm">
                     {lastResult?.error || 'Hash mismatch or receipt not found on-chain'}
                   </p>
@@ -210,6 +264,86 @@ export function ReceiptDetail() {
             )}
           </div>
         )}
+
+        {/* Link Execution Section */}
+        <div className="glass-card p-6 mb-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <LinkIcon />
+            <h3 className="text-lg font-semibold text-white">Link Execution</h3>
+          </div>
+
+          {digest.linkedTxHash ? (
+            // Already linked
+            <div className={`p-4 rounded-lg ${
+              digest.status === 'VERIFIED'
+                ? 'bg-emerald-500/10 border border-emerald-500/30'
+                : 'bg-red-500/10 border border-red-500/30'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={digest.status === 'VERIFIED' ? 'text-emerald-400' : 'text-red-400'}>
+                  {digest.status === 'VERIFIED' ? 'Transaction Verified' : 'Transaction Mismatch'}
+                </span>
+                <a
+                  href={`${MONAD_TESTNET.blockExplorer}/tx/${digest.linkedTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-1 text-blue-400 hover:text-blue-300"
+                >
+                  <span className="font-mono text-sm">
+                    {digest.linkedTxHash.slice(0, 10)}...{digest.linkedTxHash.slice(-8)}
+                  </span>
+                  <ExternalLinkIcon />
+                </a>
+              </div>
+              <p className="text-slate-400 text-sm">
+                {digest.status === 'VERIFIED'
+                  ? 'The executed transaction matches the declared intent.'
+                  : 'The executed transaction does NOT match the declared intent.'}
+              </p>
+            </div>
+          ) : (
+            // Not linked yet
+            <>
+              <p className="text-slate-400 text-sm mb-4">
+                Link the actual transaction to verify it matches your declared intent.
+                This proves the execution matches what you said you would do.
+              </p>
+
+              <div className="flex space-x-3">
+                <input
+                  type="text"
+                  value={txHashInput}
+                  onChange={(e) => setTxHashInput(e.target.value)}
+                  placeholder="0x... transaction hash"
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white font-mono text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                />
+                <button
+                  onClick={handleLinkTransaction}
+                  disabled={isVerifyingExecution || !txHashInput}
+                  className="btn-primary flex items-center space-x-2"
+                >
+                  <LinkIcon />
+                  <span>{isVerifyingExecution ? 'Verifying...' : 'Link & Verify'}</span>
+                </button>
+              </div>
+
+              {linkError && (
+                <p className="text-red-400 text-sm mt-2">{linkError}</p>
+              )}
+
+              {executionResult && !executionResult.isVerified && executionResult.mismatchReasons.length > 0 && (
+                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 font-medium mb-2">Verification Failed</p>
+                  <ul className="text-slate-400 text-sm space-y-1">
+                    {executionResult.mismatchReasons.map((reason, i) => (
+                      <li key={i}>• {reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Risk Assessment */}
         <div className="mb-6">
