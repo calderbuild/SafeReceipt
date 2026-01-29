@@ -37,11 +37,11 @@ const DEFAULT_CONFIG: LLMConfig = {
   model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o',
 };
 
-const INTENT_PARSE_PROMPT = `You are an expert at parsing cryptocurrency transaction intents from natural language.
+const INTENT_PARSE_PROMPT = `You are an expert at parsing blockchain transaction intents from natural language.
 
-Given a user's natural language description, extract the structured transaction intent.
+Given a user's description, extract the structured transaction intent.
 
-KNOWN ADDRESSES (Monad Testnet - use these when user mentions these names):
+KNOWN ADDRESSES (Testnet - use these when user mentions these names):
 Tokens:
 - USDC: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
 - USDT: 0xdAC17F958D2ee523a2206206994597C13D831ec7
@@ -56,11 +56,11 @@ Protocols/Spenders:
 RULES:
 1. For token approvals (ERC20 approve):
    - Extract: token address, spender address, amount
-   - "unlimited", "max", "无限" means isUnlimited=true
+   - "unlimited", "max" means isUnlimited=true
    - If user mentions a known name (like "USDC", "Uniswap"), use the address from KNOWN ADDRESSES above
    - Amount should be in wei (multiply by 10^decimals, USDC/USDT=6, others=18)
 
-2. For batch payments:
+2. For batch transfers:
    - Extract: list of (recipient address, amount) pairs
    - Parse CSV-like formats or natural language lists
 
@@ -83,15 +83,15 @@ OUTPUT FORMAT (JSON only, no markdown):
     "recipients": [{"address": "0x...", "amount": "..."}]
   },
   "confidence": 0.0-1.0,
-  "reasoning": "brief explanation in Chinese",
+  "reasoning": "brief explanation",
   "missingInfo": ["list of missing required info"] // empty if complete
 }`;
 
-const RISK_EXPLAIN_PROMPT = `You are an expert at explaining cryptocurrency transaction risks in simple terms.
+const RISK_EXPLAIN_PROMPT = `You are an expert at explaining blockchain transaction details in simple terms.
 
-Given a list of triggered risk rules and their context, explain:
-1. What each risk means in plain language
-2. Why it matters for the user's funds
+Given a list of analysis results and their context, explain:
+1. What each item means in plain language
+2. Why it matters for the user
 3. A recommendation (proceed with caution, review carefully, or reconsider)
 
 Keep explanations concise and actionable. Use bullet points.
@@ -226,7 +226,7 @@ export async function explainRisks(
   if (rulesTriggered.length === 0) {
     return {
       success: true,
-      explanation: '未检测到明显风险。该交易看起来是安全的。',
+      explanation: 'No significant risks detected. This transaction appears safe.',
     };
   }
 
@@ -264,7 +264,7 @@ Please explain these risks in simple terms.`;
 
     return {
       success: true,
-      explanation: explanation || '无法生成风险解释。',
+      explanation: explanation || 'Unable to generate risk explanation.',
     };
   } catch (error: any) {
     return {

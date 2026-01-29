@@ -40,7 +40,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
     const digest = getDigest(receiptId.trim());
 
     if (!digest) {
-      setInputError('找不到此回执的本地数据。请确保：1) ID 输入正确；2) 使用创建回执时的同一浏览器');
+      setInputError('Local data not found for this receipt. Please ensure: 1) The ID is correct; 2) You are using the same browser where the receipt was created');
       return;
     }
 
@@ -70,7 +70,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
               type="text"
               value={receiptId}
               onChange={(e) => setReceiptId(e.target.value)}
-              placeholder="输入创建回执时获得的 ID"
+              placeholder="Enter the Receipt ID from creation"
               className="input-field font-mono text-sm flex-1"
               disabled={isVerifying}
             />
@@ -82,7 +82,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
               {isVerifying ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                '验证'
+                'Verify'
               )}
             </button>
           </div>
@@ -90,14 +90,14 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
             <p className="text-crypto-red text-sm mt-2">{inputError}</p>
           )}
           <p className="text-xs text-slate-500 mt-2">
-            Receipt ID 在创建回执成功后显示，请确保在同一浏览器中验证
+            Receipt ID is shown after successful creation. Please verify in the same browser.
           </p>
         </div>
 
         {/* User's Receipt History */}
         {userReceipts.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-slate-300 mb-2">我的回执</p>
+            <p className="text-sm font-medium text-slate-300 mb-2">My Receipts</p>
             <div className="flex flex-wrap gap-2">
               {userReceipts.slice(0, 10).map((id) => (
                 <button
@@ -114,7 +114,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
               ))}
             </div>
             <p className="text-xs text-slate-500 mt-2">
-              点击回执 ID 可自动填入
+              Click a receipt ID to auto-fill
             </p>
           </div>
         )}
@@ -257,7 +257,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
           onClick={handleClose}
           className="btn-secondary w-full"
         >
-          关闭
+          Close
         </button>
       </div>
     </Modal>

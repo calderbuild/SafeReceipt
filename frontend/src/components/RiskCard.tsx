@@ -10,7 +10,7 @@ interface RiskCardProps {
 const getRiskLevel = (score: number): { label: string; color: string; bgColor: string; borderColor: string } => {
   if (score >= 50) {
     return {
-      label: '高风险',
+      label: 'High Risk',
       color: 'text-red-400',
       bgColor: 'bg-red-500/20',
       borderColor: 'border-red-500/30',
@@ -18,14 +18,14 @@ const getRiskLevel = (score: number): { label: string; color: string; bgColor: s
   }
   if (score >= 25) {
     return {
-      label: '中风险',
+      label: 'Medium Risk',
       color: 'text-amber-400',
       bgColor: 'bg-amber-500/20',
       borderColor: 'border-amber-500/30',
     };
   }
   return {
-    label: '低风险',
+    label: 'Low Risk',
     color: 'text-emerald-400',
     bgColor: 'bg-emerald-500/20',
     borderColor: 'border-emerald-500/30',
@@ -71,7 +71,7 @@ const RuleItem: React.FC<{ rule: RuleDetail; expanded: boolean; onToggle: () => 
           <p className="text-sm text-slate-400">{rule.description}</p>
           {rule.recommendation && (
             <p className="text-xs text-slate-500 mt-2 flex items-start space-x-1">
-              <span className="text-amber-400">建议:</span>
+              <span className="text-amber-400">Suggestion:</span>
               <span>{rule.recommendation}</span>
             </p>
           )}
@@ -102,7 +102,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
       <div className={`p-5 rounded-2xl border ${riskLevel.bgColor} ${riskLevel.borderColor}`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-400 mb-1">风险评分</p>
+            <p className="text-sm text-slate-400 mb-1">Risk Score</p>
             <div className="flex items-baseline space-x-2">
               <span className={`text-4xl font-bold font-display ${riskLevel.color}`}>
                 {result.riskScore}
@@ -136,7 +136,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
       {triggeredRules.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-slate-300 px-1">
-            触发规则 ({triggeredRules.length})
+            Triggered Rules ({triggeredRules.length})
           </p>
           {triggeredRules.map((rule) => (
             <RuleItem
@@ -156,7 +156,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
             <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
-            <p className="text-sm font-medium text-purple-400">AI 风险解读</p>
+            <p className="text-sm font-medium text-purple-400">AI Risk Analysis</p>
           </div>
           <p className="text-sm text-slate-300 whitespace-pre-line">{aiExplanation}</p>
         </div>
@@ -168,8 +168,8 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
           <svg className="w-8 h-8 text-emerald-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
           </svg>
-          <p className="text-emerald-400 font-medium">未检测到风险</p>
-          <p className="text-sm text-slate-400 mt-1">该交易看起来是安全的</p>
+          <p className="text-emerald-400 font-medium">No Risks Detected</p>
+          <p className="text-sm text-slate-400 mt-1">This transaction appears safe</p>
         </div>
       )}
     </div>

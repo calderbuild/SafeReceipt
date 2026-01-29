@@ -50,13 +50,13 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-white">责任声明</h3>
+            <h3 className="font-semibold text-white">Liability Notice</h3>
             <p className="text-sm text-slate-400 mt-1">
               {isHighRisk
-                ? '高风险交易 - 请仔细阅读以下声明'
+                ? 'High risk transaction - please read carefully'
                 : isMediumRisk
-                ? '中风险交易 - 建议阅读以下声明'
-                : '低风险交易 - 以下是标准声明'}
+                ? 'Medium risk - review recommended'
+                : 'Low risk - standard notice'}
             </p>
           </div>
         </div>
@@ -71,7 +71,7 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
 
           {rulesTriggered.length > 0 && (
             <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-xs text-slate-500 mb-2">触发的风险规则：</p>
+              <p className="text-xs text-slate-500 mb-2">Triggered risk rules:</p>
               <div className="flex flex-wrap gap-2">
                 {rulesTriggered.map((rule, i) => (
                   <span
@@ -98,7 +98,7 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
             onClick={() => setIsExpanded(!isExpanded)}
             className="mt-2 text-xs text-primary-400 hover:text-primary-300 flex items-center space-x-1 cursor-pointer"
           >
-            <span>{isExpanded ? '收起' : '展开全部'}</span>
+            <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
             <svg
               className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
@@ -125,7 +125,7 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
                 : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30'
             }`}
           >
-            我已阅读并理解上述风险
+            I have read and understand the risks above
           </button>
         </div>
       )}
@@ -137,7 +137,7 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="text-sm font-medium">已确认知晓风险</span>
+            <span className="text-sm font-medium">Risk acknowledged</span>
           </div>
         </div>
       )}

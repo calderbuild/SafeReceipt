@@ -100,8 +100,11 @@ describe('useVerify', () => {
     // Call verifyProof
     const verificationPromise = result.current.verifyProof(testReceiptId);
 
-    // Wait for verification to complete
-    await waitFor(() => expect(result.current.isVerifying).toBe(false));
+    // Wait for verification to complete and error to be set
+    await waitFor(() => {
+      expect(result.current.isVerifying).toBe(false);
+      expect(result.current.error).toBeTruthy();
+    });
 
     const verificationResult = await verificationPromise;
 
@@ -110,7 +113,6 @@ describe('useVerify', () => {
     expect(verificationResult.onChainProofHash).toBe(differentHash);
     expect(verificationResult.localProofHash).toBe(mockProofHash);
     expect(verificationResult.error).toContain('mismatch');
-    expect(result.current.error).toBeTruthy();
     expect(result.current.error).toContain('mismatch');
   });
 

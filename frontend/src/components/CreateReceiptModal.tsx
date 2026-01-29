@@ -7,10 +7,12 @@ import { useWallet } from '../hooks/useWallet';
 import { parseApproveIntent, parseBatchPayIntent, createUnlimitedAmount } from '../lib/intentParser';
 import { evaluateApprove, evaluateBatchPay, recordApproval } from '../lib/riskEngine';
 import { createCanonicalDigest, computeIntentHash, computeProofHash } from '../lib/canonicalize';
-import { saveDigest, addReceiptToUser } from '../lib/storage';
+import { saveDigest, addReceiptToUser, getDigest } from '../lib/storage';
 import { createReceiptRegistryContract, ActionType } from '../lib/contract';
 import { KNOWN_SAFE_CONTRACTS } from '../lib/knownContracts';
 import { parseNaturalLanguageIntent, explainRisks, isLLMConfigured } from '../lib/llm';
+import { exportAndDownload } from '../lib/exportEvidence';
+import { parseWalletError, isUserRejection } from '../lib/walletErrors';
 import type { RiskResult } from '../lib/riskEngine';
 
 interface CreateReceiptModalProps {
@@ -91,7 +93,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
   // AI natural language parsing
   const handleAIParse = async () => {
     if (!naturalLanguageInput.trim()) {
-      setAiParseError('请输入交易描述');
+      setAiParseError('Please enter a transaction description');
       return;
     }
 
@@ -104,7 +106,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
       const result = await parseNaturalLanguageIntent(naturalLanguageInput);
 
       if (!result.success) {
-        setAiParseError(result.error || '解析失败');
+        setAiParseError(result.error || 'Failed to parse');
         setIsParsingAI(false);
         return;
       }
@@ -132,7 +134,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
       setInputMode('manual');
       setIsParsingAI(false);
     } catch (error: any) {
-      setAiParseError(error.message || '解析失败');
+      setAiParseError(error.message || 'Failed to parse');
       setIsParsingAI(false);
     }
   };
@@ -303,8 +305,14 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
       setTxHash(result.txHash);
       setStep('success');
       onSuccess?.(result.receiptId, result.txHash);
-    } catch (error: any) {
-      setSubmitError(error.message || 'Failed to create receipt');
+    } catch (error: unknown) {
+      // User cancelled - don't show error
+      if (isUserRejection(error)) {
+        setStep('review');
+        return;
+      }
+      const walletError = parseWalletError(error);
+      setSubmitError(`${walletError.title}: ${walletError.message}${walletError.suggestion ? `\n${walletError.suggestion}` : ''}`);
       setStep('review');
     }
   };
@@ -333,7 +341,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
                 </svg>
-                <span>AI 解析</span>
+                <span>AI Parse</span>
               </button>
               <button
                 onClick={() => setInputMode('manual')}
@@ -346,7 +354,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
                 </svg>
-                <span>手动输入</span>
+                <span>Manual Input</span>
               </button>
             </div>
           )}
@@ -356,18 +364,18 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  用自然语言描述你的交易意图
+                  Describe your transaction intent in natural language
                 </label>
                 <textarea
                   value={naturalLanguageInput}
                   onChange={(e) => setNaturalLanguageInput(e.target.value)}
-                  placeholder="用日常语言描述，例如：&#10;授权 Uniswap 使用 1000 USDC&#10;给 Uniswap 无限授权我的 USDT"
+                  placeholder="Describe in plain language, e.g.:&#10;Approve Uniswap to use 1000 USDC&#10;Give unlimited USDT approval to Uniswap"
                   rows={3}
                   className="input-field text-sm resize-none"
                   disabled={isParsingAI}
                 />
               <div className="mt-2 p-3 bg-white/5 rounded-lg">
-                <p className="text-xs text-slate-400 mb-2">支持的代币和协议：</p>
+                <p className="text-xs text-slate-400 mb-2">Supported tokens and protocols:</p>
                 <div className="flex flex-wrap gap-2">
                   {['USDC', 'USDT', 'WETH', 'DAI'].map(t => (
                     <span key={t} className="px-2 py-0.5 text-xs bg-primary-500/20 text-primary-300 rounded">
@@ -387,7 +395,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 <div className="p-3 bg-crypto-red/10 border border-crypto-red/20 rounded-xl">
                   <p className="text-sm text-crypto-red">
                     {aiParseError.includes('Missing information')
-                      ? '无法识别您的描述，请尝试更具体的表达，例如「授权 Uniswap 使用 1000 USDC」'
+                      ? 'Could not understand your description. Please be more specific, e.g. "Approve Uniswap to use 1000 USDC"'
                       : aiParseError}
                   </p>
                 </div>
@@ -396,12 +404,12 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               {aiConfidence !== null && aiReasoning && (
                 <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-purple-400">AI 解析结果</span>
+                    <span className="text-xs text-purple-400">AI Parse Result</span>
                     <span className={`text-xs font-mono ${
                       aiConfidence >= 0.8 ? 'text-crypto-green' :
                       aiConfidence >= 0.5 ? 'text-accent' : 'text-crypto-red'
                     }`}>
-                      置信度: {(aiConfidence * 100).toFixed(0)}%
+                      Confidence: {(aiConfidence * 100).toFixed(0)}%
                     </span>
                   </div>
                   <p className="text-sm text-slate-300">{aiReasoning}</p>
@@ -416,20 +424,20 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 {isParsingAI ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>AI 解析中...</span>
+                    <span>AI Parsing...</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                     </svg>
-                    <span>AI 智能解析</span>
+                    <span>AI Smart Parse</span>
                   </>
                 )}
               </button>
 
               <p className="text-xs text-slate-500 text-center">
-                AI 会自动识别代币和协议名称，解析后你可以确认
+                AI will auto-detect token and protocol names. Review after parsing.
               </p>
             </div>
           )}
@@ -580,21 +588,21 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               onClick={() => setStep('form')}
               className="btn-secondary flex-1"
             >
-              返回
+              Back
             </button>
             <button
               onClick={handleSubmit}
               className="btn-primary flex-1"
             >
-              创建回执
+              Create Receipt
             </button>
           </div>
         </div>
       ) : step === 'submitting' ? (
         <div className="text-center py-12">
           <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white font-medium">正在创建回执...</p>
-          <p className="text-sm text-slate-400 mt-2">请在钱包中确认交易</p>
+          <p className="text-white font-medium">Creating receipt...</p>
+          <p className="text-sm text-slate-400 mt-2">Please confirm the transaction in your wallet</p>
         </div>
       ) : step === 'success' ? (
         <div className="text-center py-8">
@@ -603,8 +611,8 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">回执创建成功!</h3>
-          <p className="text-slate-400 mb-6">你的回执已存储在链上</p>
+          <h3 className="text-xl font-bold text-white mb-2">Receipt Created!</h3>
+          <p className="text-slate-400 mb-6">Your receipt has been stored on-chain</p>
 
           <div className="text-left space-y-3 p-4 bg-white/5 rounded-xl mb-6">
             <div>
@@ -616,12 +624,12 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                   }}
                   className="text-xs text-primary-400 hover:text-primary-300 cursor-pointer"
                 >
-                  复制
+                  Copy
                 </button>
               </div>
               <p className="font-mono text-lg text-white font-bold">#{receiptId}</p>
               <p className="text-xs text-amber-400 mt-1">
-                请保存此 ID，用于后续验证
+                Save this ID for future verification
               </p>
             </div>
             <div className="pt-3 border-t border-white/10">
@@ -630,12 +638,30 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={handleClose}
-            className="btn-primary w-full"
-          >
-            完成
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => {
+                if (receiptId && address) {
+                  const digest = getDigest(receiptId);
+                  if (digest) {
+                    exportAndDownload(receiptId, digest, address, txHash || undefined);
+                  }
+                }
+              }}
+              className="btn-secondary flex-1 flex items-center justify-center space-x-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span>Export Evidence</span>
+            </button>
+            <button
+              onClick={handleClose}
+              className="btn-primary flex-1"
+            >
+              Done
+            </button>
+          </div>
         </div>
       ) : null}
     </Modal>
