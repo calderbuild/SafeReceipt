@@ -10,53 +10,39 @@ SafeReceipt is an Agent Accountability Protocol that creates verifiable on-chain
 
 ## Tech Stack
 
-- **Contract**: Hardhat + Solidity 0.8.24 (evmVersion: "prague")
-- **Frontend**: Vite + React + TypeScript + Tailwind CSS v4
+- **Contract**: Hardhat + Solidity 0.8.19, optimizer enabled (200 runs)
+- **Frontend**: Vite + React 19 + TypeScript + Tailwind CSS v4
 - **Chain Interaction**: ethers.js v6
 - **Wallet**: MetaMask
-- **Testing**: vitest + happy-dom
+- **AI**: OpenAI-compatible API (GPT-4o) for natural language intent parsing
+- **Testing**: vitest + happy-dom + @testing-library/react
 
 ## Build & Deploy Commands
 
 ```bash
-# Contract
+# Contract (requires Node 18; Node 22 has Hardhat compatibility issues)
 npx hardhat compile
 npx hardhat test
 npx hardhat run scripts/deploy.ts --network monad
 
-# Frontend (from project root)
-cd frontend && npm run dev
-cd frontend && npm run build
+# Frontend
+cd frontend && npm run dev       # Dev server at localhost:5173
+cd frontend && npm run build     # tsc -b && vite build
+cd frontend && npm run lint      # ESLint
 
 # Frontend Testing
-cd frontend && npm test              # Watch mode
-cd frontend && npm test -- --run     # Run once
-cd frontend && npm test -- --ui      # With UI
-cd frontend && npm test -- src/lib/__tests__/riskEngine.test.ts  # Specific file
-```
-
-## Monad Testnet Config
-
-```javascript
-// hardhat.config.ts
-networks: {
-  monad: {
-    url: "https://testnet-rpc.monad.xyz",
-    chainId: 10143,
-    accounts: [process.env.PRIVATE_KEY]
-  }
-}
-solidity: {
-  version: "0.8.24",
-  settings: { evmVersion: "prague" }
-}
+cd frontend && npm test                                              # Watch mode
+cd frontend && npm test -- --run                                     # Run once
+cd frontend && npm test -- --ui                                      # With UI
+cd frontend && npm test -- src/lib/__tests__/riskEngine.test.ts      # Specific file
+cd frontend && npx tsc --noEmit                                      # Type check only
 ```
 
 ## Critical Technical Constraints
 
 ### Canonicalization (Hash Reproducibility)
 
-Field order is **fixed** - any deviation breaks verification:
+Field order is **fixed** -- any deviation breaks verification:
 ```
 version, actionType, chainId, normalizedIntent, riskScore, rulesTriggered, liabilityNotice, createdAt
 ```
@@ -68,22 +54,9 @@ Rules:
 - Amounts: always string type
 - JSON: no whitespace (compact)
 
-### Solidity Event Indexed Limit
+The `CanonicalDigest` type also has optional runtime fields (`status`, `linkedTxHash`) that are **not** included in hash computation.
 
-Max 3 indexed parameters per event:
-```solidity
-event ReceiptCreated(
-    uint256 indexed receiptId,
-    address indexed actor,
-    uint8 indexed actionType,
-    bytes32 intentHash,      // NOT indexed
-    bytes32 proofHash,
-    uint8 riskScore,
-    uint256 timestamp
-);
-```
-
-### Risk Rules (MVP - 6 only)
+### Risk Rules (6 rules, fixed weights)
 
 | Rule | Weight |
 |------|--------|
@@ -94,91 +67,100 @@ event ReceiptCreated(
 | RECIPIENT_IS_CONTRACT | 5 |
 | OUTLIER_AMOUNT | 5 |
 
-## Key Files Reference
+### Contract Status Lifecycle
 
-- **PRD.md**: Complete product specification
-- **plans/feat-safereceipt-mvp-full-implementation.md**: Implementation plan with task tracking
-- **contracts/ReceiptRegistry.sol**: Core on-chain storage
-- **frontend/src/lib/canonicalize.ts**: Hash generation logic (must match exactly for verify)
-- **frontend/src/lib/storage.ts**: localStorage persistence layer
-- **frontend/src/lib/liabilityNotice.ts**: Deterministic liability notice generation
-- **frontend/src/lib/riskEngine.ts**: 6 MVP risk rules implementation
-- **frontend/src/lib/knownContracts.ts**: Whitelisted contract addresses
-- **frontend/src/lib/intentParser.ts**: Structured form input validation (Approve/BatchPay)
-- **frontend/src/hooks/useVerify.ts**: Proof verification hook
-- **frontend/src/hooks/useWallet.ts**: MetaMask connection and network switching
-- **frontend/src/lib/contract.ts**: Contract interaction wrapper (ReceiptRegistryContract class)
+```
+CREATED (0) → VERIFIED (2) or MISMATCH (3)
+```
+
+`linkExecution(receiptId, txHash, verified)` transitions from CREATED. Only the receipt owner can call it, and only once.
+
+### Solidity Event Indexed Limit
+
+Max 3 indexed parameters per event. Both `ReceiptCreated` and `ExecutionLinked` events follow this constraint.
 
 ## Core Architecture
 
-### Verification Flow (Proof-of-Safe-Execution)
+### Receipt Lifecycle (3 steps)
 
-1. **Receipt Creation**:
-   - User intent → Risk analysis → Generate canonical digest
-   - Compute `intentHash = keccak256(normalizedIntent)`
-   - Compute `proofHash = keccak256(canonicalDigest)`
-   - Store digest in localStorage with key `safereceipt:digest:{receiptId}`
-   - Submit to chain: `createReceipt(actionType, intentHash, proofHash, riskScore)`
+```
+1. CREATE:  Intent → Risk Analysis → Canonical Digest → keccak256 → Store on-chain + localStorage
+2. EXECUTE: Agent/user executes the actual blockchain transaction
+3. VERIFY:  Link txHash → Decode calldata → Compare against intent → VERIFIED / MISMATCH
+```
 
-2. **Proof Verification** (useVerify hook):
-   - Fetch on-chain receipt by ID → get `proofHash`
-   - Retrieve digest from localStorage
-   - Recompute `proofHash` locally from stored digest
-   - Compare: `onChainHash === localHash` → Valid/Invalid
+### Proof Verification (useVerify hook)
 
-3. **localStorage Schema**:
-   ```
-   safereceipt:digest:{receiptId}    → CanonicalDigest JSON
-   safereceipt:receipts:{address}    → receiptId[] array
-   ```
+```
+On-chain proofHash  ←→  keccak256(canonicalizeDigest(localDigest))
+```
 
-### Hook Architecture
+Match = data integrity proven. Mismatch = tampered.
 
-- **useWallet**: MetaMask connection, network switching, account management
-- **useVerify**: Proof verification (reads chain + localStorage, compares hashes)
-- **useReceipts** (planned): Fetch user's receipt history from chain
+### Execution Verification (useExecutionVerifier hook)
+
+```
+Fetch tx by hash → Decode ERC20 approve(spender, amount) → Compare token/spender/amount against stored intent
+```
+
+### localStorage Schema
+
+```
+safereceipt:digest:{receiptId}    → CanonicalDigest JSON (includes optional status, linkedTxHash)
+safereceipt:receipts:{address}    → receiptId[] array
+```
 
 ### Contract Interaction Pattern
 
 ```typescript
-// Read-only operations (no wallet needed)
+// Read-only (no wallet needed)
 const provider = getReadOnlyProvider();
 const contract = createReceiptRegistryContract(provider);
 const receipt = await contract.getReceipt(receiptId);
 
-// Write operations (requires wallet)
+// Write (requires wallet)
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
 const contract = createReceiptRegistryContract(provider, signer);
 const { receiptId, txHash } = await contract.createReceipt(...);
+await contract.linkExecution(receiptId, txHashBytes32, verified);
 ```
+
+### LLM Integration
+
+`llm.ts` calls an OpenAI-compatible API to parse natural language like "Approve 100 USDC to Uniswap" into structured intent. Config via env vars: `VITE_OPENAI_API_KEY`, `VITE_OPENAI_BASE_URL`, `VITE_OPENAI_MODEL`.
+
+## Key Files
+
+- **contracts/ReceiptRegistry.sol**: On-chain storage with Status enum and linkExecution
+- **frontend/src/lib/canonicalize.ts**: Deterministic hashing (must match exactly for verify)
+- **frontend/src/lib/contract.ts**: ABI, types (Receipt, ReceiptStatus), ReceiptRegistryContract class
+- **frontend/src/lib/riskEngine.ts**: 6 risk rules implementation
+- **frontend/src/lib/storage.ts**: localStorage CRUD + updateDigestStatus
+- **frontend/src/lib/llm.ts**: LLM-powered natural language intent parsing
+- **frontend/src/hooks/useVerify.ts**: Proof verification (chain hash vs local hash)
+- **frontend/src/hooks/useExecutionVerifier.ts**: ERC20 calldata decoding + intent comparison
+- **frontend/src/hooks/useWallet.ts**: MetaMask connection and Monad network switching
+- **frontend/src/lib/agentRunner.ts**: End-to-end lifecycle orchestrator (parse → risk → receipt → execute → verify)
+- **frontend/src/lib/demoScenarios.ts**: Preset demo scenarios with fallback intents
+- **frontend/src/lib/executeIntent.ts**: ERC20 approve execution with mock fallback
+- **frontend/src/components/AgentDemo.tsx**: One-click agent demo stepper UI
+- **frontend/src/pages/ReceiptDetail.tsx**: Receipt detail with Link Execution UI
 
 ## Testing
 
-### Test Organization
-- **Unit tests**: `frontend/src/lib/__tests__/*.test.ts`
-- **Hook tests**: `frontend/src/hooks/__tests__/*.test.ts`
-- **Test environment**: vitest + happy-dom (configured in vite.config.ts)
-- **Current coverage**: 172 tests (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser, useVerify)
+- **172 tests** across 7 test files
+- Unit tests: `frontend/src/lib/__tests__/` (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser)
+- Hook tests: `frontend/src/hooks/__tests__/useVerify.test.ts`
+- Critical invariant: same canonical input must always produce the same hash
 
-### Critical Tests (Must Pass)
-1. **Canonicalization**: Same input must produce identical hash across runs
-2. **Verify Proof**: On-chain proofHash must match locally computed hash
-3. **Determinism**: Field order changes or whitespace changes must produce different hashes
-4. **localStorage**: Data persists across page reloads, export/import works
+## Monad Testnet
 
-## Implementation Status
+```
+Chain ID: 10143
+RPC: https://testnet-rpc.monad.xyz
+Explorer: https://testnet.monadscan.com
+Currency: MON (18 decimals)
+```
 
-See `plans/feat-safereceipt-mvp-full-implementation.md` for detailed task tracking.
-
-**Completed**:
-- Phase 2: Canonicalization & Verification (canonicalize, storage, liabilityNotice, verify)
-- Phase 3.1-3.3: Risk Engine, Known Contracts, Intent Parser
-- useWallet hook and WalletConnect component
-
-**In Progress**:
-- Phase 3.4-3.6: Risk Card UI, Liability Notice component, BatchPay CSV
-
-**Pending**:
-- Phase 4: UI Polish (Create/Detail/History pages, error handling)
-- Phase 5-6: Demo, deployment, hackathon submission
+Contract address placeholder in `contract.ts` -- update after deployment.
