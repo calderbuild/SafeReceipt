@@ -4,19 +4,17 @@
 
 > When AI fails, receipts prove who's responsible.
 
-SafeReceipt creates cryptographic proof of intent *before* an AI agent executes a blockchain transaction, then verifies the execution matches the declared intent. This closes the accountability gap in autonomous agent workflows.
+**[Live Demo](https://safereceipt.vercel.app)** | Built on Monad Testnet
 
-## Problem
+---
 
-AI agents increasingly execute financial transactions on behalf of users. When something goes wrong -- an agent approves unlimited token allowance to an unknown contract, or sends funds to the wrong address -- there is no verifiable record of what the agent was *supposed* to do versus what it *actually did*.
+AI agents execute financial transactions autonomously, but when things go wrong -- unlimited token approvals, wrong recipients, unexpected amounts -- there is no verifiable record of what the agent was *supposed* to do versus what it *actually did*. SafeReceipt fixes this by creating cryptographic proof of intent *before* execution, then verifying the result on-chain.
 
-## Solution
-
-SafeReceipt introduces a three-step accountability lifecycle:
+## How It Works
 
 ```
-1. CAPTURE   User intent → NLP parsing → Risk analysis → keccak256 hash → Store on-chain
-2. EXECUTE   Agent performs the actual blockchain transaction
+1. CAPTURE   Natural language intent → Risk analysis → keccak256 hash → Store on-chain
+2. EXECUTE   Agent performs the blockchain transaction
 3. VERIFY    Decode tx calldata → Compare against declared intent → VERIFIED or MISMATCH
 ```
 
@@ -24,12 +22,12 @@ Every receipt is an immutable on-chain record linking **declared intent** to **a
 
 ## Key Features
 
-- **Intent Hashing**: Deterministic canonicalization ensures the same intent always produces the same hash
-- **Risk Engine**: 6 automated rules score transaction risk (0-100) before execution
-- **On-Chain Storage**: Receipt hashes stored on Monad for immutable evidence
-- **Execution Linking**: Connect receipts to actual transaction hashes, verify calldata matches intent
-- **One-Click Agent Demo**: End-to-end lifecycle automation (parse, risk, receipt, execute, verify) in a single flow
-- **NLP Intent Parsing**: Natural language like "Approve 100 USDC to Uniswap" parsed into structured intent via LLM
+- **Intent Hashing** -- Deterministic canonicalization ensures the same intent always produces the same hash
+- **Risk Engine** -- 6 automated rules score transaction risk (0-100) before execution
+- **On-Chain Receipts** -- Proof hashes stored on Monad for immutable evidence
+- **Execution Verification** -- Link receipts to actual tx hashes, decode calldata, confirm intent match
+- **One-Click Agent Demo** -- Full lifecycle (parse, risk, receipt, execute, verify) in a single flow
+- **NLP Intent Parsing** -- "Approve 100 USDC to Uniswap" parsed into structured intent via LLM
 
 ## Architecture
 
@@ -89,14 +87,13 @@ Every receipt is an immutable on-chain record linking **declared intent** to **a
 
 ### Prerequisites
 
-- Node.js 18+ (Node 22 has Hardhat compatibility issues)
+- Node.js 18+
 - MetaMask browser extension
 - MON tokens on Monad Testnet
 
 ### Setup
 
 ```bash
-# Clone
 git clone https://github.com/calderbuild/SafeReceipt.git
 cd SafeReceipt
 
@@ -122,72 +119,18 @@ Without these, the agent demo uses pre-configured fallback intents.
 ### Run
 
 ```bash
-# Frontend dev server
-cd frontend && npm run dev
-
-# Run tests (172 tests)
-cd frontend && npm test -- --run
-
-# Compile contract
-npx hardhat compile
-
-# Deploy to Monad Testnet
-npx hardhat run scripts/deploy.ts --network monad
-```
-
-### Monad Testnet
-
-```
-Chain ID:   10143
-RPC:        https://testnet-rpc.monad.xyz
-Explorer:   https://testnet.monadscan.com
-Currency:   MON (18 decimals)
+cd frontend && npm run dev     # Dev server at localhost:5173
+cd frontend && npm test -- --run  # Run tests
+npx hardhat compile            # Compile contract
 ```
 
 ## Smart Contract
 
 `ReceiptRegistry.sol` -- single contract, minimal surface area.
 
-**Functions:**
 - `createReceipt(actionType, intentHash, proofHash, riskScore)` -- Store intent on-chain
 - `linkExecution(receiptId, txHash, verified)` -- Link execution and set verification status
-- `getReceipt(receiptId)` -- Read receipt data
-- `getUserReceipts(address)` -- List all receipts for an address
-
-**Events:**
-- `ReceiptCreated(receiptId, actor, actionType, intentHash, proofHash, riskScore, timestamp)`
-- `ExecutionLinked(receiptId, txHash, status)`
-
-## Project Structure
-
-```
-SafeReceipt/
-├── contracts/
-│   └── ReceiptRegistry.sol        # On-chain receipt storage
-├── frontend/src/
-│   ├── lib/
-│   │   ├── canonicalize.ts        # Deterministic hashing
-│   │   ├── contract.ts            # ABI + contract interaction
-│   │   ├── riskEngine.ts          # 6 risk assessment rules
-│   │   ├── storage.ts             # localStorage CRUD
-│   │   ├── llm.ts                 # LLM intent parsing
-│   │   ├── agentRunner.ts         # End-to-end orchestrator
-│   │   ├── demoScenarios.ts       # Preset demo scenarios
-│   │   └── executeIntent.ts       # ERC20 approve execution
-│   ├── hooks/
-│   │   ├── useVerify.ts           # Proof verification
-│   │   ├── useExecutionVerifier.ts # Calldata decode + compare
-│   │   └── useWallet.ts           # MetaMask + Monad switching
-│   ├── components/
-│   │   ├── AgentDemo.tsx          # One-click demo stepper UI
-│   │   ├── CreateReceiptModal.tsx # Receipt creation form
-│   │   └── VerifyProofModal.tsx   # Proof verification modal
-│   └── pages/
-│       ├── Home.tsx               # Landing + agent demo
-│       ├── MyReceipts.tsx         # Receipt list with status
-│       └── ReceiptDetail.tsx      # Detail + execution linking
-└── hardhat.config.ts
-```
+- `getReceipt(receiptId)` / `getUserReceipts(address)` -- Read receipt data
 
 ## How Verification Works
 
@@ -202,6 +145,33 @@ If they match, the local data has not been tampered with.
 Fetch tx by hash → Decode ERC20 approve(spender, amount)
 → Compare token, spender, amount against stored intent
 → VERIFIED or MISMATCH
+```
+
+## Project Structure
+
+```
+SafeReceipt/
+├── contracts/
+│   └── ReceiptRegistry.sol        # On-chain receipt storage
+├── frontend/src/
+│   ├── lib/
+│   │   ├── canonicalize.ts        # Deterministic hashing
+│   │   ├── contract.ts            # ABI + contract interaction
+│   │   ├── riskEngine.ts          # 6 risk assessment rules
+│   │   ├── agentRunner.ts         # End-to-end lifecycle orchestrator
+│   │   ├── llm.ts                 # LLM intent parsing
+│   │   └── executeIntent.ts       # ERC20 approve execution
+│   ├── hooks/
+│   │   ├── useVerify.ts           # Proof verification
+│   │   ├── useExecutionVerifier.ts # Calldata decode + compare
+│   │   └── useWallet.ts           # MetaMask + Monad switching
+│   ├── components/
+│   │   └── AgentDemo.tsx          # One-click demo stepper UI
+│   └── pages/
+│       ├── Home.tsx               # Landing + agent demo
+│       ├── MyReceipts.tsx         # Receipt list with status
+│       └── ReceiptDetail.tsx      # Detail + execution linking
+└── hardhat.config.ts
 ```
 
 ## License

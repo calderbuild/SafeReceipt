@@ -14,7 +14,7 @@ import { createCanonicalDigest, computeIntentHash, computeProofHash } from './ca
 import { createReceiptRegistryContract, CONTRACT_CONFIG } from './contract';
 import { saveDigest, addReceiptToUser, updateDigestStatus } from './storage';
 import { executeApprove } from './executeIntent';
-import { getWhitelistedAddresses } from './knownContracts';
+import { getRuntimeWhitelist } from './knownContracts';
 import type { DemoScenario } from './demoScenarios';
 import type { ApproveIntent } from './intentParser';
 import type { RiskResult } from './riskEngine';
@@ -109,7 +109,7 @@ export async function runAgentDemo(
     steps = updateStep(steps, 'risk', { status: 'running' }, onStepChange);
     await sleep(800);
 
-    const knownContracts = getWhitelistedAddresses();
+    const knownContracts = [...getRuntimeWhitelist()];
     const riskResult: RiskResult = evaluateApprove(intent, {
       knownContracts,
       userAddress: address,

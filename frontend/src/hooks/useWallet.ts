@@ -27,6 +27,26 @@ const MONAD_TESTNET = {
   blockExplorerUrls: ['https://testnet.monadscan.com'],
 };
 
+// Get usable EVM wallet provider.
+// Priority: real MetaMask > any provider from providers array > window.ethereum fallback
+function getWalletProvider(): EthereumProvider | null {
+  if (typeof window === 'undefined' || !window.ethereum) return null;
+
+  const providers = (window.ethereum as any).providers as EthereumProvider[] | undefined;
+  if (providers?.length) {
+    // Prefer real MetaMask (has isMetaMask but NOT isTrustWallet)
+    const realMetaMask = providers.find(
+      (p: any) => p.isMetaMask && !p.isTrust && !p.isTrustWallet
+    );
+    if (realMetaMask) return realMetaMask;
+    // Fallback to first provider
+    return providers[0];
+  }
+
+  // Single provider - use it directly
+  return window.ethereum;
+}
+
 export const useWallet = () => {
   const [state, setState] = useState<WalletState>({
     address: null,
@@ -39,31 +59,32 @@ export const useWallet = () => {
 
   const [error, setError] = useState<WalletError | null>(null);
 
-  // Check if MetaMask is installed
-  const isMetaMaskInstalled = useCallback(() => {
-    return typeof window !== 'undefined' && window.ethereum?.isMetaMask;
+  const isWalletAvailable = useCallback(() => {
+    return getWalletProvider() !== null;
   }, []);
 
   // Initialize provider and signer
   const initializeProvider = useCallback(async () => {
-    if (!isMetaMaskInstalled() || !window.ethereum) return null;
+    const wallet = getWalletProvider();
+    if (!wallet) return null;
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(wallet);
       const signer = await provider.getSigner();
       return { provider, signer };
     } catch (error) {
       console.error('Failed to initialize provider:', error);
       return null;
     }
-  }, [isMetaMaskInstalled]);
+  }, []);
 
   // Connect wallet
   const connect = useCallback(async () => {
-    if (!isMetaMaskInstalled() || !window.ethereum) {
+    const wallet = getWalletProvider();
+    if (!wallet) {
       setError({
-        code: 'METAMASK_NOT_INSTALLED',
-        message: 'MetaMask is not installed. Please install MetaMask to continue.',
+        code: 'WALLET_NOT_FOUND',
+        message: 'No EVM wallet found. Please install MetaMask or another wallet.',
       });
       return;
     }
@@ -72,8 +93,7 @@ export const useWallet = () => {
     setError(null);
 
     try {
-      // Request account access
-      const accounts = await window.ethereum.request({
+      const accounts = await wallet.request({
         method: 'eth_requestAccounts',
       });
 
@@ -101,7 +121,14 @@ export const useWallet = () => {
 
       // Auto-switch to Monad testnet if not already connected
       if (Number(network.chainId) !== 10143) {
-        await switchToMonadTestnet();
+        try {
+          await switchToMonadTestnet();
+        } catch {
+          setError({
+            code: 'WRONG_NETWORK',
+            message: 'Please switch to Monad testnet to use SafeReceipt',
+          });
+        }
       }
     } catch (error: any) {
       console.error('Connection failed:', error);
@@ -115,12 +142,15 @@ export const useWallet = () => {
       } else if (error.code === -32002) {
         errorMessage = 'Connection request already pending';
         errorCode = 'REQUEST_PENDING';
+      } else if (error.code === -32603) {
+        errorMessage = 'Wallet has no active account. Please unlock or set up your wallet.';
+        errorCode = 'NO_ACTIVE_WALLET';
       }
 
       setError({ code: errorCode, message: errorMessage });
       setState(prev => ({ ...prev, isConnecting: false }));
     }
-  }, [isMetaMaskInstalled, initializeProvider]);
+  }, [initializeProvider]);
 
   // Disconnect wallet
   const disconnect = useCallback(() => {
@@ -137,19 +167,18 @@ export const useWallet = () => {
 
   // Switch to Monad testnet
   const switchToMonadTestnet = useCallback(async () => {
-    if (!isMetaMaskInstalled() || !window.ethereum) return;
+    const wallet = getWalletProvider();
+    if (!wallet) return;
 
     try {
-      // Try to switch to Monad testnet
-      await window.ethereum.request({
+      await wallet.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: MONAD_TESTNET.chainId }],
       });
     } catch (error: any) {
-      // If the chain doesn't exist, add it
-      if (error.code === 4902 && window.ethereum) {
+      if (error.code === 4902) {
         try {
-          await window.ethereum.request({
+          await wallet.request({
             method: 'wallet_addEthereumChain',
             params: [MONAD_TESTNET],
           });
@@ -157,7 +186,7 @@ export const useWallet = () => {
           console.error('Failed to add Monad testnet:', addError);
           setError({
             code: 'NETWORK_ADD_FAILED',
-            message: 'Failed to add Monad testnet to MetaMask',
+            message: 'Failed to add Monad testnet',
           });
         }
       } else {
@@ -168,7 +197,7 @@ export const useWallet = () => {
         });
       }
     }
-  }, [isMetaMaskInstalled]);
+  }, []);
 
   // Check if connected to correct network
   const isCorrectNetwork = useCallback(() => {
@@ -177,13 +206,13 @@ export const useWallet = () => {
 
   // Handle account changes
   useEffect(() => {
-    if (!isMetaMaskInstalled()) return;
+    const wallet = getWalletProvider();
+    if (!wallet) return;
 
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) {
         disconnect();
       } else if (accounts[0] !== state.address) {
-        // Reconnect with new account
         connect();
       }
     };
@@ -191,7 +220,6 @@ export const useWallet = () => {
     const handleChainChanged = (chainId: string) => {
       setState(prev => ({ ...prev, chainId: parseInt(chainId, 16) }));
 
-      // If switched away from Monad testnet, show warning
       if (parseInt(chainId, 16) !== 10143) {
         setError({
           code: 'WRONG_NETWORK',
@@ -202,27 +230,23 @@ export const useWallet = () => {
       }
     };
 
-    const ethereum = window.ethereum;
-    if (ethereum) {
-      ethereum.on('accountsChanged', handleAccountsChanged);
-      ethereum.on('chainChanged', handleChainChanged);
-    }
+    wallet.on('accountsChanged', handleAccountsChanged);
+    wallet.on('chainChanged', handleChainChanged);
 
     return () => {
-      if (ethereum) {
-        ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        ethereum.removeListener('chainChanged', handleChainChanged);
-      }
+      wallet.removeListener('accountsChanged', handleAccountsChanged);
+      wallet.removeListener('chainChanged', handleChainChanged);
     };
-  }, [isMetaMaskInstalled, disconnect, connect, state.address]);
+  }, [disconnect, connect, state.address]);
 
   // Auto-connect on page load if previously connected
   useEffect(() => {
     const autoConnect = async () => {
-      if (!isMetaMaskInstalled() || !window.ethereum) return;
+      const wallet = getWalletProvider();
+      if (!wallet) return;
 
       try {
-        const accounts = await window.ethereum.request({
+        const accounts = await wallet.request({
           method: 'eth_accounts',
         });
 
@@ -242,7 +266,6 @@ export const useWallet = () => {
               signer,
             });
 
-            // Check if on correct network
             if (Number(network.chainId) !== 10143) {
               setError({
                 code: 'WRONG_NETWORK',
@@ -257,16 +280,13 @@ export const useWallet = () => {
     };
 
     autoConnect();
-  }, [isMetaMaskInstalled, initializeProvider]);
+  }, [initializeProvider]);
 
   return {
-    // State
     ...state,
     error,
-    isMetaMaskInstalled: isMetaMaskInstalled(),
+    isMetaMaskInstalled: isWalletAvailable(),
     isCorrectNetwork: isCorrectNetwork(),
-
-    // Actions
     connect,
     disconnect,
     switchToMonadTestnet,
@@ -274,14 +294,18 @@ export const useWallet = () => {
   };
 };
 
-// Type declarations for window.ethereum
+type EthereumProvider = {
+  isMetaMask?: boolean;
+  isTrust?: boolean;
+  isTrustWallet?: boolean;
+  providers?: EthereumProvider[];
+  request: (args: { method: string; params?: any[] }) => Promise<any>;
+  on: (event: string, callback: (...args: any[]) => void) => void;
+  removeListener: (event: string, callback: (...args: any[]) => void) => void;
+};
+
 declare global {
   interface Window {
-    ethereum?: {
-      isMetaMask?: boolean;
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      on: (event: string, callback: (...args: any[]) => void) => void;
-      removeListener: (event: string, callback: (...args: any[]) => void) => void;
-    };
+    ethereum?: EthereumProvider;
   }
 }

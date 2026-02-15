@@ -45,3 +45,28 @@ docs/drafts/
 # Claude Code session files
 .claude/projects/*/sessions/
 .claude/projects/*/*.jsonl
+
+# MCP config (local dev)
+.mcp.json
+
+# Screenshots and images (temporary)
+*.png
+
+# Personal notes and non-code docs
+prompt规范.md
+*.pdf
+
+# Hackathon scratch files
+consensus hackathon/
+
+# Agent config
+.agents/
+
+# Hackathon materials (non-code)
+hackathon 材料/
+
+# Video assets
+safereceipt-video/
+
+# Playwright MCP cache
+.playwright-mcp/

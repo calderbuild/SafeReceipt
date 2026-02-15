@@ -11,19 +11,23 @@ SafeReceipt is an Agent Accountability Protocol that creates verifiable on-chain
 ## Tech Stack
 
 - **Contract**: Hardhat + Solidity 0.8.19, optimizer enabled (200 runs)
-- **Frontend**: Vite + React 19 + TypeScript + Tailwind CSS v4
+- **Frontend**: Vite 7 + React 19 + TypeScript 5.9 (strict) + Tailwind CSS v4
 - **Chain Interaction**: ethers.js v6
 - **Wallet**: MetaMask
 - **AI**: OpenAI-compatible API (GPT-4o) for natural language intent parsing
 - **Testing**: vitest + happy-dom + @testing-library/react
+- **Linting**: ESLint 9 (flat config format in `frontend/eslint.config.js`)
+
+Root and `frontend/` are **separate npm projects** (no workspace). Run `npm install` in each directory independently. Root uses TypeScript ~4.9.5 (Hardhat constraint), frontend uses ~5.9.3.
 
 ## Build & Deploy Commands
 
 ```bash
 # Contract (requires Node 18; Node 22 has Hardhat compatibility issues)
-npx hardhat compile
-npx hardhat test
-npx hardhat run scripts/deploy.ts --network monad
+npm run compile                  # hardhat compile
+npm run test                     # hardhat test (contract tests)
+npm run deploy:monad             # deploy to Monad testnet
+npm run clean                    # hardhat clean
 
 # Frontend
 cd frontend && npm run dev       # Dev server at localhost:5173
@@ -37,6 +41,23 @@ cd frontend && npm test -- --ui                                      # With UI
 cd frontend && npm test -- src/lib/__tests__/riskEngine.test.ts      # Specific file
 cd frontend && npx tsc --noEmit                                      # Type check only
 ```
+
+## Environment Variables
+
+**Root `.env`** (for contract deployment):
+```
+PRIVATE_KEY=your_private_key_here
+MONAD_RPC_URL=https://testnet-rpc.monad.xyz    # optional override
+```
+
+**Frontend `frontend/.env`** (for LLM intent parsing):
+```
+VITE_OPENAI_API_KEY=your-api-key
+VITE_OPENAI_BASE_URL=https://api.openai.com/v1
+VITE_OPENAI_MODEL=gpt-4o
+```
+
+Without LLM env vars, the agent demo uses preset fallback intents from `demoScenarios.ts`.
 
 ## Critical Technical Constraints
 
@@ -126,9 +147,41 @@ const { receiptId, txHash } = await contract.createReceipt(...);
 await contract.linkExecution(receiptId, txHashBytes32, verified);
 ```
 
+### Frontend Routing (React Router v7, SPA)
+
+```
+/              → Home (landing page + agent demo)
+/receipts      → MyReceipts (list user's receipts with status badges)
+/receipt/:id   → ReceiptDetail (detail view + link execution UI)
+```
+
+`App.tsx` manages global state for Create/Verify modals and the floating navbar. Vercel deployment uses SPA rewrites (`vercel.json`).
+
+### Mock Fallback Pattern
+
+When `CONTRACT_CONFIG.address` is the zero address (contract not deployed), `executeIntent.ts` returns simulated tx hashes with artificial delay instead of making real on-chain calls. This enables full UI development and demo without a deployed contract.
+
 ### LLM Integration
 
-`llm.ts` calls an OpenAI-compatible API to parse natural language like "Approve 100 USDC to Uniswap" into structured intent. Config via env vars: `VITE_OPENAI_API_KEY`, `VITE_OPENAI_BASE_URL`, `VITE_OPENAI_MODEL`.
+`llm.ts` calls an OpenAI-compatible API to parse natural language like "Approve 100 USDC to Uniswap" into structured intent. When API keys are not configured, `demoScenarios.ts` provides hardcoded fallback intents.
+
+### Tailwind v4 (CSS-First)
+
+No `tailwind.config.js`. All theming is defined via CSS variables in `frontend/src/index.css` using `@theme {}`:
+- Custom colors: `primary-*` (purple), `accent` (orange), `crypto-*` (green/red/blue/cyan), `dark-*`
+- Custom fonts: `font-display` (Space Grotesk), `font-body` (DM Sans), `font-mono` (Fira Code)
+- Custom shadows: `shadow-glow`, `shadow-glow-lg`, `shadow-glow-accent`
+- Animations: `glow-pulse`, `float`
+
+PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcss/postcss` + autoprefixer.
+
+## Frontend Conventions
+
+- **React 19 JSX transform**: `jsx: "react-jsx"` -- do not add `import React from 'react'`
+- **State management**: Pure `useState`/hooks only. No Redux, Context API, or state libraries. Wallet state in `useWallet` hook; toast via `react-hot-toast`
+- **`verbatimModuleSyntax`**: Type-only imports must use `import type { ... }`. Re-exports must be explicit
+- **No barrel exports**: Types are exported from their defining module (no `types/index.ts`)
+- **Intent types**: `ParsedIntent = ApproveIntent | BatchPayIntent` (discriminated union in `intentParser.ts`)
 
 ## Key Files
 
@@ -138,6 +191,11 @@ await contract.linkExecution(receiptId, txHashBytes32, verified);
 - **frontend/src/lib/riskEngine.ts**: 6 risk rules implementation
 - **frontend/src/lib/storage.ts**: localStorage CRUD + updateDigestStatus
 - **frontend/src/lib/llm.ts**: LLM-powered natural language intent parsing
+- **frontend/src/lib/intentParser.ts**: Address/amount validation, form-to-intent parsing, ParsedIntent types
+- **frontend/src/lib/knownContracts.ts**: Whitelist of known protocol addresses (Uniswap, 1inch, etc.)
+- **frontend/src/lib/walletErrors.ts**: MetaMask/ethers error mapping to human-readable messages
+- **frontend/src/lib/exportEvidence.ts**: Evidence export for receipts
+- **frontend/src/lib/liabilityNotice.ts**: Human-readable liability text generation
 - **frontend/src/hooks/useVerify.ts**: Proof verification (chain hash vs local hash)
 - **frontend/src/hooks/useExecutionVerifier.ts**: ERC20 calldata decoding + intent comparison
 - **frontend/src/hooks/useWallet.ts**: MetaMask connection and Monad network switching
@@ -149,10 +207,12 @@ await contract.linkExecution(receiptId, txHashBytes32, verified);
 
 ## Testing
 
-- **172 tests** across 7 test files
 - Unit tests: `frontend/src/lib/__tests__/` (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser)
 - Hook tests: `frontend/src/hooks/__tests__/useVerify.test.ts`
+- Contract tests: `test/ReceiptRegistry.test.ts` (run via `npm run test` at root)
+- Test environment: vitest + happy-dom, globals enabled (no imports needed for `describe`/`it`/`expect`)
 - Critical invariant: same canonical input must always produce the same hash
+- TypeScript strict mode enforced: `noUnusedLocals`, `noUnusedParameters`, and `noUncheckedSideEffectImports` will fail the build
 
 ## Monad Testnet
 
@@ -163,4 +223,12 @@ Explorer: https://testnet.monadscan.com
 Currency: MON (18 decimals)
 ```
 
-Contract address placeholder in `contract.ts` -- update after deployment.
+Contract address placeholder (zero address) in `contract.ts` -- update after deployment. While zero address is set, the app runs in mock mode (see Mock Fallback Pattern above).
+
+## Commit Convention
+
+Prefix: `feat:`, `fix:`, `docs:`, `refactor:`, `improve:`. One logical change per commit.
+
+## Deployment
+
+Frontend deploys to Vercel. `frontend/vercel.json` configures SPA rewrites (all routes → `/`). Build command: `npm run build`, output: `dist`.
