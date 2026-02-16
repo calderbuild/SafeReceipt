@@ -98,8 +98,8 @@ export function AgentDemo() {
           <PlayIcon />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">Agent Demo</h2>
-          <p className="text-slate-400 text-sm">One-click end-to-end accountability flow</p>
+          <h2 className="text-xl font-bold text-white">Agent Verification Demo</h2>
+          <p className="text-slate-400 text-sm">See how on-chain receipts detect when an agent tampers with your transaction</p>
         </div>
       </div>
 
@@ -117,7 +117,11 @@ export function AgentDemo() {
                 <button
                   key={scenario.id}
                   onClick={() => handleRun(scenario)}
-                  className="w-full text-left p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group cursor-pointer"
+                  className={`w-full text-left p-4 rounded-lg bg-white/5 border transition-all group cursor-pointer ${
+                    scenario.expectedOutcome === 'MISMATCH'
+                      ? 'border-red-500/30 hover:bg-red-500/5 hover:border-red-500/50'
+                      : 'border-white/10 hover:bg-white/10 hover:border-white/20'
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -132,6 +136,11 @@ export function AgentDemo() {
                         }`}>
                           {scenario.expectedRiskLevel}
                         </span>
+                        {scenario.expectedOutcome === 'MISMATCH' && (
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
+                            MISMATCH
+                          </span>
+                        )}
                       </div>
                       <p className="text-slate-500 text-sm">{scenario.description}</p>
                     </div>
@@ -191,14 +200,14 @@ export function AgentDemo() {
       {/* Result Summary */}
       {result && (
         <div className={`p-4 rounded-lg ${
-          result.success
+          result.success && result.verified
             ? 'bg-emerald-500/10 border border-emerald-500/30'
             : 'bg-red-500/10 border border-red-500/30'
         }`}>
           {result.success ? (
             <div>
-              <p className="text-emerald-400 font-medium mb-2">
-                {result.verified ? 'Agent Accountability Verified' : 'Execution Mismatch Detected'}
+              <p className={`${result.verified ? 'text-emerald-400' : 'text-red-400'} font-medium mb-2`}>
+                {result.verified ? 'Execution Verified' : 'Execution Mismatch Detected'}
               </p>
               <div className="space-y-1 text-sm">
                 <p className="text-slate-400">
@@ -211,10 +220,15 @@ export function AgentDemo() {
                   Tx: <span className="text-white font-mono">{result.executionTxHash?.slice(0, 14)}...</span>
                 </p>
                 <p className="text-slate-400">
-                  Status: <span className={result.verified ? 'text-emerald-400' : 'text-red-400'}>
+                  Status: <span className={result.verified ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>
                     {result.verified ? 'VERIFIED' : 'MISMATCH'}
                   </span>
                 </p>
+                {result.mismatchDetail && (
+                  <p className="text-red-400/80 text-xs mt-2 font-mono bg-red-500/5 px-2 py-1 rounded">
+                    {result.mismatchDetail}
+                  </p>
+                )}
               </div>
             </div>
           ) : (

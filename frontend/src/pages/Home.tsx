@@ -54,13 +54,13 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
           </div>
 
           <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            When AI fails,<br />
-            <span className="gradient-text">receipts prove</span> who's responsible
+            When AI acts,<br />
+            <span className="gradient-text">verify</span> what really happened
           </h1>
 
           <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10">
-            Verifiable on-chain receipts for AI agent transactions.
-            Cryptographic proof of intent before execution.
+            Verifiable on-chain proof that AI agent behavior matches declared intent.
+            Cryptographic receipts before execution, verification after.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -87,7 +87,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
             { label: 'Risk Rules', value: '6', sublabel: 'Automated checks' },
             { label: 'Hash Type', value: 'keccak256', sublabel: 'Cryptographic' },
             { label: 'Storage', value: 'On-Chain', sublabel: 'Immutable' },
-            { label: 'Status', value: 'MVP', sublabel: 'Phase 4/6' },
+            { label: 'Status', value: 'Verifiable', sublabel: 'Intent to Execution' },
           ].map((stat, i) => (
             <div key={i} className="glass-card p-6 text-center">
               <div className="text-2xl md:text-3xl font-display font-bold gradient-text mb-1">
@@ -111,7 +111,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
               How It Works
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto">
-              Three-step process to create immutable accountability for AI agent transactions
+              Three-step process to create verifiable proof of AI agent behavior on-chain
             </p>
           </div>
 
@@ -135,7 +135,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                 icon: <CubeIcon />,
                 step: '03',
                 title: 'Record On-Chain',
-                description: 'Intent hash + proof hash stored on Monad. Immutable evidence for dispute resolution.',
+                description: 'Intent hash + proof hash stored on Monad. Immutable evidence linking declared intent to actual execution.',
                 color: 'from-cyan-500 to-blue-500',
               },
             ].map((item, i) => (

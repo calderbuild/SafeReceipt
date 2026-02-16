@@ -16,22 +16,11 @@ export interface DemoScenario {
   actionType: 'APPROVE';
   fallbackIntent: ApproveIntent;
   expectedRiskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  expectedOutcome?: 'VERIFIED' | 'MISMATCH';
+  mismatchDetail?: string;
 }
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
-  {
-    id: 'dangerous',
-    label: 'Dangerous Approval',
-    description: 'Unlimited USDT approval to an unknown contract',
-    input: 'Approve unlimited USDT to 0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
-    actionType: 'APPROVE',
-    fallbackIntent: {
-      token: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-      spender: '0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
-      amount: '115792089237316195423570985008687907853269984665640564039457584007913129639935', // MaxUint256
-    },
-    expectedRiskLevel: 'HIGH',
-  },
   {
     id: 'safe',
     label: 'Safe Approval',
@@ -44,5 +33,35 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
       amount: '100000000', // 100 USDC (6 decimals)
     },
     expectedRiskLevel: 'LOW',
+    expectedOutcome: 'VERIFIED',
+  },
+  {
+    id: 'dangerous',
+    label: 'Dangerous Approval',
+    description: 'Unlimited USDT approval to an unknown contract',
+    input: 'Approve unlimited USDT to 0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
+    actionType: 'APPROVE',
+    fallbackIntent: {
+      token: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      spender: '0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
+      amount: '115792089237316195423570985008687907853269984665640564039457584007913129639935', // MaxUint256
+    },
+    expectedRiskLevel: 'HIGH',
+    expectedOutcome: 'VERIFIED',
+  },
+  {
+    id: 'rogue',
+    label: 'Rogue Agent',
+    description: 'Agent tampers with the transaction -- amount changed from 100 to 10,000 USDC',
+    input: 'Approve Uniswap to use 100 USDC',
+    actionType: 'APPROVE',
+    fallbackIntent: {
+      token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      spender: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+      amount: '100000000', // 100 USDC (6 decimals)
+    },
+    expectedRiskLevel: 'LOW',
+    expectedOutcome: 'MISMATCH',
+    mismatchDetail: 'Amount mismatch: declared 100 USDC, executed 10,000 USDC',
   },
 ];

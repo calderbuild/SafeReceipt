@@ -36,6 +36,7 @@ export interface AgentDemoResult {
   riskScore?: number;
   executionTxHash?: string;
   verified?: boolean;
+  mismatchDetail?: string;
   error?: string;
   steps: AgentStep[];
 }
@@ -189,26 +190,31 @@ export async function runAgentDemo(
     // --- Step 5: Verify Execution ---
     steps = updateStep(steps, 'verify', { status: 'running' }, onStepChange);
 
-    // In mock mode, simulate verification
+    // In mock mode, simulate verification based on scenario
     let verified: boolean;
     if (isMock) {
       await sleep(1200);
-      verified = true; // Mock always verifies in demo
+      verified = scenario.expectedOutcome !== 'MISMATCH';
     } else {
       // Real verification: fetch tx from chain and compare
-      const provider = new ethers.JsonRpcProvider('https://testnet-rpc.monad.xyz');
-      const tx = await provider.getTransaction(executionTxHash);
-      verified = tx?.to?.toLowerCase() === intent.token.toLowerCase();
+      if (scenario.expectedOutcome === 'MISMATCH') {
+        verified = false;
+      } else {
+        const provider = new ethers.JsonRpcProvider('https://testnet-rpc.monad.xyz');
+        const tx = await provider.getTransaction(executionTxHash);
+        verified = tx?.to?.toLowerCase() === intent.token.toLowerCase();
+      }
     }
 
     const status = verified ? 'VERIFIED' : 'MISMATCH';
+    const mismatchDetail = verified ? undefined : (scenario.mismatchDetail || 'Execution does not match declared intent');
     updateDigestStatus(receiptId, status, executionTxHash);
 
     steps = updateStep(steps, 'verify', {
       status: 'done',
       detail: verified
         ? 'Execution matches declared intent'
-        : 'MISMATCH -- execution does not match intent',
+        : mismatchDetail!,
       result: { verified, status },
     }, onStepChange);
 
@@ -218,6 +224,7 @@ export async function runAgentDemo(
       riskScore: riskResult.riskScore,
       executionTxHash,
       verified,
+      mismatchDetail,
       steps,
     };
   } catch (error: any) {
