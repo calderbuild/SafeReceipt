@@ -249,7 +249,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         {/* Contract + Tech Stack */}
         <section className="text-center mb-12 animate-fade-up">
           <a
-            href="https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A"
+            href="https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A#code"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center space-x-2 px-5 py-2.5 bg-white/[0.04] border border-white/10 rounded-full mb-8 hover:bg-white/[0.08] hover:border-primary-500/30 transition-all duration-200 group"
