@@ -42,23 +42,29 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
+const ExternalLinkIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+  </svg>
+);
+
 export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
   return (
     <main className="pt-28 pb-12 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
-        <section className="text-center mb-20">
-          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-primary-500/10 border border-primary-500/20 rounded-full mb-6">
+        <section className="text-center mb-24 animate-fade-up">
+          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-primary-500/10 border border-primary-500/20 rounded-full mb-8">
             <span className="w-2 h-2 bg-crypto-green rounded-full animate-pulse"></span>
             <span className="text-sm text-primary-300">Live on Monad Testnet</span>
           </div>
 
-          <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight tracking-tight">
             When AI acts,<br />
             <span className="gradient-text">verify</span> what really happened
           </h1>
 
-          <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10">
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed">
             Verifiable on-chain proof that AI agent behavior matches declared intent.
             Cryptographic receipts before execution, verification after.
           </p>
@@ -82,31 +88,33 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         </section>
 
         {/* Stats Section */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-20">
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-24">
           {[
             { label: 'Risk Rules', value: '6', sublabel: 'Automated checks' },
             { label: 'Hash Type', value: 'keccak256', sublabel: 'Cryptographic' },
             { label: 'Storage', value: 'On-Chain', sublabel: 'Immutable' },
             { label: 'Status', value: 'Verifiable', sublabel: 'Intent to Execution' },
           ].map((stat, i) => (
-            <div key={i} className="glass-card p-6 text-center">
+            <div key={i} className={`glass-card p-6 text-center animate-fade-up animate-delay-${i + 1}`}>
               <div className="text-2xl md:text-3xl font-display font-bold gradient-text mb-1">
                 {stat.value}
               </div>
               <div className="text-sm text-white font-medium">{stat.label}</div>
-              <div className="text-xs text-slate-500">{stat.sublabel}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{stat.sublabel}</div>
             </div>
           ))}
         </section>
 
-        {/* Agent Demo */}
-        <section className="mb-20">
-          <AgentDemo />
+        {/* Agent Demo - Elevated */}
+        <section className="mb-24 animate-fade-up animate-delay-3">
+          <div className="glass-card-elevated p-1">
+            <AgentDemo />
+          </div>
         </section>
 
         {/* How It Works */}
-        <section className="mb-20">
-          <div className="text-center mb-12">
+        <section className="mb-24">
+          <div className="text-center mb-14 animate-fade-up">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
               How It Works
             </h2>
@@ -139,11 +147,11 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                 color: 'from-cyan-500 to-blue-500',
               },
             ].map((item, i) => (
-              <div key={i} className="glass-card-hover p-8 group">
+              <div key={i} className={`glass-card-hover p-8 group animate-fade-up animate-delay-${i + 2}`}>
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-6 text-white group-hover:scale-110 transition-transform duration-300`}>
                   {item.icon}
                 </div>
-                <div className="text-xs font-mono text-slate-500 mb-2">STEP {item.step}</div>
+                <div className="text-xs font-mono text-slate-500 mb-2 tracking-wider">STEP {item.step}</div>
                 <h3 className="font-display text-xl font-semibold text-white mb-3">{item.title}</h3>
                 <p className="text-slate-400 text-sm leading-relaxed">{item.description}</p>
               </div>
@@ -152,7 +160,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         </section>
 
         {/* Risk Rules Preview */}
-        <section className="mb-20">
+        <section className="mb-24 animate-fade-up">
           <div className="glass-card p-8 md:p-12">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
               <div>
@@ -166,7 +174,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-3">
               {[
                 { rule: 'UNLIMITED_ALLOWANCE', weight: 40, desc: 'Detects max uint256 approvals' },
                 { rule: 'SPENDER_IS_UNKNOWN_CONTRACT', weight: 25, desc: 'Checks against known contracts' },
@@ -175,12 +183,12 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                 { rule: 'RECIPIENT_IS_CONTRACT', weight: 5, desc: 'Warns on contract recipients' },
                 { rule: 'OUTLIER_AMOUNT', weight: 5, desc: 'Flags unusual amounts' },
               ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-colors cursor-pointer">
+                <div key={i} className="flex items-center justify-between p-4 bg-white/[0.03] rounded-xl border border-white/[0.06] hover:border-white/10 hover:bg-white/[0.05] transition-all duration-200 cursor-default">
                   <div className="flex items-center space-x-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold ${
-                      item.weight >= 25 ? 'bg-red-500/20 text-red-400' :
-                      item.weight >= 10 ? 'bg-amber-500/20 text-amber-400' :
-                      'bg-emerald-500/20 text-emerald-400'
+                      item.weight >= 25 ? 'bg-red-500/15 text-red-400' :
+                      item.weight >= 10 ? 'bg-amber-500/15 text-amber-400' :
+                      'bg-emerald-500/15 text-emerald-400'
                     }`}>
                       +{item.weight}
                     </div>
@@ -196,8 +204,8 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         </section>
 
         {/* Action Cards */}
-        <section className="grid md:grid-cols-2 gap-6 mb-20">
-          <div className="glass-card-hover p-8 group">
+        <section className="grid md:grid-cols-2 gap-6 mb-24">
+          <div className="glass-card-hover p-8 group animate-fade-up animate-delay-1">
             <div className="flex items-start justify-between mb-6">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-blue-500 flex items-center justify-center text-white">
                 <DocumentCheckIcon />
@@ -217,7 +225,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
             </button>
           </div>
 
-          <div className="glass-card-hover p-8 group">
+          <div className="glass-card-hover p-8 group animate-fade-up animate-delay-2">
             <div className="flex items-start justify-between mb-6">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white">
                 <ShieldCheckIcon />
@@ -238,21 +246,22 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
           </div>
         </section>
 
-        {/* Tech Stack */}
-        <section className="text-center mb-12">
+        {/* Contract + Tech Stack */}
+        <section className="text-center mb-12 animate-fade-up">
           <a
             href="https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-primary-500/10 border border-primary-500/20 rounded-full mb-6 hover:bg-primary-500/20 transition-colors"
+            className="inline-flex items-center space-x-2 px-5 py-2.5 bg-white/[0.04] border border-white/10 rounded-full mb-8 hover:bg-white/[0.08] hover:border-primary-500/30 transition-all duration-200 group"
           >
             <span className="w-2 h-2 bg-crypto-green rounded-full animate-pulse"></span>
-            <span className="text-sm text-primary-300">Verified on MonadScan</span>
+            <span className="text-sm text-slate-300 group-hover:text-white transition-colors">Contract verified on MonadScan</span>
+            <ExternalLinkIcon />
           </a>
           <p className="text-sm text-slate-500 mb-4">Built with</p>
-          <div className="flex items-center justify-center flex-wrap gap-6">
+          <div className="flex items-center justify-center flex-wrap gap-4">
             {['React', 'TypeScript', 'Solidity', 'ethers.js', 'Tailwind CSS', 'Monad'].map((tech, i) => (
-              <span key={i} className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-slate-400 hover:text-white hover:border-white/20 transition-colors cursor-default">
+              <span key={i} className="px-4 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg text-sm text-slate-400 hover:text-white hover:border-white/15 transition-all duration-200 cursor-default">
                 {tech}
               </span>
             ))}
