@@ -240,6 +240,15 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
 
         {/* Tech Stack */}
         <section className="text-center mb-12">
+          <a
+            href="https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-primary-500/10 border border-primary-500/20 rounded-full mb-6 hover:bg-primary-500/20 transition-colors"
+          >
+            <span className="w-2 h-2 bg-crypto-green rounded-full animate-pulse"></span>
+            <span className="text-sm text-primary-300">Verified on MonadScan</span>
+          </a>
           <p className="text-sm text-slate-500 mb-4">Built with</p>
           <div className="flex items-center justify-center flex-wrap gap-6">
             {['React', 'TypeScript', 'Solidity', 'ethers.js', 'Tailwind CSS', 'Monad'].map((tech, i) => (

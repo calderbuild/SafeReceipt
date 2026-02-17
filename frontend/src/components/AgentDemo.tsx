@@ -107,7 +107,40 @@ export function AgentDemo() {
       {!isRunning && !result && (
         <>
           {!isConnected ? (
-            <p className="text-slate-400 text-sm">Connect your wallet to run the agent demo.</p>
+            <div>
+              <div className="space-y-3 opacity-60 pointer-events-none">
+                {DEMO_SCENARIOS.map(scenario => (
+                  <div
+                    key={scenario.id}
+                    className={`w-full text-left p-4 rounded-lg bg-white/5 border ${
+                      scenario.expectedOutcome === 'MISMATCH'
+                        ? 'border-red-500/30'
+                        : 'border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="text-white font-medium">{scenario.label}</span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        scenario.expectedRiskLevel === 'HIGH'
+                          ? 'bg-red-500/20 text-red-400'
+                          : scenario.expectedRiskLevel === 'MEDIUM'
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-emerald-500/20 text-emerald-400'
+                      }`}>
+                        {scenario.expectedRiskLevel}
+                      </span>
+                      {scenario.expectedOutcome === 'MISMATCH' && (
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
+                          MISMATCH
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-500 text-sm">{scenario.description}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-slate-400 text-sm mt-4 text-center">Connect your wallet to run the demo</p>
+            </div>
           ) : (
             <div className="space-y-3">
               <p className="text-slate-400 text-sm mb-4">
@@ -217,7 +250,12 @@ export function AgentDemo() {
                   Risk Score: <span className="text-white">{result.riskScore}/100</span>
                 </p>
                 <p className="text-slate-400">
-                  Tx: <span className="text-white font-mono">{result.executionTxHash?.slice(0, 14)}...</span>
+                  Tx: <a
+                    href={`https://testnet.monadscan.com/tx/${result.executionTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-400 hover:text-primary-300 font-mono underline"
+                  >{result.executionTxHash?.slice(0, 14)}...</a>
                 </p>
                 <p className="text-slate-400">
                   Status: <span className={result.verified ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>
