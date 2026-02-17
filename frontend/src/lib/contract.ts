@@ -131,10 +131,10 @@ export const RECEIPT_REGISTRY_ABI = [
 // Contract configuration
 export const CONTRACT_CONFIG = {
   // This will be updated after deployment
-  address: '0x0000000000000000000000000000000000000000', // Placeholder
+  address: '0x7761871A017c1C703C06B0021bF341d707c6226A',
   abi: RECEIPT_REGISTRY_ABI,
   chainId: 10143, // Monad testnet
-} as const;
+};
 
 // Network configuration
 export const MONAD_TESTNET = {
