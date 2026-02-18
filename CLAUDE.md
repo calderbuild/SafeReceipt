@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 SafeReceipt is an Agent Accountability Protocol that creates verifiable on-chain receipts for AI agent transactions. Core value: "When AI fails, receipts prove who's responsible."
 
 **Target**: Monad Testnet (Chain ID: 10143)
+**Hackathon**: Rebel in Paradise AI Hackathon (Monad Blitz Pro Series), Jan 19 - Feb 28, 2026. Registration: https://mojo.devnads.com/events/10
 
 ## Tech Stack
 
@@ -29,7 +30,7 @@ npm run test                     # hardhat test (contract tests)
 npm run deploy:monad             # deploy to Monad testnet
 npm run clean                    # hardhat clean
 
-# Frontend
+# Frontend (requires Node 20+; Vite 7 fails on Node 18 with crypto.hash error)
 cd frontend && npm run dev       # Dev server at localhost:5173
 cd frontend && npm run build     # tsc -b && vite build
 cd frontend && npm run lint      # ESLint
@@ -159,7 +160,7 @@ await contract.linkExecution(receiptId, txHashBytes32, verified);
 
 ### Mock Fallback Pattern
 
-When `CONTRACT_CONFIG.address` is the zero address (contract not deployed), `executeIntent.ts` returns simulated tx hashes with artificial delay instead of making real on-chain calls. This enables full UI development and demo without a deployed contract.
+When `CONTRACT_CONFIG.address` is the zero address, `executeIntent.ts` returns simulated tx hashes with artificial delay instead of making real on-chain calls. Currently the contract is deployed and live; mock mode activates only if the address is reset to zero.
 
 ### LLM Integration
 
@@ -171,7 +172,9 @@ No `tailwind.config.js`. All theming is defined via CSS variables in `frontend/s
 - Custom colors: `primary-*` (purple), `accent` (orange), `crypto-*` (green/red/blue/cyan), `dark-*`
 - Custom fonts: `font-display` (Space Grotesk), `font-body` (DM Sans), `font-mono` (Fira Code)
 - Custom shadows: `shadow-glow`, `shadow-glow-lg`, `shadow-glow-accent`
-- Animations: `glow-pulse`, `float`
+- Animations: `glow-pulse`, `float`, `fade-up`, `scale-in`, `gradient-shift`, `shimmer`
+- Utility classes: `.glass-card`, `.glass-card-elevated`, `.gradient-text`, `.section-divider`, `.shimmer`
+- Staggered animation delays: `.animate-delay-1` through `.animate-delay-7`
 
 PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcss/postcss` + autoprefixer.
 
@@ -223,7 +226,8 @@ Explorer: https://testnet.monadscan.com
 Currency: MON (18 decimals)
 ```
 
-Contract address placeholder (zero address) in `contract.ts` -- update after deployment. While zero address is set, the app runs in mock mode (see Mock Fallback Pattern above).
+Deployed contract: `0x7761871A017c1C703C06B0021bF341d707c6226A` (source verified on MonadScan).
+Explorer: https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A#code
 
 ## Commit Convention
 
@@ -232,3 +236,10 @@ Prefix: `feat:`, `fix:`, `docs:`, `refactor:`, `improve:`. One logical change pe
 ## Deployment
 
 Frontend deploys to Vercel. `frontend/vercel.json` configures SPA rewrites (all routes → `/`). Build command: `npm run build`, output: `dist`.
+
+**Manual deploy** (no Git integration configured -- push does not auto-deploy):
+```bash
+cd frontend && npx vercel --prod    # MUST run from frontend/, not project root
+```
+
+Live site: https://safereceipt.vercel.app

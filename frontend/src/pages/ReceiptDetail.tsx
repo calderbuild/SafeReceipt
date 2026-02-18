@@ -7,7 +7,7 @@ import { getDigest, updateDigestStatus } from '../lib/storage';
 import { exportAndDownload } from '../lib/exportEvidence';
 import { RiskCard } from '../components/RiskCard';
 import { LiabilityNotice } from '../components/LiabilityNotice';
-import { MONAD_TESTNET } from '../lib/contract';
+import { ACTIVE_CHAIN } from '../lib/contract';
 import type { CanonicalDigest } from '../lib/canonicalize';
 
 // Heroicons
@@ -284,7 +284,7 @@ export function ReceiptDetail() {
                   {digest.status === 'VERIFIED' ? 'Transaction Verified' : 'Transaction Mismatch'}
                 </span>
                 <a
-                  href={`${MONAD_TESTNET.blockExplorer}/tx/${digest.linkedTxHash}`}
+                  href={`${ACTIVE_CHAIN.blockExplorer}/tx/${digest.linkedTxHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-1 text-blue-400 hover:text-blue-300"

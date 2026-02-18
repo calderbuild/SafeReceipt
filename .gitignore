@@ -70,3 +70,4 @@ safereceipt-video/
 
 # Playwright MCP cache
 .playwright-mcp/
+.vercel

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useWallet } from '../hooks/useWallet';
+import { ACTIVE_CHAIN } from '../lib/contract';
 
 interface WalletConnectProps {
   className?: string;
@@ -31,7 +32,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
     isCorrectNetwork,
     connect,
     disconnect,
-    switchToMonadTestnet,
+    switchNetwork,
     clearError,
   } = useWallet();
 
@@ -61,7 +62,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
         <div className="flex items-center space-x-2">
           {error.code === 'WRONG_NETWORK' && (
             <button
-              onClick={switchToMonadTestnet}
+              onClick={switchNetwork}
               className="px-3 py-2 bg-accent/20 hover:bg-accent/30 text-accent text-sm font-medium rounded-xl border border-accent/30 transition-colors cursor-pointer"
             >
               Switch Network
@@ -125,17 +126,17 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
                 <div className="flex items-center space-x-2">
                   <div className={`w-2 h-2 rounded-full ${isCorrectNetwork ? 'bg-crypto-green' : 'bg-accent'}`}></div>
                   <span className="text-sm text-white">
-                    {isCorrectNetwork ? 'Monad Testnet' : `Chain ${chainId}`}
+                    {isCorrectNetwork ? ACTIVE_CHAIN.name : `Chain ${chainId}`}
                   </span>
                 </div>
               </div>
 
               {!isCorrectNetwork && (
                 <button
-                  onClick={() => { switchToMonadTestnet(); setShowDropdown(false); }}
+                  onClick={() => { switchNetwork(); setShowDropdown(false); }}
                   className="w-full mb-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer"
                 >
-                  Switch to Monad
+                  Switch Network
                 </button>
               )}
 
@@ -192,7 +193,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
           </div>
           <div className="flex space-x-2">
             {error.code === 'WRONG_NETWORK' && (
-              <button onClick={switchToMonadTestnet} className="btn-primary text-sm">
+              <button onClick={switchNetwork} className="btn-primary text-sm">
                 Switch Network
               </button>
             )}
@@ -262,7 +263,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
             <div className="flex items-center space-x-1">
               <div className={`w-2 h-2 rounded-full ${isCorrectNetwork ? 'bg-crypto-green' : 'bg-accent'}`}></div>
               <span className="text-slate-400 text-xs">
-                {isCorrectNetwork ? 'Monad Testnet' : `Chain ${chainId}`}
+                {isCorrectNetwork ? ACTIVE_CHAIN.name : `Chain ${chainId}`}
               </span>
             </div>
           </div>
@@ -270,8 +271,8 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
 
         <div className="flex space-x-2">
           {!isCorrectNetwork && (
-            <button onClick={switchToMonadTestnet} className="btn-primary text-sm">
-              Switch to Monad
+            <button onClick={switchNetwork} className="btn-primary text-sm">
+              Switch Network
             </button>
           )}
           <button onClick={disconnect} className="btn-secondary text-sm">

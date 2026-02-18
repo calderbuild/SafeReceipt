@@ -128,26 +128,46 @@ export const RECEIPT_REGISTRY_ABI = [
   }
 ] as const;
 
-// Contract configuration
-export const CONTRACT_CONFIG = {
-  // This will be updated after deployment
-  address: '0x7761871A017c1C703C06B0021bF341d707c6226A',
-  abi: RECEIPT_REGISTRY_ABI,
-  chainId: 10143, // Monad testnet
-};
-
-// Network configuration
-export const MONAD_TESTNET = {
-  chainId: 10143,
-  name: 'Monad Testnet',
-  rpcUrl: 'https://testnet-rpc.monad.xyz',
-  blockExplorer: 'https://testnet.monadscan.com',
-  nativeCurrency: {
-    name: 'MON',
-    symbol: 'MON',
-    decimals: 18,
+// Network configurations
+export const NETWORKS = {
+  monad: {
+    chainId: 10143,
+    name: 'Monad Testnet',
+    rpcUrl: 'https://testnet-rpc.monad.xyz',
+    blockExplorer: 'https://testnet.monadscan.com',
+    contractAddress: '0x7761871A017c1C703C06B0021bF341d707c6226A',
+    nativeCurrency: {
+      name: 'MON',
+      symbol: 'MON',
+      decimals: 18,
+    },
+  },
+  baseSepolia: {
+    chainId: 84532,
+    name: 'Base Sepolia',
+    rpcUrl: 'https://base-sepolia-rpc.publicnode.com',
+    blockExplorer: 'https://sepolia.basescan.org',
+    contractAddress: '0x96D698972c73a0fFe630e67b90e4D1998972f2a0',
+    nativeCurrency: {
+      name: 'ETH',
+      symbol: 'ETH',
+      decimals: 18,
+    },
   },
 } as const;
+
+// Active network - change this after deploying to Base Sepolia
+const ACTIVE_NETWORK: keyof typeof NETWORKS = 'monad';
+
+// Contract configuration
+export const CONTRACT_CONFIG = {
+  address: NETWORKS[ACTIVE_NETWORK].contractAddress as string,
+  abi: RECEIPT_REGISTRY_ABI,
+  chainId: NETWORKS[ACTIVE_NETWORK].chainId as number,
+};
+
+// Active network config
+export const ACTIVE_CHAIN = NETWORKS[ACTIVE_NETWORK];
 
 // Types
 export enum ReceiptStatus {
@@ -403,7 +423,7 @@ export const createReceiptRegistryContract = (
 
 // Utility function to get read-only provider
 export const getReadOnlyProvider = (): ethers.JsonRpcProvider => {
-  return new ethers.JsonRpcProvider(MONAD_TESTNET.rpcUrl);
+  return new ethers.JsonRpcProvider(ACTIVE_CHAIN.rpcUrl);
 };
 
 // Utility function to format receipt for display
@@ -413,6 +433,6 @@ export const formatReceipt = (receipt: ReceiptWithId) => {
     actionTypeString: receipt.actionType === ActionType.APPROVE ? 'Approve' : 'Batch Pay',
     statusString: getStatusLabel(receipt.status),
     timestampFormatted: new Date(receipt.timestamp * 1000).toLocaleString(),
-    explorerUrl: `${MONAD_TESTNET.blockExplorer}/tx/${receipt.receiptId}`,
+    explorerUrl: `${NETWORKS[ACTIVE_NETWORK].blockExplorer}/tx/${receipt.receiptId}`,
   };
 };

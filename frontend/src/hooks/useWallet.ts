@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
+import { ACTIVE_CHAIN } from '../lib/contract';
 
 interface WalletState {
   address: string | null;
@@ -15,16 +16,13 @@ interface WalletError {
   message: string;
 }
 
-const MONAD_TESTNET = {
-  chainId: '0x279F', // 10143 in hex
-  chainName: 'Monad Testnet',
-  nativeCurrency: {
-    name: 'MON',
-    symbol: 'MON',
-    decimals: 18,
-  },
-  rpcUrls: ['https://testnet-rpc.monad.xyz'],
-  blockExplorerUrls: ['https://testnet.monadscan.com'],
+// MetaMask wallet_addEthereumChain params derived from ACTIVE_CHAIN
+const WALLET_CHAIN_PARAMS = {
+  chainId: '0x' + ACTIVE_CHAIN.chainId.toString(16),
+  chainName: ACTIVE_CHAIN.name,
+  nativeCurrency: ACTIVE_CHAIN.nativeCurrency,
+  rpcUrls: [ACTIVE_CHAIN.rpcUrl],
+  blockExplorerUrls: [ACTIVE_CHAIN.blockExplorer],
 };
 
 // Get usable EVM wallet provider.
@@ -119,14 +117,14 @@ export const useWallet = () => {
         signer,
       });
 
-      // Auto-switch to Monad testnet if not already connected
-      if (Number(network.chainId) !== 10143) {
+      // Auto-switch to correct network if not already connected
+      if (Number(network.chainId) !== ACTIVE_CHAIN.chainId) {
         try {
-          await switchToMonadTestnet();
+          await switchNetwork();
         } catch {
           setError({
             code: 'WRONG_NETWORK',
-            message: 'Please switch to Monad testnet to use SafeReceipt',
+            message: `Please switch to ${ACTIVE_CHAIN.name} to use SafeReceipt`,
           });
         }
       }
@@ -165,35 +163,35 @@ export const useWallet = () => {
     setError(null);
   }, []);
 
-  // Switch to Monad testnet
-  const switchToMonadTestnet = useCallback(async () => {
+  // Switch to the active network
+  const switchNetwork = useCallback(async () => {
     const wallet = getWalletProvider();
     if (!wallet) return;
 
     try {
       await wallet.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: MONAD_TESTNET.chainId }],
+        params: [{ chainId: WALLET_CHAIN_PARAMS.chainId }],
       });
     } catch (error: any) {
       if (error.code === 4902) {
         try {
           await wallet.request({
             method: 'wallet_addEthereumChain',
-            params: [MONAD_TESTNET],
+            params: [WALLET_CHAIN_PARAMS],
           });
         } catch (addError) {
-          console.error('Failed to add Monad testnet:', addError);
+          console.error(`Failed to add ${ACTIVE_CHAIN.name}:`, addError);
           setError({
             code: 'NETWORK_ADD_FAILED',
-            message: 'Failed to add Monad testnet',
+            message: `Failed to add ${ACTIVE_CHAIN.name}`,
           });
         }
       } else {
         console.error('Failed to switch network:', error);
         setError({
           code: 'NETWORK_SWITCH_FAILED',
-          message: 'Failed to switch to Monad testnet',
+          message: `Failed to switch to ${ACTIVE_CHAIN.name}`,
         });
       }
     }
@@ -201,7 +199,7 @@ export const useWallet = () => {
 
   // Check if connected to correct network
   const isCorrectNetwork = useCallback(() => {
-    return state.chainId === 10143;
+    return state.chainId === ACTIVE_CHAIN.chainId;
   }, [state.chainId]);
 
   // Handle account changes
@@ -220,10 +218,10 @@ export const useWallet = () => {
     const handleChainChanged = (chainId: string) => {
       setState(prev => ({ ...prev, chainId: parseInt(chainId, 16) }));
 
-      if (parseInt(chainId, 16) !== 10143) {
+      if (parseInt(chainId, 16) !== ACTIVE_CHAIN.chainId) {
         setError({
           code: 'WRONG_NETWORK',
-          message: 'Please switch to Monad testnet to use SafeReceipt',
+          message: `Please switch to ${ACTIVE_CHAIN.name} to use SafeReceipt`,
         });
       } else {
         setError(null);
@@ -266,10 +264,10 @@ export const useWallet = () => {
               signer,
             });
 
-            if (Number(network.chainId) !== 10143) {
+            if (Number(network.chainId) !== ACTIVE_CHAIN.chainId) {
               setError({
                 code: 'WRONG_NETWORK',
-                message: 'Please switch to Monad testnet to use SafeReceipt',
+                message: `Please switch to ${ACTIVE_CHAIN.name} to use SafeReceipt`,
               });
             }
           }
@@ -289,7 +287,7 @@ export const useWallet = () => {
     isCorrectNetwork: isCorrectNetwork(),
     connect,
     disconnect,
-    switchToMonadTestnet,
+    switchNetwork,
     clearError: () => setError(null),
   };
 };

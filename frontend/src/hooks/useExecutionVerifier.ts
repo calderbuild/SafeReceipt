@@ -8,7 +8,7 @@
 import { useState, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { getDigest } from '../lib/storage';
-import { MONAD_TESTNET } from '../lib/contract';
+import { ACTIVE_CHAIN } from '../lib/contract';
 
 export interface VerificationResult {
   isVerified: boolean;
@@ -82,7 +82,7 @@ export function useExecutionVerifier() {
         }
 
         // 2. Fetch transaction from chain
-        const provider = new ethers.JsonRpcProvider(MONAD_TESTNET.rpcUrl);
+        const provider = new ethers.JsonRpcProvider(ACTIVE_CHAIN.rpcUrl);
         const tx = await provider.getTransaction(txHash);
 
         if (!tx) {
