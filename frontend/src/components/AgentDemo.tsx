@@ -251,7 +251,7 @@ export function AgentDemo() {
                 </p>
                 <p className="text-slate-400">
                   Tx: <a
-                    href={`https://testnet.monadscan.com/tx/${result.executionTxHash}`}
+                    href={`https://sepolia.basescan.org/tx/${result.executionTxHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary-400 hover:text-primary-300 font-mono underline"

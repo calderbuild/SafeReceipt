@@ -56,7 +56,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         <section className="text-center mb-24 animate-fade-up">
           <div className="inline-flex items-center space-x-2 px-4 py-2 bg-primary-500/10 border border-primary-500/20 rounded-full mb-8">
             <span className="w-2 h-2 bg-crypto-green rounded-full animate-pulse"></span>
-            <span className="text-sm text-primary-300">Live on Monad Testnet</span>
+            <span className="text-sm text-primary-300">Live on Base Sepolia</span>
           </div>
 
           <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight tracking-tight">
@@ -143,7 +143,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                 icon: <CubeIcon />,
                 step: '03',
                 title: 'Record On-Chain',
-                description: 'Intent hash + proof hash stored on Monad. Immutable evidence linking declared intent to actual execution.',
+                description: 'Intent hash + proof hash stored on Base. Immutable evidence linking declared intent to actual execution.',
                 color: 'from-cyan-500 to-blue-500',
               },
             ].map((item, i) => (
@@ -249,18 +249,18 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         {/* Contract + Tech Stack */}
         <section className="text-center mb-12 animate-fade-up">
           <a
-            href="https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A#code"
+            href="https://sepolia.basescan.org/address/0x96D698972c73a0fFe630e67b90e4D1998972f2a0#code"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center space-x-2 px-5 py-2.5 bg-white/[0.04] border border-white/10 rounded-full mb-8 hover:bg-white/[0.08] hover:border-primary-500/30 transition-all duration-200 group"
           >
             <span className="w-2 h-2 bg-crypto-green rounded-full animate-pulse"></span>
-            <span className="text-sm text-slate-300 group-hover:text-white transition-colors">Contract verified on MonadScan</span>
+            <span className="text-sm text-slate-300 group-hover:text-white transition-colors">Contract verified on BaseScan</span>
             <ExternalLinkIcon />
           </a>
           <p className="text-sm text-slate-500 mb-4">Built with</p>
           <div className="flex items-center justify-center flex-wrap gap-4">
-            {['React', 'TypeScript', 'Solidity', 'ethers.js', 'Tailwind CSS', 'Monad'].map((tech, i) => (
+            {['React', 'TypeScript', 'Solidity', 'ethers.js', 'Tailwind CSS', 'Base'].map((tech, i) => (
               <span key={i} className="px-4 py-2 bg-white/[0.03] border border-white/[0.06] rounded-lg text-sm text-slate-400 hover:text-white hover:border-white/15 transition-all duration-200 cursor-default">
                 {tech}
               </span>

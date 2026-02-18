@@ -20,11 +20,11 @@ const DocumentCheckIcon = () => (
   </svg>
 )
 
-// Monad Logo (simplified)
-const MonadLogo = () => (
+// Base Logo
+const BaseLogo = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
-    <circle cx="12" cy="12" r="6" fill="currentColor"/>
+    <circle cx="12" cy="12" r="10" fill="#0052FF" opacity="0.3"/>
+    <path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8c4.08 0 7.44-3.05 7.93-7H14c-.46 2.28-2.48 4-4.9 4-2.76 0-5-2.24-5-5s2.24-5 5-5c2.42 0 4.44 1.72 4.9 4h5.93C19.44 7.05 16.08 4 12 4z" fill="currentColor"/>
   </svg>
 )
 
@@ -80,9 +80,9 @@ function App() {
             <span className="text-sm text-slate-300">My Receipts</span>
           </Link>
           <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-            <MonadLogo />
-            <span className="text-sm text-slate-300">Monad Testnet</span>
-            <span className="text-xs text-slate-500 font-mono">10143</span>
+            <BaseLogo />
+            <span className="text-sm text-slate-300">Base Sepolia</span>
+            <span className="text-xs text-slate-500 font-mono">84532</span>
           </div>
           <WalletConnect className="!p-0 !bg-transparent !border-0 !rounded-none" />
         </div>

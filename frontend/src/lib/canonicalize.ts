@@ -9,7 +9,7 @@ import { ethers } from 'ethers';
 export interface CanonicalDigest {
   version: string;           // "1.0"
   actionType: string;        // "APPROVE" | "BATCH_PAY"
-  chainId: number;           // 10143 for Monad testnet
+  chainId: number;           // 84532 for Base Sepolia
   normalizedIntent: object;  // Keys alphabetically sorted
   riskScore: number;         // 0-100
   rulesTriggered: string[];  // Alphabetically sorted
@@ -133,7 +133,7 @@ export function createCanonicalDigest(params: CreateDigestParams): CanonicalDige
   return {
     version: '1.0',
     actionType: params.actionType,
-    chainId: params.chainId || 10143, // Default to Monad testnet
+    chainId: params.chainId || 84532, // Default to Base Sepolia
     normalizedIntent: sortObjectKeys(params.normalizedIntent),
     riskScore: params.riskScore,
     rulesTriggered: [...params.rulesTriggered].sort(),

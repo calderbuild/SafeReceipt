@@ -200,7 +200,7 @@ export async function runAgentDemo(
       if (scenario.expectedOutcome === 'MISMATCH') {
         verified = false;
       } else {
-        const provider = new ethers.JsonRpcProvider('https://testnet-rpc.monad.xyz');
+        const provider = new ethers.JsonRpcProvider('https://base-sepolia-rpc.publicnode.com');
         const tx = await provider.getTransaction(executionTxHash);
         verified = tx?.to?.toLowerCase() === intent.token.toLowerCase();
       }

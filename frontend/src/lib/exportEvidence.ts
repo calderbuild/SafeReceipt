@@ -90,7 +90,7 @@ export function createExportEvidence(
 
     links: {
       explorer: txHash
-        ? `https://testnet.monadscan.com/tx/${txHash}`
+        ? `https://sepolia.basescan.org/tx/${txHash}`
         : undefined,
     },
   };
@@ -123,8 +123,8 @@ Verification Steps:
 
 Chain Info:
 - Chain ID: ${chainId}
-- Network: Monad Testnet
-- RPC: https://testnet-rpc.monad.xyz
+- Network: Base Sepolia
+- RPC: https://base-sepolia-rpc.publicnode.com
 
 This evidence file can be used for dispute arbitration, proving the user's true intent before transaction execution.
 `.trim();

@@ -36,8 +36,8 @@ const METAMASK_ERROR_CODES: Record<number | string, WalletError> = {
   4902: {
     code: 'CHAIN_NOT_ADDED',
     title: 'Network Not Added',
-    message: 'Monad Testnet has not been added to your wallet',
-    suggestion: 'Please allow adding the Monad Testnet network',
+    message: 'Base Sepolia has not been added to your wallet',
+    suggestion: 'Please allow adding the Base Sepolia network',
     recoverable: true,
   },
 
@@ -62,7 +62,7 @@ const ERROR_MESSAGE_PATTERNS: Array<{
       code: 'INSUFFICIENT_FUNDS',
       title: 'Insufficient Gas',
       message: 'Your account balance is insufficient for gas fees',
-      suggestion: 'Get test tokens from Monad Faucet: https://faucet.monad.xyz/',
+      suggestion: 'Get test ETH from Base Sepolia Faucet: https://app.optimism.io/faucet',
       recoverable: true,
     },
   },
@@ -102,7 +102,7 @@ const ERROR_MESSAGE_PATTERNS: Array<{
       code: 'NETWORK_CHANGED',
       title: 'Network Changed',
       message: 'A network change was detected',
-      suggestion: 'Please make sure you are on Monad Testnet',
+      suggestion: 'Please make sure you are on Base Sepolia',
       recoverable: true,
     },
   },
