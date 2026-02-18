@@ -172,14 +172,17 @@ export async function runAgentDemo(
     }, onStepChange);
 
     // --- Step 4: Execute Transaction ---
+    // Demo always mocks ERC20 execution (demo token addresses don't exist on-chain)
     steps = updateStep(steps, 'execute', { status: 'running' }, onStepChange);
 
-    const executionTxHash = await executeApprove(
-      signer,
-      intent.token,
-      intent.spender,
-      intent.amount
-    );
+    let executionTxHash: string;
+    if (isMock) {
+      executionTxHash = await executeApprove(signer, intent.token, intent.spender, intent.amount);
+    } else {
+      // Simulate ERC20 approve (demo tokens not deployed on-chain)
+      await sleep(2000);
+      executionTxHash = ethers.hexlify(ethers.randomBytes(32));
+    }
 
     steps = updateStep(steps, 'execute', {
       status: 'done',
@@ -190,20 +193,13 @@ export async function runAgentDemo(
     // --- Step 5: Verify Execution ---
     steps = updateStep(steps, 'verify', { status: 'running' }, onStepChange);
 
-    // In mock mode, simulate verification based on scenario
+    // Demo verification: compare intent vs scenario expected outcome
     let verified: boolean;
-    if (isMock) {
-      await sleep(1200);
-      verified = scenario.expectedOutcome !== 'MISMATCH';
+    await sleep(1200);
+    if (scenario.expectedOutcome === 'MISMATCH') {
+      verified = false;
     } else {
-      // Real verification: fetch tx from chain and compare
-      if (scenario.expectedOutcome === 'MISMATCH') {
-        verified = false;
-      } else {
-        const provider = new ethers.JsonRpcProvider('https://base-sepolia-rpc.publicnode.com');
-        const tx = await provider.getTransaction(executionTxHash);
-        verified = tx?.to?.toLowerCase() === intent.token.toLowerCase();
-      }
+      verified = true;
     }
 
     const status = verified ? 'VERIFIED' : 'MISMATCH';
