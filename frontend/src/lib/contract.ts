@@ -157,7 +157,7 @@ export const NETWORKS = {
 } as const;
 
 // Active network - change this after deploying to Base Sepolia
-const ACTIVE_NETWORK: keyof typeof NETWORKS = 'monad';
+const ACTIVE_NETWORK: keyof typeof NETWORKS = 'baseSepolia';
 
 // Contract configuration
 export const CONTRACT_CONFIG = {
