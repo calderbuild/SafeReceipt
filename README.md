@@ -174,6 +174,10 @@ SafeReceipt/
 └── hardhat.config.ts
 ```
 
+## Contributors
+
+- [Calder](https://github.com/calderbuild)
+
 ## License
 
 MIT
