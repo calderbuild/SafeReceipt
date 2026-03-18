@@ -4,7 +4,7 @@
 
 > When AI fails, receipts prove who's responsible.
 
-**[Live Demo](https://safereceipt-base.vercel.app)** | Built on Base Sepolia
+**[Live Demo](https://safereceipt.vercel.app)** | Built on Monad Testnet
 
 ---
 
@@ -46,8 +46,8 @@ Every receipt is an immutable on-chain record linking **declared intent** to **a
 └──────────────────────┬──────────────────────────┘
                        │
               ┌────────▼────────┐
-              │ ReceiptRegistry │  Base Sepolia
-              │    (Solidity)   │  Chain ID: 84532
+              │ ReceiptRegistry │  Monad Testnet
+              │    (Solidity)   │  Chain ID: 10143
               └─────────────────┘
 ```
 
@@ -81,7 +81,7 @@ Every receipt is an immutable on-chain record linking **declared intent** to **a
 | Wallet | MetaMask |
 | NLP | OpenAI-compatible API (GPT-4o) |
 | Testing | Vitest, happy-dom, Testing Library |
-| Target Chain | Base Sepolia (Chain ID: 84532) |
+| Target Chain | Monad Testnet (Chain ID: 10143) |
 
 ## Quick Start
 
@@ -89,7 +89,7 @@ Every receipt is an immutable on-chain record linking **declared intent** to **a
 
 - Node.js 18+
 - MetaMask browser extension
-- ETH on Base Sepolia testnet
+- MON tokens on Monad Testnet
 
 ### Setup
 
