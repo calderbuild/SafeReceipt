@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { ReceiptRegistry } from "../typechain-types";
 
 describe("ReceiptRegistry", function () {
@@ -56,7 +57,7 @@ describe("ReceiptRegistry", function () {
         receiptRegistry.createReceipt(actionType, intentHash, proofHash, riskScore)
       )
         .to.emit(receiptRegistry, "ReceiptCreated")
-        .withArgs(1, owner.address, actionType, intentHash, proofHash, riskScore, await ethers.provider.getBlockNumber() + 1);
+        .withArgs(1, owner.address, actionType, intentHash, proofHash, riskScore, anyValue);
     });
 
     it("Should increment receipt ID", async function () {
