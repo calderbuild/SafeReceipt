@@ -1,28 +1,25 @@
 import { useState } from 'react'
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route, Link, NavLink } from 'react-router-dom'
 import { Toaster, toast } from 'react-hot-toast'
 import { WalletConnect } from './components/WalletConnect'
 import { CreateReceiptModal } from './components/CreateReceiptModal'
 import { VerifyProofModal } from './components/VerifyProofModal'
-import { Home, MyReceipts, ReceiptDetail } from './pages'
+import { Home, MyReceipts, ReceiptDetail, Fleet } from './pages'
 
-// Heroicons (MIT License) - Shield Check
-const ShieldCheckIcon = () => (
-  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+// Receipt mark: a slip with a torn bottom edge
+const ReceiptMark = ({ className = 'w-7 h-7' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M5 2.5h14v17l-2.33-1.5-2.34 1.5L12 18l-2.33 1.5L7.33 18 5 19.5z" fill="var(--color-paper)" />
+    <path d="M8 7h8M8 10.5h8M8 14h4.5" stroke="var(--color-paper-ink)" strokeWidth="1.4" strokeLinecap="round" />
   </svg>
 )
 
-// Document Check
-const DocumentCheckIcon = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-12M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />
-  </svg>
-)
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `text-sm whitespace-nowrap px-2 sm:px-2.5 py-1.5 rounded-md transition-colors ${isActive ? 'text-white bg-white/[0.06]' : 'text-slate-400 hover:text-white'}`
 
 // Monad Logo (simplified)
 const MonadLogo = () => (
-  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+  <svg className="w-3.5 h-3.5 text-primary-300" viewBox="0 0 24 24" fill="currentColor">
     <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
     <circle cx="12" cy="12" r="6" fill="currentColor"/>
   </svg>
@@ -61,30 +58,19 @@ function App() {
 
       {/* Floating Navbar */}
       <nav className="navbar-float">
-        <Link to="/" className="flex items-center space-x-3 cursor-pointer">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-crypto-cyan flex items-center justify-center">
-            <ShieldCheckIcon />
-          </div>
-          <div>
-            <h1 className="font-display font-bold text-lg text-white">SafeReceipt</h1>
-            <p className="text-xs text-slate-400">Agent Accountability Protocol</p>
-          </div>
+        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+          <ReceiptMark />
+          <span className="font-display font-semibold text-lg text-white tracking-tight">SafeReceipt</span>
         </Link>
 
-        <div className="flex items-center space-x-4">
-          <Link
-            to="/receipts"
-            className="hidden md:flex items-center space-x-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            <DocumentCheckIcon />
-            <span className="text-sm text-slate-300">My Receipts</span>
-          </Link>
-          <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
+        <div className="flex items-center gap-1 sm:gap-3">
+          <NavLink to="/fleet" className={navLinkClass}><span className="sm:hidden">Fleet</span><span className="hidden sm:inline">Agent fleet</span></NavLink>
+          <NavLink to="/receipts" className={navLinkClass}><span className="sm:hidden">Receipts</span><span className="hidden sm:inline">My receipts</span></NavLink>
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 border border-white/10 rounded-md" title="Network used when you create a receipt with your wallet">
             <MonadLogo />
-            <span className="text-sm text-slate-300">Monad Testnet</span>
-            <span className="text-xs text-slate-500 font-mono">10143</span>
+            <span>Monad Testnet</span>
           </div>
-          <WalletConnect className="!p-0 !bg-transparent !border-0 !rounded-none" />
+          <WalletConnect className="!py-1.5 !px-3" />
         </div>
       </nav>
 
@@ -99,6 +85,7 @@ function App() {
             />
           }
         />
+        <Route path="/fleet" element={<Fleet />} />
         <Route path="/receipts" element={<MyReceipts />} />
         <Route path="/receipt/:id" element={<ReceiptDetail />} />
       </Routes>
@@ -107,9 +94,7 @@ function App() {
       <footer className="border-t border-white/5 py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <Link to="/" className="flex items-center space-x-3 cursor-pointer">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-cyan-500 flex items-center justify-center">
-              <ShieldCheckIcon />
-            </div>
+            <ReceiptMark className="w-6 h-6" />
             <span className="font-display font-semibold text-white">SafeReceipt</span>
           </Link>
 

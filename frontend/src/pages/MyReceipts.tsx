@@ -125,7 +125,7 @@ export function MyReceipts() {
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         digest.actionType === 'APPROVE'
                           ? 'bg-blue-500/20 text-blue-400'
-                          : 'bg-purple-500/20 text-purple-400'
+                          : 'bg-primary-500/20 text-primary-400'
                       }`}>
                         {digest.actionType}
                       </span>

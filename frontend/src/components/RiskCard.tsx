@@ -151,12 +151,12 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
 
       {/* AI Explanation */}
       {aiExplanation && (
-        <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+        <div className="p-4 bg-primary-500/10 border border-primary-500/20 rounded-xl">
           <div className="flex items-center space-x-2 mb-2">
-            <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <svg className="w-4 h-4 text-primary-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
-            <p className="text-sm font-medium text-purple-400">AI Risk Analysis</p>
+            <p className="text-sm font-medium text-primary-400">AI Risk Analysis</p>
           </div>
           <p className="text-sm text-slate-300 whitespace-pre-line">{aiExplanation}</p>
         </div>

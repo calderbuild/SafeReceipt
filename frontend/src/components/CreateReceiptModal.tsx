@@ -335,7 +335,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 onClick={() => setInputMode('ai')}
                 className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-lg font-medium transition-all cursor-pointer ${
                   inputMode === 'ai'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                    ? 'bg-primary-500 text-[#06140F]'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -403,9 +403,9 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               )}
 
               {aiConfidence !== null && aiReasoning && (
-                <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                <div className="p-3 bg-primary-500/10 border border-primary-500/20 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-purple-400">AI Parse Result</span>
+                    <span className="text-xs text-primary-400">AI Parse Result</span>
                     <span className={`text-xs font-mono ${
                       aiConfidence >= 0.8 ? 'text-crypto-green' :
                       aiConfidence >= 0.5 ? 'text-accent' : 'text-crypto-red'

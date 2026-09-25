@@ -64,6 +64,8 @@ export interface IndependentVerification {
   intentMatches: boolean;
 }
 
+export const shortHash = (h: string) => `${h.slice(0, 10)}…${h.slice(-6)}`;
+
 const RUNTIME_FIELDS = ['status', 'linkedTxHash', 'outcomeHash'];
 
 export function hashTrace(trace: Record<string, unknown>): string {

@@ -94,7 +94,7 @@ export function AgentDemo() {
   return (
     <div className="p-6 md:p-8">
       <div className="flex items-center space-x-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-xl bg-dark-100 border border-dark-200 flex items-center justify-center">
           <PlayIcon />
         </div>
         <div>
