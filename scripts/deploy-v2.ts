@@ -35,7 +35,7 @@ async function main() {
   console.log("DemoUSD deployed to:", demoUSDAddress);
 
   // One file the wrapper reads, keyed by network name.
-  const key = chainId === 84532 ? "baseSepolia" : chainId === 10143 ? "monad" : `chain${chainId}`;
+  const key = chainId === 84532 ? "baseSepolia" : chainId === 10143 ? "monad" : chainId === 31337 ? "localhost" : `chain${chainId}`;
   const file = join(__dirname, "..", "wrapper", "deployments.json");
   const all = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
   all[key] = {
@@ -44,6 +44,7 @@ async function main() {
     agentIdentityRegistry: identityAddress,
     actionRegistry: actionAddress,
     demoUSD: demoUSDAddress,
+    version: "2.1",
     deployedAt: new Date().toISOString(),
   };
   writeFileSync(file, JSON.stringify(all, null, 2) + "\n");

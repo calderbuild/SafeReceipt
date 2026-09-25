@@ -17,7 +17,7 @@ async function main() {
   if (!process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set in .env");
 
   const provider = new ethers.JsonRpcProvider(cfg.rpc);
-  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const signer = new ethers.NonceManager(new ethers.Wallet(process.env.PRIVATE_KEY, provider)); // back-to-back txs
   const registry = new ethers.Contract(cfg.agentIdentityRegistry, AGENT_IDENTITY_ABI, signer);
 
   console.log(`Registering ${AGENTS.length} agents on ${network} (${cfg.agentIdentityRegistry})`);

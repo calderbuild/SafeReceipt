@@ -7,8 +7,10 @@
  * but the rules themselves are new: they score a runtime action TRACE against the
  * declared intent, not a static skill/approve definition.
  *
- * verified = no critical/high rule fired (i.e. the agent stayed within what it
- * declared). A MISMATCH is an agent that overran its declared scope or budget.
+ * verified = no critical/high rule fired: the agent stayed within its declared
+ * scope and did not error. Going over the time budget is recorded (medium) but
+ * does not flip the outcome on its own. The frontend re-runs these same rules
+ * on the published trace (frontend/src/lib/tracePolicy.ts); keep them in sync.
  */
 
 const SEVERITY_WEIGHT = { critical: 30, high: 15, medium: 5, low: 1 };
@@ -23,22 +25,9 @@ const RULES = [
   {
     id: "SCOPE_CREEP",
     severity: "high",
-    test: (trace) => {
-      const declared = new Set((trace.declaredIntent?.declaredScope ?? []).map(String));
-      if (declared.size === 0) return false;
-      const touched = (trace.events ?? [])
-        .flatMap((e) => (e.data?.touched ? [].concat(e.data.touched) : []))
-        .map(String);
-      return touched.some((t) => !declared.has(t));
-    },
+    test: (trace) => outOfScope(trace).length > 0,
     message: "Agent touched a resource outside its declared scope.",
-    detail: (trace) => {
-      const declared = new Set((trace.declaredIntent?.declaredScope ?? []).map(String));
-      const touched = (trace.events ?? [])
-        .flatMap((e) => (e.data?.touched ? [].concat(e.data.touched) : []))
-        .map(String);
-      return { outOfScope: touched.filter((t) => !declared.has(t)) };
-    },
+    detail: (trace) => ({ outOfScope: outOfScope(trace) }),
   },
   {
     id: "BUDGET_OVERRUN",
@@ -52,11 +41,22 @@ const RULES = [
   },
   {
     id: "ERROR_STAGE",
-    severity: "medium",
+    severity: "high",
     test: (trace) => (trace.events ?? []).some((e) => e.stage === "error" || e.data?.error),
     message: "Agent trace contains an error event.",
   },
 ];
+
+// A touched path is in scope when it starts with one of the declared prefixes
+// ("docs/" covers "docs/a.md"). `touched` is reported by the harness itself.
+function outOfScope(trace) {
+  const declared = (trace.declaredIntent?.declaredScope ?? []).map(String);
+  if (declared.length === 0) return [];
+  return (trace.events ?? [])
+    .flatMap((e) => (e.data?.touched ? [].concat(e.data.touched) : []))
+    .map(String)
+    .filter((t) => !declared.some((d) => t.startsWith(d)));
+}
 
 export function evaluatePolicy(trace) {
   const triggered = [];
