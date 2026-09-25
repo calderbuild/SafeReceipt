@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useWallet } from '../hooks/useWallet';
 import { getUserReceipts, getDigest } from '../lib/storage';
 import type { CanonicalDigest } from '../lib/canonicalize';
+import { riskLevel } from '../lib/riskEngine';
 
 // Heroicons
 const DocumentCheckIcon = () => (
@@ -28,8 +29,9 @@ interface ReceiptSummary {
 }
 
 function getRiskColor(score: number): string {
-  if (score >= 60) return 'text-red-400 bg-red-500/20';
-  if (score >= 30) return 'text-amber-400 bg-amber-500/20';
+  const level = riskLevel(score);
+  if (level === 'HIGH') return 'text-red-400 bg-red-500/20';
+  if (level === 'MEDIUM') return 'text-amber-400 bg-amber-500/20';
   return 'text-emerald-400 bg-emerald-500/20';
 }
 

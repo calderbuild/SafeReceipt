@@ -312,13 +312,13 @@ export class ReceiptRegistryContract {
       return {
         receiptId,
         actor: receipt.actor,
-        actionType: receipt.actionType,
-        riskScore: receipt.riskScore,
+        actionType: Number(receipt.actionType),
+        riskScore: Number(receipt.riskScore),
         timestamp: Number(receipt.timestamp),
         intentHash: receipt.intentHash,
         proofHash: receipt.proofHash,
         txHash: receipt.txHash,
-        status: receipt.status as ReceiptStatus,
+        status: Number(receipt.status) as ReceiptStatus,
       };
     } catch (error) {
       console.error('Failed to get receipt:', error);

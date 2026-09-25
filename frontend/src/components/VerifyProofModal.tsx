@@ -3,6 +3,7 @@ import { Modal } from './Modal';
 import { useVerify } from '../hooks/useVerify';
 import { getDigest, getUserReceipts } from '../lib/storage';
 import { useWallet } from '../hooks/useWallet';
+import { riskLevel } from '../lib/riskEngine';
 
 interface VerifyProofModalProps {
   isOpen: boolean;
@@ -203,9 +204,9 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
                   <div className="p-3 bg-white/5 rounded-xl">
                     <p className="text-xs text-slate-500 mb-1">Risk Score</p>
                     <p className={`text-sm font-bold ${
-                      lastResult.digest.riskScore >= 50
+                      riskLevel(lastResult.digest.riskScore) === 'HIGH'
                         ? 'text-crypto-red'
-                        : lastResult.digest.riskScore >= 25
+                        : riskLevel(lastResult.digest.riskScore) === 'MEDIUM'
                         ? 'text-accent'
                         : 'text-crypto-green'
                     }`}>

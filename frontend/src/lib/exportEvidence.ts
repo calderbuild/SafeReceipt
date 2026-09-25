@@ -9,6 +9,7 @@
 
 import type { CanonicalDigest } from './canonicalize';
 import { computeIntentHash, computeProofHash } from './canonicalize';
+import { ACTIVE_CHAIN, CONTRACT_CONFIG } from './contract';
 
 export interface ExportedEvidence {
   // Version info
@@ -18,6 +19,9 @@ export interface ExportedEvidence {
   // Receipt ID
   receiptId: string;
   chainId: number;
+  contractAddress: string;
+  actionType: string;
+  digestVersion: string;
 
   // Participant info
   actor: string;
@@ -39,6 +43,9 @@ export interface ExportedEvidence {
   // On-chain info
   transactionHash?: string;
   blockNumber?: number;
+  /** Execution tx linked to this receipt and the verdict, as last seen by this browser. */
+  linkedTxHash?: string;
+  status?: string;
 
   // Verification guide
   verificationInstructions: string;
@@ -69,6 +76,9 @@ export function createExportEvidence(
 
     receiptId,
     chainId: digest.chainId,
+    contractAddress: CONTRACT_CONFIG.address,
+    actionType: digest.actionType,
+    digestVersion: digest.version,
 
     actor,
 
@@ -85,13 +95,13 @@ export function createExportEvidence(
 
     transactionHash: txHash,
     blockNumber,
+    linkedTxHash: digest.linkedTxHash,
+    status: digest.status,
 
     verificationInstructions: generateVerificationInstructions(receiptId, digest.chainId),
 
     links: {
-      explorer: txHash
-        ? `https://testnet.monadscan.com/tx/${txHash}`
-        : undefined,
+      explorer: `${ACTIVE_CHAIN.blockExplorer}/address/${CONTRACT_CONFIG.address}`,
     },
   };
 
@@ -111,7 +121,8 @@ Verification Steps:
    - Retrieve the stored proofHash
 
 2. Local Verification
-   - Use normalizedIntent and other fields from this file
+   - Use digestVersion (as version), actionType, chainId, normalizedIntent, riskScore,
+     rulesTriggered, liabilityNotice and createdAt from this file
    - Recompute hash following CanonicalDigest format
    - Field order: version, actionType, chainId, normalizedIntent, riskScore, rulesTriggered, liabilityNotice, createdAt
    - Compute proofHash using keccak256

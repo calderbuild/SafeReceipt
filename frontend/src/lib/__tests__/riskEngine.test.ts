@@ -5,6 +5,8 @@ import {
   evaluateBatchPay,
   calculateScore,
   recordApproval,
+  approvalMedian,
+  riskLevel,
   RISK_RULES,
   type ApproveIntent,
   type BatchPayRecipient,
@@ -383,6 +385,43 @@ describe('riskEngine', () => {
       // Old approval should be filtered out
       expect(approvals).toHaveLength(1);
       expect(approvals[0].token).toBe('0x2222');
+    });
+  });
+
+  describe('approvalMedian and OUTLIER_AMOUNT from recorded history', () => {
+    const user = '0x1234567890123456789012345678901234567890';
+    const token = '0x5a3b52260c44cd1ec70c7157131bc15913cd835f';
+    const spender = '0x000000000022d473030f116ddee9f6b43ac78ba3';
+
+    it('needs at least 3 recorded amounts', () => {
+      recordApproval(token, spender, user, '100');
+      recordApproval(token, spender, user, '200');
+      expect(approvalMedian(user, token)).toBeUndefined();
+      recordApproval(token, spender, user, '300');
+      expect(approvalMedian(user, token)).toBe('200');
+    });
+
+    it('ignores other tokens, unlimited approvals and entries without an amount', () => {
+      recordApproval(token, spender, user, '100');
+      recordApproval(token, spender, user, '100');
+      recordApproval(token, spender, user, ethers.MaxUint256.toString());
+      recordApproval(token, spender, user);
+      recordApproval('0x1111111111111111111111111111111111111111', spender, user, '999');
+      expect(approvalMedian(user, token)).toBeUndefined();
+    });
+
+    it('fires OUTLIER_AMOUNT in evaluateApprove without an explicit median', () => {
+      for (const a of ['100', '100', '100']) recordApproval(token, spender, user, a);
+      const big = evaluateApprove({ token, spender, amount: '1001' }, { knownContracts: [spender], userAddress: user });
+      const normal = evaluateApprove({ token, spender, amount: '1000' }, { knownContracts: [spender], userAddress: user });
+      expect(big.rulesTriggered).toContain('OUTLIER_AMOUNT');
+      expect(normal.rulesTriggered).not.toContain('OUTLIER_AMOUNT');
+    });
+  });
+
+  describe('riskLevel', () => {
+    it('bands scores at 25 and 50', () => {
+      expect([0, 24, 25, 49, 50, 100].map(riskLevel)).toEqual(['LOW', 'LOW', 'MEDIUM', 'MEDIUM', 'HIGH', 'HIGH']);
     });
   });
 

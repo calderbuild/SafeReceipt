@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { riskLevel } from '../lib/riskEngine';
 import type { RiskResult, RuleDetail } from '../lib/riskEngine';
 
 interface RiskCardProps {
@@ -8,7 +9,8 @@ interface RiskCardProps {
 }
 
 const getRiskLevel = (score: number): { label: string; color: string; bgColor: string; borderColor: string } => {
-  if (score >= 50) {
+  const level = riskLevel(score);
+  if (level === 'HIGH') {
     return {
       label: 'High Risk',
       color: 'text-red-400',
@@ -16,7 +18,7 @@ const getRiskLevel = (score: number): { label: string; color: string; bgColor: s
       borderColor: 'border-red-500/30',
     };
   }
-  if (score >= 25) {
+  if (level === 'MEDIUM') {
     return {
       label: 'Medium Risk',
       color: 'text-amber-400',
@@ -83,7 +85,7 @@ const RuleItem: React.FC<{ rule: RuleDetail; expanded: boolean; onToggle: () => 
 
 export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, className = '' }) => {
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
-  const riskLevel = getRiskLevel(result.riskScore);
+  const band = getRiskLevel(result.riskScore);
   const triggeredRules = result.ruleDetails.filter(r => r.triggered);
 
   const toggleRule = (ruleName: string) => {
@@ -99,27 +101,27 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Risk Score Header */}
-      <div className={`p-5 rounded-2xl border ${riskLevel.bgColor} ${riskLevel.borderColor}`}>
+      <div className={`p-5 rounded-2xl border ${band.bgColor} ${band.borderColor}`}>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-400 mb-1">Risk Score</p>
             <div className="flex items-baseline space-x-2">
-              <span className={`text-4xl font-bold font-display ${riskLevel.color}`}>
+              <span className={`text-4xl font-bold font-display ${band.color}`}>
                 {result.riskScore}
               </span>
               <span className="text-slate-500">/100</span>
             </div>
-            <p className={`text-sm font-medium mt-1 ${riskLevel.color}`}>
-              {riskLevel.label}
+            <p className={`text-sm font-medium mt-1 ${band.color}`}>
+              {band.label}
             </p>
           </div>
 
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center ${riskLevel.bgColor} border-4 ${riskLevel.borderColor}`}>
-            {result.riskScore >= 50 ? (
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center ${band.bgColor} border-4 ${band.borderColor}`}>
+            {riskLevel(result.riskScore) === 'HIGH' ? (
               <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
-            ) : result.riskScore >= 25 ? (
+            ) : riskLevel(result.riskScore) === 'MEDIUM' ? (
               <svg className="w-10 h-10 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
               </svg>

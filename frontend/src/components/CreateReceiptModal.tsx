@@ -8,7 +8,7 @@ import { parseApproveIntent, parseBatchPayIntent, createUnlimitedAmount } from '
 import { evaluateApprove, evaluateBatchPay, recordApproval } from '../lib/riskEngine';
 import { createCanonicalDigest, computeIntentHash, computeProofHash } from '../lib/canonicalize';
 import { saveDigest, addReceiptToUser, getDigest } from '../lib/storage';
-import { createReceiptRegistryContract, ActionType } from '../lib/contract';
+import { createReceiptRegistryContract, getReadOnlyProvider, ActionType } from '../lib/contract';
 import { KNOWN_SAFE_CONTRACTS } from '../lib/knownContracts';
 import { parseNaturalLanguageIntent, explainRisks, isLLMConfigured } from '../lib/llm';
 import { exportAndDownload } from '../lib/exportEvidence';
@@ -197,7 +197,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
       }
 
       // Evaluate risk
-      const result = await evaluateBatchPay(parseResult.data!.recipients);
+      const result = await evaluateBatchPay(parseResult.data!.recipients, { provider: getReadOnlyProvider() });
 
       setRiskResult(result);
 
@@ -274,7 +274,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
         // Record approval for repeat pattern detection
         if (actionType === 'APPROVE') {
-          recordApproval(token, spender, address);
+          recordApproval(token, spender, address, (normalizedIntent as { amount: string }).amount);
         }
 
         setReceiptId(mockReceiptId);
@@ -299,7 +299,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
       // Record approval for repeat pattern detection
       if (actionType === 'APPROVE') {
-        recordApproval(token, spender, address);
+        recordApproval(token, spender, address, (normalizedIntent as { amount: string }).amount);
       }
 
       setReceiptId(result.receiptId);
