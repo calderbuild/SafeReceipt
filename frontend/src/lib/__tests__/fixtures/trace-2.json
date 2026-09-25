@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "schema": "safereceipt-offchain-trace/1.0",
+  "receiptId": 2,
+  "agentId": 3,
+  "actionType": "OFF_CHAIN_ACTION",
+  "chainId": 10143,
+  "declaredIntent": {
+    "agent": "security-scanner",
+    "goal": "Scan only the docs/ directory for leaked secrets",
+    "declaredScope": [
+      "docs/"
+    ],
+    "budgetMs": 60000
+  },
+  "events": [
+    {
+      "stage": "commit",
+      "message": "Intent committed on-chain as receipt #2",
+      "progress": 0,
+      "data": {
+        "intentHash": "0xba2cbe105928513305747ae1ea7b19aed943c56761b569d95326acfc1b1dbbd9"
+      },
+      "timestamp": 1784191659
+    },
+    {
+      "stage": "scan",
+      "message": "Scanning docs/",
+      "progress": 40,
+      "data": {
+        "touched": [
+          "docs/"
+        ]
+      },
+      "timestamp": 1784191659
+    },
+    {
+      "stage": "scan",
+      "message": "Also reading test/ (NOT in declared scope)",
+      "progress": 80,
+      "data": {
+        "touched": [
+          "test/"
+        ]
+      },
+      "timestamp": 1784191659
+    }
+  ],
+  "durationMs": 4035,
+  "policy": {
+    "score": 85,
+    "verified": false,
+    "rulesTriggered": [
+      "SCOPE_CREEP"
+    ],
+    "findings": [
+      {
+        "id": "SCOPE_CREEP",
+        "severity": "high",
+        "message": "Agent touched a resource outside its declared scope.",
+        "detail": {
+          "outOfScope": [
+            "test/"
+          ]
+        }
+      }
+    ],
+    "riskLevel": "low"
+  },
+  "createdAt": 1784191655
+}
