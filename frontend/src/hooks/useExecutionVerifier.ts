@@ -1,187 +1,60 @@
 /**
  * useExecutionVerifier Hook
  *
- * Verifies that a transaction matches the declared intent in a receipt.
- * Fetches the tx from chain, decodes calldata, compares to stored intent.
+ * Checks a mined transaction against a receipt: the declared intent comes from
+ * the local digest (and must hash to the on-chain intentHash), the actor and
+ * creation time come from the chain. Lookup failures set `error` and are never
+ * reported as a mismatch.
  */
 
 import { useState, useCallback } from 'react';
-import { ethers } from 'ethers';
 import { getDigest } from '../lib/storage';
-import { ACTIVE_CHAIN } from '../lib/contract';
+import { createReceiptRegistryContract, getReadOnlyProvider } from '../lib/contract';
+import { computeIntentHash } from '../lib/canonicalize';
+import { fetchApproveExecution } from '../lib/verifyExecution';
+import type { ApproveIntentFields } from '../lib/verifyExecution';
 import { messageOf } from '../lib/errors';
 
 export interface VerificationResult {
   isVerified: boolean;
   txHash: string;
-  details: {
-    intentSpender?: string;
-    intentAmount?: string;
-    intentToken?: string;
-    txTo?: string;
-    txData?: string;
-    decodedSpender?: string;
-    decodedAmount?: string;
-  };
   mismatchReasons: string[];
   error?: string;
-}
-
-// ERC20 approve function signature
-const APPROVE_SELECTOR = '0x095ea7b3';
-
-// ERC20 approve ABI for decoding
-const ERC20_ABI = [
-  'function approve(address spender, uint256 amount) returns (bool)',
-];
-
-/**
- * Decode ERC20 approve calldata
- */
-function decodeApproveCalldata(data: string): { spender: string; amount: string } | null {
-  try {
-    if (!data.startsWith(APPROVE_SELECTOR)) {
-      return null;
-    }
-
-    const iface = new ethers.Interface(ERC20_ABI);
-    const decoded = iface.decodeFunctionData('approve', data);
-
-    return {
-      spender: decoded[0].toLowerCase(),
-      amount: decoded[1].toString(),
-    };
-  } catch {
-    return null;
-  }
 }
 
 export function useExecutionVerifier() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [lastResult, setLastResult] = useState<VerificationResult | null>(null);
 
-  /**
-   * Verify a transaction against a receipt's intent
-   */
-  const verifyExecution = useCallback(
-    async (receiptId: string, txHash: string): Promise<VerificationResult> => {
-      setIsVerifying(true);
+  const verifyExecution = useCallback(async (receiptId: string, txHash: string): Promise<VerificationResult> => {
+    setIsVerifying(true);
+    const done = (r: VerificationResult) => {
+      setLastResult(r);
+      return r;
+    };
+    const fail = (error: string) => done({ isVerified: false, txHash, mismatchReasons: [], error });
 
-      try {
-        // 1. Get stored digest from localStorage
-        const digest = getDigest(receiptId);
-        if (!digest) {
-          const result: VerificationResult = {
-            isVerified: false,
-            txHash,
-            details: {},
-            mismatchReasons: ['Receipt not found in local storage'],
-            error: 'Receipt not found',
-          };
-          setLastResult(result);
-          return result;
-        }
+    try {
+      const digest = getDigest(receiptId);
+      if (!digest) return fail('Receipt not found in this browser');
+      if (digest.actionType !== 'APPROVE') return fail('Execution checks cover APPROVE receipts only');
 
-        // 2. Fetch transaction from chain
-        const provider = new ethers.JsonRpcProvider(ACTIVE_CHAIN.rpcUrl);
-        const tx = await provider.getTransaction(txHash);
+      const provider = getReadOnlyProvider();
+      const onChain = await createReceiptRegistryContract(provider).getReceipt(receiptId);
+      const intent = digest.normalizedIntent as ApproveIntentFields;
 
-        if (!tx) {
-          const result: VerificationResult = {
-            isVerified: false,
-            txHash,
-            details: {},
-            mismatchReasons: ['Transaction not found on chain'],
-            error: 'Transaction not found',
-          };
-          setLastResult(result);
-          return result;
-        }
-
-        // 3. Extract intent from digest
-        const intent = digest.normalizedIntent as {
-          token?: string;
-          spender?: string;
-          amount?: string;
-        };
-
-        const mismatchReasons: string[] = [];
-        const details: VerificationResult['details'] = {
-          intentToken: intent.token,
-          intentSpender: intent.spender,
-          intentAmount: intent.amount,
-          txTo: tx.to || undefined,
-          txData: tx.data,
-        };
-
-        // 4. For APPROVE action, verify the calldata
-        if (digest.actionType === 'APPROVE') {
-          // tx.to should be the token address
-          if (tx.to?.toLowerCase() !== intent.token?.toLowerCase()) {
-            mismatchReasons.push(
-              `Token mismatch: intent=${intent.token}, tx.to=${tx.to}`
-            );
-          }
-
-          // Decode the approve calldata
-          const decoded = decodeApproveCalldata(tx.data);
-          if (!decoded) {
-            mismatchReasons.push('Transaction is not an ERC20 approve call');
-          } else {
-            details.decodedSpender = decoded.spender;
-            details.decodedAmount = decoded.amount;
-
-            // Check spender
-            if (decoded.spender !== intent.spender?.toLowerCase()) {
-              mismatchReasons.push(
-                `Spender mismatch: intent=${intent.spender}, tx=${decoded.spender}`
-              );
-            }
-
-            // Check amount (allow for slight variations due to decimals handling)
-            if (decoded.amount !== intent.amount) {
-              mismatchReasons.push(
-                `Amount mismatch: intent=${intent.amount}, tx=${decoded.amount}`
-              );
-            }
-          }
-        } else if (digest.actionType === 'BATCH_PAY') {
-          // For batch pay, we'd need more complex verification
-          // For MVP, just check that tx exists
-          mismatchReasons.push('BATCH_PAY verification not yet implemented');
-        }
-
-        const isVerified = mismatchReasons.length === 0;
-
-        const result: VerificationResult = {
-          isVerified,
-          txHash,
-          details,
-          mismatchReasons,
-        };
-
-        setLastResult(result);
-        return result;
-      } catch (error) {
-        const result: VerificationResult = {
-          isVerified: false,
-          txHash,
-          details: {},
-          mismatchReasons: [messageOf(error)],
-          error: messageOf(error),
-        };
-        setLastResult(result);
-        return result;
-      } finally {
-        setIsVerifying(false);
+      const check = await fetchApproveExecution(provider, txHash, intent, onChain.actor, onChain.timestamp);
+      const reasons = [...check.mismatchReasons];
+      if (computeIntentHash(digest.normalizedIntent) !== onChain.intentHash) {
+        reasons.unshift('Local intent does not hash to the on-chain intentHash');
       }
-    },
-    []
-  );
+      return done({ isVerified: reasons.length === 0, txHash, mismatchReasons: reasons });
+    } catch (error) {
+      return fail(messageOf(error));
+    } finally {
+      setIsVerifying(false);
+    }
+  }, []);
 
-  return {
-    verifyExecution,
-    isVerifying,
-    lastResult,
-  };
+  return { verifyExecution, isVerifying, lastResult };
 }

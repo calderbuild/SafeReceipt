@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useWallet } from '../hooks/useWallet';
+import { WalletConnect } from '../components/WalletConnect';
 import { getUserReceipts, getDigest } from '../lib/storage';
 import type { CanonicalDigest } from '../lib/canonicalize';
+import { riskLevel } from '../lib/riskEngine';
 
 // Heroicons
 const DocumentCheckIcon = () => (
@@ -28,8 +30,9 @@ interface ReceiptSummary {
 }
 
 function getRiskColor(score: number): string {
-  if (score >= 60) return 'text-red-400 bg-red-500/20';
-  if (score >= 30) return 'text-amber-400 bg-amber-500/20';
+  const level = riskLevel(score);
+  if (level === 'HIGH') return 'text-red-400 bg-red-500/20';
+  if (level === 'MEDIUM') return 'text-amber-400 bg-amber-500/20';
   return 'text-emerald-400 bg-emerald-500/20';
 }
 
@@ -73,7 +76,7 @@ export function MyReceipts() {
     <div className="min-h-screen pt-28 pb-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div className="flex items-center space-x-4">
             <Link
               to="/"
@@ -88,7 +91,7 @@ export function MyReceipts() {
               </p>
             </div>
           </div>
-          <Link to="/" className="btn-primary flex items-center space-x-2">
+          <Link to="/?create=1" className="btn-primary flex items-center space-x-2">
             <DocumentCheckIcon />
             <span>Create New</span>
           </Link>
@@ -97,14 +100,17 @@ export function MyReceipts() {
         {/* Content */}
         {!isConnected ? (
           <div className="glass-card p-12 text-center">
-            <p className="text-slate-400 mb-4">Connect your wallet to view receipts</p>
+            <p className="text-slate-400 mb-6">Connect your wallet to see the receipts you created in this browser.</p>
+            <div className="flex justify-center">
+              <WalletConnect />
+            </div>
           </div>
         ) : receipts.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <DocumentCheckIcon />
             <p className="text-slate-400 mt-4 mb-6">No receipts yet</p>
-            <Link to="/" className="btn-primary inline-flex items-center space-x-2">
-              <span>Create Your First Receipt</span>
+            <Link to="/?create=1" className="btn-primary inline-flex items-center space-x-2">
+              <span>Create your first receipt</span>
             </Link>
           </div>
         ) : (

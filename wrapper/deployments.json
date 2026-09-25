@@ -1,0 +1,16 @@
+{
+  "monad": {
+    "chainId": 10143,
+    "agentIdentityRegistry": "0x65F4A584E88b7a9831dbC187E75EF7247c47fe6d",
+    "actionRegistry": "0x975bD215C549F315A066306B161119cec480c927",
+    "version": "2.1",
+    "demoUSD": "0x5a3b52260C44cD1Ec70C7157131bC15913Cd835f",
+    "deployedAt": "2026-09-25T13:39:17.801Z"
+  },
+  "baseSepolia": {
+    "chainId": 84532,
+    "agentIdentityRegistry": "0x9BE98CB90c4E92327c2a7DC68145765A6F5Cb428",
+    "actionRegistry": "0x74656f2F834BaF5A53f1283D74Db395E8EcC3151",
+    "version": "2.0"
+  }
+}

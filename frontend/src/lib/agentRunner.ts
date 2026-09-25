@@ -9,12 +9,14 @@
 
 import { ethers } from 'ethers';
 import { parseNaturalLanguageIntent, isLLMConfigured } from './llm';
-import { evaluateApprove } from './riskEngine';
+import { evaluateApprove, recordApproval, riskLevel } from './riskEngine';
 import { createCanonicalDigest, computeIntentHash, computeProofHash } from './canonicalize';
-import { createReceiptRegistryContract, CONTRACT_CONFIG } from './contract';
+import { createReceiptRegistryContract, getReadOnlyProvider, CONTRACT_CONFIG } from './contract';
+import { fetchApproveExecution } from './verifyExecution';
+import type { ExecutionCheck } from './verifyExecution';
 import { saveDigest, addReceiptToUser, updateDigestStatus } from './storage';
 import { executeApprove } from './executeIntent';
-import { getRuntimeWhitelist } from './knownContracts';
+import { KNOWN_SAFE_CONTRACTS } from './knownContracts';
 import type { DemoScenario } from './demoScenarios';
 import type { ApproveIntent } from './intentParser';
 import type { RiskResult } from './riskEngine';
@@ -51,6 +53,7 @@ function createSteps(): AgentStep[] {
     { id: 'receipt', label: 'Creating Receipt', status: 'pending' },
     { id: 'execute', label: 'Executing Transaction', status: 'pending' },
     { id: 'verify', label: 'Verifying Execution', status: 'pending' },
+    { id: 'link', label: 'Recording Verdict', status: 'pending' },
   ];
 }
 
@@ -111,17 +114,16 @@ export async function runAgentDemo(
     steps = updateStep(steps, 'risk', { status: 'running' }, onStepChange);
     await sleep(800);
 
-    const knownContracts = [...getRuntimeWhitelist()];
+    const knownContracts = [...KNOWN_SAFE_CONTRACTS];
     const riskResult: RiskResult = evaluateApprove(intent, {
       knownContracts,
       userAddress: address,
     });
 
-    const riskLevel = riskResult.riskScore >= 60 ? 'HIGH' : riskResult.riskScore >= 30 ? 'MEDIUM' : 'LOW';
 
     steps = updateStep(steps, 'risk', {
       status: 'done',
-      detail: `Score: ${riskResult.riskScore}/100 -- ${riskLevel}`,
+      detail: `Score: ${riskResult.riskScore}/100 -- ${riskLevel(riskResult.riskScore)}`,
       result: riskResult,
     }, onStepChange);
 
@@ -149,15 +151,14 @@ export async function runAgentDemo(
     let createTxHash: string;
 
     const isMock = CONTRACT_CONFIG.address === '0x0000000000000000000000000000000000000000';
+    const provider = signer.provider;
+    const contract = createReceiptRegistryContract(provider, signer);
 
     if (isMock) {
       await sleep(1500);
       receiptId = String(Math.floor(Math.random() * 100000));
       createTxHash = ethers.hexlify(ethers.randomBytes(32));
     } else {
-      const provider = new ethers.BrowserProvider(window.ethereum!);
-      const walletSigner = await provider.getSigner();
-      const contract = createReceiptRegistryContract(provider, walletSigner);
       const result = await contract.createReceipt(1, intentHash, proofHash, riskResult.riskScore);
       receiptId = result.receiptId;
       createTxHash = result.txHash;
@@ -165,6 +166,7 @@ export async function runAgentDemo(
 
     saveDigest(receiptId, digest);
     addReceiptToUser(address, receiptId);
+    recordApproval(intent.token, intent.spender, address, intent.amount);
 
     steps = updateStep(steps, 'receipt', {
       status: 'done',
@@ -173,13 +175,14 @@ export async function runAgentDemo(
     }, onStepChange);
 
     // --- Step 4: Execute Transaction ---
+    // The rogue scenario really sends a different amount than it declared.
     steps = updateStep(steps, 'execute', { status: 'running' }, onStepChange);
 
     const executionTxHash = await executeApprove(
       signer,
       intent.token,
       intent.spender,
-      intent.amount
+      scenario.executedAmount ?? intent.amount
     );
 
     steps = updateStep(steps, 'execute', {
@@ -188,36 +191,38 @@ export async function runAgentDemo(
       result: { txHash: executionTxHash },
     }, onStepChange);
 
-    // --- Step 5: Verify Execution ---
+    // --- Step 5: Verify Execution against the declared intent ---
     steps = updateStep(steps, 'verify', { status: 'running' }, onStepChange);
 
-    // In mock mode, simulate verification based on scenario
-    let verified: boolean;
+    let check: ExecutionCheck;
     if (isMock) {
       await sleep(1200);
-      verified = scenario.expectedOutcome !== 'MISMATCH';
+      check = scenario.executedAmount
+        ? { isVerified: false, mismatchReasons: [`Amount mismatch: declared ${intent.amount}, executed ${scenario.executedAmount}`] }
+        : { isVerified: true, mismatchReasons: [] };
     } else {
-      // Real verification: fetch tx from chain and compare
-      if (scenario.expectedOutcome === 'MISMATCH') {
-        verified = false;
-      } else {
-        const provider = new ethers.JsonRpcProvider('https://testnet-rpc.monad.xyz');
-        const tx = await provider.getTransaction(executionTxHash);
-        verified = tx?.to?.toLowerCase() === intent.token.toLowerCase();
-      }
+      const onChain = await contract.getReceipt(receiptId);
+      check = await fetchApproveExecution(getReadOnlyProvider(), executionTxHash, normalizedIntent, onChain.actor, onChain.timestamp);
     }
-
-    const status = verified ? 'VERIFIED' : 'MISMATCH';
-    const mismatchDetail = verified ? undefined : (scenario.mismatchDetail || 'Execution does not match declared intent');
-    updateDigestStatus(receiptId, status, executionTxHash);
+    const verified = check.isVerified;
+    const mismatchDetail = verified ? undefined : check.mismatchReasons.join('; ');
 
     steps = updateStep(steps, 'verify', {
       status: 'done',
-      detail: verified
-        ? 'Execution matches declared intent'
-        : mismatchDetail!,
-      result: { verified, status },
+      detail: verified ? 'Execution matches declared intent' : mismatchDetail,
+      result: check,
     }, onStepChange);
+
+    // --- Step 6: Record the verdict on-chain ---
+    steps = updateStep(steps, 'link', { status: 'running' }, onStepChange);
+    if (isMock) {
+      await sleep(800);
+    } else {
+      await contract.linkExecution(receiptId, executionTxHash, verified);
+    }
+    const status = verified ? 'VERIFIED' : 'MISMATCH';
+    updateDigestStatus(receiptId, status, executionTxHash);
+    steps = updateStep(steps, 'link', { status: 'done', detail: `Receipt #${receiptId} marked ${status} on-chain` }, onStepChange);
 
     return {
       success: true,

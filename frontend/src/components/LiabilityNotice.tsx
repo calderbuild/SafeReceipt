@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
+import { riskLevel } from '../lib/riskEngine';
 
 interface LiabilityNoticeProps {
   notice: string;
   riskScore: number;
   rulesTriggered: string[];
-  onAcknowledge?: () => void;
-  acknowledged?: boolean;
   className?: string;
 }
 
@@ -13,13 +12,11 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
   notice,
   riskScore,
   rulesTriggered,
-  onAcknowledge,
-  acknowledged = false,
   className = '',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isHighRisk = riskScore >= 50;
-  const isMediumRisk = riskScore >= 25;
+  const isHighRisk = riskLevel(riskScore) === 'HIGH';
+  const isMediumRisk = riskLevel(riskScore) === 'MEDIUM';
 
   const getBorderColor = () => {
     if (isHighRisk) return 'border-red-500/50';
@@ -112,35 +109,6 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
         )}
       </div>
 
-      {/* Acknowledge Button */}
-      {onAcknowledge && !acknowledged && (
-        <div className="p-4 pt-0">
-          <button
-            onClick={onAcknowledge}
-            className={`w-full py-3 rounded-xl font-medium transition-all cursor-pointer ${
-              isHighRisk
-                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                : isMediumRisk
-                ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30'
-                : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30'
-            }`}
-          >
-            I have read and understand the risks above
-          </button>
-        </div>
-      )}
-
-      {/* Acknowledged State */}
-      {acknowledged && (
-        <div className="p-4 pt-0">
-          <div className="flex items-center justify-center space-x-2 py-2 text-emerald-400">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-sm font-medium">Risk acknowledged</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

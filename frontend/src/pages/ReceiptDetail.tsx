@@ -1,13 +1,14 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
-import { useWallet } from '../hooks/useWallet';
+import { useWallet, onActiveNetwork } from '../hooks/useWallet';
 import { useVerify } from '../hooks/useVerify';
 import { useExecutionVerifier } from '../hooks/useExecutionVerifier';
 import { getDigest, updateDigestStatus } from '../lib/storage';
 import { exportAndDownload } from '../lib/exportEvidence';
 import { RiskCard } from '../components/RiskCard';
 import { LiabilityNotice } from '../components/LiabilityNotice';
-import { ACTIVE_CHAIN } from '../lib/contract';
+import { ACTIVE_CHAIN, createReceiptRegistryContract } from '../lib/contract';
+import { messageOf } from '../lib/errors';
 import type { CanonicalDigest } from '../lib/canonicalize';
 
 // Heroicons
@@ -101,7 +102,7 @@ function getStatusBadge(status: string) {
 
 export function ReceiptDetail() {
   const { id } = useParams<{ id: string }>();
-  const { address } = useWallet();
+  const { address, provider, signer } = useWallet();
   const { verifyProof, isVerifying, lastResult } = useVerify();
   const { verifyExecution, isVerifying: isVerifyingExecution, lastResult: executionResult } = useExecutionVerifier();
   const [digest, setDigest] = useState<CanonicalDigest | null>(() => (id ? getDigest(id) : null));
@@ -113,6 +114,7 @@ export function ReceiptDetail() {
   const [verified, setVerified] = useState<boolean | null>(null);
   const [txHashInput, setTxHashInput] = useState('');
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [isLinking, setIsLinking] = useState(false);
 
   const handleVerify = async () => {
     if (!id) return;
@@ -136,12 +138,30 @@ export function ReceiptDetail() {
     }
 
     const result = await verifyExecution(id, txHashInput);
+    if (result.error) {
+      setLinkError(result.error);
+      return;
+    }
+    if (!digest || !provider || !signer) {
+      setLinkError('Connect the wallet that created this receipt to record the result on-chain');
+      return;
+    }
+    if (!onActiveNetwork()) {
+      setLinkError(`Switch your wallet to ${ACTIVE_CHAIN.name}, then try again`);
+      return;
+    }
 
-    // Update local storage with verification result
-    if (digest) {
+    // Record the verdict on-chain first; local status follows the chain.
+    setIsLinking(true);
+    try {
+      await createReceiptRegistryContract(provider, signer).linkExecution(id, txHashInput, result.isVerified);
       const status = result.isVerified ? 'VERIFIED' : 'MISMATCH';
       updateDigestStatus(id, status, txHashInput);
       setDigest({ ...digest, status, linkedTxHash: txHashInput });
+    } catch (error) {
+      setLinkError(messageOf(error));
+    } finally {
+      setIsLinking(false);
     }
   };
 
@@ -310,6 +330,7 @@ export function ReceiptDetail() {
               <div className="flex space-x-3">
                 <input
                   type="text"
+                  aria-label="Execution transaction hash"
                   value={txHashInput}
                   onChange={(e) => setTxHashInput(e.target.value)}
                   placeholder="0x... transaction hash"
@@ -317,11 +338,11 @@ export function ReceiptDetail() {
                 />
                 <button
                   onClick={handleLinkTransaction}
-                  disabled={isVerifyingExecution || !txHashInput}
+                  disabled={isVerifyingExecution || isLinking || !txHashInput}
                   className="btn-primary flex items-center space-x-2"
                 >
                   <LinkIcon />
-                  <span>{isVerifyingExecution ? 'Verifying...' : 'Link & Verify'}</span>
+                  <span>{isVerifyingExecution ? 'Verifying...' : isLinking ? 'Confirm in wallet...' : 'Verify & record on-chain'}</span>
                 </button>
               </div>
 
@@ -329,7 +350,7 @@ export function ReceiptDetail() {
                 <p className="text-red-400 text-sm mt-2">{linkError}</p>
               )}
 
-              {executionResult && !executionResult.isVerified && executionResult.mismatchReasons.length > 0 && (
+              {executionResult && !executionResult.error && !executionResult.isVerified && (
                 <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                   <p className="text-red-400 font-medium mb-2">Verification Failed</p>
                   <ul className="text-slate-400 text-sm space-y-1">
@@ -397,7 +418,7 @@ export function ReceiptDetail() {
             </div>
             <div className="flex items-center justify-between py-2 border-b border-white/5">
               <span className="text-slate-400">Created At</span>
-              <span className="text-white font-mono">{digest.createdAt}</span>
+              <span className="text-white font-mono">{formatDate(digest.createdAt)}</span>
             </div>
             <div className="flex items-start justify-between py-2">
               <span className="text-slate-400">Rules Triggered</span>

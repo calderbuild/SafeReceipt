@@ -3,12 +3,13 @@ import { ethers } from 'ethers';
 import { Modal } from './Modal';
 import { RiskCard } from './RiskCard';
 import { LiabilityNotice } from './LiabilityNotice';
-import { useWallet } from '../hooks/useWallet';
+import { Link } from 'react-router-dom';
+import { useWallet, onActiveNetwork } from '../hooks/useWallet';
 import { parseApproveIntent, parseBatchPayIntent, createUnlimitedAmount } from '../lib/intentParser';
 import { evaluateApprove, evaluateBatchPay, recordApproval } from '../lib/riskEngine';
 import { createCanonicalDigest, computeIntentHash, computeProofHash } from '../lib/canonicalize';
 import { saveDigest, addReceiptToUser, getDigest } from '../lib/storage';
-import { createReceiptRegistryContract, ActionType } from '../lib/contract';
+import { createReceiptRegistryContract, getReadOnlyProvider, ActionType, ACTIVE_CHAIN } from '../lib/contract';
 import { KNOWN_SAFE_CONTRACTS } from '../lib/knownContracts';
 import { parseNaturalLanguageIntent, explainRisks, isLLMConfigured } from '../lib/llm';
 import { exportAndDownload } from '../lib/exportEvidence';
@@ -197,7 +198,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
       }
 
       // Evaluate risk
-      const result = await evaluateBatchPay(parseResult.data!.recipients);
+      const result = await evaluateBatchPay(parseResult.data!.recipients, { provider: getReadOnlyProvider() });
 
       setRiskResult(result);
 
@@ -221,6 +222,10 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
   const handleSubmit = async () => {
     if (!riskResult || !address || !provider || !signer) {
       setSubmitError('Wallet not connected');
+      return;
+    }
+    if (!onActiveNetwork()) {
+      setSubmitError(`Switch your wallet to ${ACTIVE_CHAIN.name}, then submit again`);
       return;
     }
 
@@ -274,7 +279,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
         // Record approval for repeat pattern detection
         if (actionType === 'APPROVE') {
-          recordApproval(token, spender, address);
+          recordApproval(token, spender, address, (normalizedIntent as { amount: string }).amount);
         }
 
         setReceiptId(mockReceiptId);
@@ -299,7 +304,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
       // Record approval for repeat pattern detection
       if (actionType === 'APPROVE') {
-        recordApproval(token, spender, address);
+        recordApproval(token, spender, address, (normalizedIntent as { amount: string }).amount);
       }
 
       setReceiptId(result.receiptId);
@@ -364,26 +369,27 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
           {inputMode === 'ai' && isLLMConfigured() && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label htmlFor="cr-nl" className="block text-sm font-medium text-slate-300 mb-2">
                   Describe your transaction intent in natural language
                 </label>
                 <textarea
+                  id="cr-nl"
                   value={naturalLanguageInput}
                   onChange={(e) => setNaturalLanguageInput(e.target.value)}
-                  placeholder="Describe in plain language, e.g.:&#10;Approve Uniswap to use 1000 USDC&#10;Give unlimited USDT approval to Uniswap"
+                  placeholder="Describe in plain language, e.g.:&#10;Approve Permit2 to spend 1000 DemoUSD&#10;Give unlimited DemoUSD approval to Permit2"
                   rows={3}
                   className="input-field text-sm resize-none"
                   disabled={isParsingAI}
                 />
               <div className="mt-2 p-3 bg-white/5 rounded-lg">
-                <p className="text-xs text-slate-400 mb-2">Supported tokens and protocols:</p>
+                <p className="text-xs text-slate-400 mb-2">Names it knows on Monad testnet (or paste any address):</p>
                 <div className="flex flex-wrap gap-2">
-                  {['USDC', 'USDT', 'WETH', 'DAI'].map(t => (
+                  {['DemoUSD', 'WMON'].map(t => (
                     <span key={t} className="px-2 py-0.5 text-xs bg-primary-500/20 text-primary-300 rounded">
                       {t}
                     </span>
                   ))}
-                  {['Uniswap', '1inch', 'OpenSea'].map(p => (
+                  {['Permit2'].map(p => (
                     <span key={p} className="px-2 py-0.5 text-xs bg-cyan-500/20 text-cyan-300 rounded">
                       {p}
                     </span>
@@ -396,7 +402,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 <div className="p-3 bg-crypto-red/10 border border-crypto-red/20 rounded-xl">
                   <p className="text-sm text-crypto-red">
                     {aiParseError.includes('Missing information')
-                      ? 'Could not understand your description. Please be more specific, e.g. "Approve Uniswap to use 1000 USDC"'
+                      ? 'Could not understand your description. Please be more specific, e.g. "Approve Permit2 to spend 1000 DemoUSD"'
                       : aiParseError}
                   </p>
                 </div>
@@ -477,8 +483,9 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
             <>
               {/* Token Address */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Token Address</label>
+                <label htmlFor="cr-token" className="block text-sm font-medium text-slate-300 mb-2">Token Address</label>
                 <input
+                  id="cr-token"
                   type="text"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
@@ -492,8 +499,9 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
               {/* Spender Address */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Spender Address</label>
+                <label htmlFor="cr-spender" className="block text-sm font-medium text-slate-300 mb-2">Spender Address</label>
                 <input
+                  id="cr-spender"
                   type="text"
                   value={spender}
                   onChange={(e) => setSpender(e.target.value)}
@@ -507,9 +515,10 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
               {/* Amount */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Amount</label>
+                <label htmlFor="cr-amount" className="block text-sm font-medium text-slate-300 mb-2">Amount</label>
                 <div className="flex items-center space-x-3">
                   <input
+                    id="cr-amount"
                     type="text"
                     value={isUnlimited ? 'Unlimited' : amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -535,10 +544,11 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
           ) : (
             /* Batch Pay CSV */
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="cr-csv" className="block text-sm font-medium text-slate-300 mb-2">
                 Recipients (CSV format: address,amount)
               </label>
               <textarea
+                id="cr-csv"
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
                 placeholder="0x1234...,1000000000000000000&#10;0x5678...,2000000000000000000"
@@ -612,8 +622,8 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Receipt Created!</h3>
-          <p className="text-slate-400 mb-6">Your receipt has been stored on-chain</p>
+          <h3 className="text-xl font-bold text-white mb-2">Receipt created</h3>
+          <p className="text-slate-400 mb-6">The intent and proof hashes are on {ACTIVE_CHAIN.name}. After you execute, link the transaction on the receipt page.</p>
 
           <div className="text-left space-y-3 p-4 bg-white/5 rounded-xl mb-6">
             <div>
@@ -635,7 +645,14 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
             </div>
             <div className="pt-3 border-t border-white/10">
               <p className="text-xs text-slate-500">Transaction Hash</p>
-              <p className="font-mono text-sm text-white break-all">{txHash}</p>
+              <a
+                href={`${ACTIVE_CHAIN.blockExplorer}/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-sm text-white break-all underline underline-offset-2 hover:text-primary-300"
+              >
+                {txHash}
+              </a>
             </div>
           </div>
 
@@ -656,12 +673,9 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               </svg>
               <span>Export Evidence</span>
             </button>
-            <button
-              onClick={handleClose}
-              className="btn-primary flex-1"
-            >
-              Done
-            </button>
+            <Link to={`/receipt/${receiptId}`} onClick={handleClose} className="btn-primary flex-1 text-center">
+              Open receipt
+            </Link>
           </div>
         </div>
       ) : null}

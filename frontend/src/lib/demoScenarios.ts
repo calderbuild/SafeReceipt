@@ -1,12 +1,13 @@
 /**
  * Demo Scenarios
  *
- * Pre-configured scenarios for one-click agent demo.
- * Each scenario includes both natural language input and
- * a hardcoded fallback intent (used when LLM is unavailable).
+ * One-click agent demo on Monad testnet. Every scenario sends a real ERC20
+ * approve on SafeReceipt DemoUSD (approve needs no balance). The fallback
+ * intent is used when no LLM is configured.
  */
 
 import type { ApproveIntent } from './intentParser';
+import { DEMO_USD, PERMIT2 } from './knownContracts';
 
 export interface DemoScenario {
   id: string;
@@ -16,52 +17,41 @@ export interface DemoScenario {
   actionType: 'APPROVE';
   fallbackIntent: ApproveIntent;
   expectedRiskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-  expectedOutcome?: 'VERIFIED' | 'MISMATCH';
-  mismatchDetail?: string;
+  /** Amount the agent actually sends, when it differs from the declared one (the rogue case). */
+  executedAmount?: string;
 }
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
   {
     id: 'safe',
     label: 'Safe Approval',
-    description: '100 USDC to Uniswap Router (known contract)',
-    input: 'Approve Uniswap to use 100 USDC',
+    description: '100 DemoUSD to Permit2 (known contract)',
+    input: 'Approve Permit2 to spend 100 DemoUSD',
     actionType: 'APPROVE',
-    fallbackIntent: {
-      token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      spender: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
-      amount: '100000000', // 100 USDC (6 decimals)
-    },
+    fallbackIntent: { token: DEMO_USD, spender: PERMIT2, amount: '100000000' }, // 6 decimals
     expectedRiskLevel: 'LOW',
-    expectedOutcome: 'VERIFIED',
   },
   {
     id: 'dangerous',
     label: 'Dangerous Approval',
-    description: 'Unlimited USDT approval to an unknown contract',
-    input: 'Approve unlimited USDT to 0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
+    description: 'Unlimited DemoUSD approval to an unknown address',
+    input: 'Approve unlimited DemoUSD to 0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
     actionType: 'APPROVE',
     fallbackIntent: {
-      token: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      token: DEMO_USD,
       spender: '0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF',
       amount: '115792089237316195423570985008687907853269984665640564039457584007913129639935', // MaxUint256
     },
     expectedRiskLevel: 'HIGH',
-    expectedOutcome: 'VERIFIED',
   },
   {
     id: 'rogue',
     label: 'Rogue Agent',
-    description: 'Agent tampers with the transaction -- amount changed from 100 to 10,000 USDC',
-    input: 'Approve Uniswap to use 100 USDC',
+    description: 'Declares 100 DemoUSD, then actually approves 10,000',
+    input: 'Approve Permit2 to spend 100 DemoUSD',
     actionType: 'APPROVE',
-    fallbackIntent: {
-      token: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      spender: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
-      amount: '100000000', // 100 USDC (6 decimals)
-    },
+    fallbackIntent: { token: DEMO_USD, spender: PERMIT2, amount: '100000000' },
     expectedRiskLevel: 'LOW',
-    expectedOutcome: 'MISMATCH',
-    mismatchDetail: 'Amount mismatch: declared 100 USDC, executed 10,000 USDC',
+    executedAmount: '10000000000',
   },
 ];

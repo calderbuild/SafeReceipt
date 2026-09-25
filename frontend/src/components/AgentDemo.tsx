@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useWallet } from '../hooks/useWallet';
+import { useWallet, onActiveNetwork } from '../hooks/useWallet';
 import { DEMO_SCENARIOS } from '../lib/demoScenarios';
 import { runAgentDemo } from '../lib/agentRunner';
 import type { AgentStep, AgentDemoResult } from '../lib/agentRunner';
@@ -74,7 +74,7 @@ export function AgentDemo() {
   const [selectedScenario, setSelectedScenario] = useState<DemoScenario | null>(null);
 
   const handleRun = useCallback(async (scenario: DemoScenario) => {
-    if (!signer || !address) return;
+    if (!signer || !address || !onActiveNetwork()) return;
 
     setSelectedScenario(scenario);
     setIsRunning(true);
@@ -113,7 +113,7 @@ export function AgentDemo() {
                   <div
                     key={scenario.id}
                     className={`w-full text-left p-4 rounded-lg bg-white/5 border ${
-                      scenario.expectedOutcome === 'MISMATCH'
+                      scenario.executedAmount
                         ? 'border-red-500/30'
                         : 'border-white/10'
                     }`}
@@ -129,9 +129,9 @@ export function AgentDemo() {
                       }`}>
                         {scenario.expectedRiskLevel}
                       </span>
-                      {scenario.expectedOutcome === 'MISMATCH' && (
+                      {scenario.executedAmount && (
                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
-                          MISMATCH
+                          TAMPERS TX
                         </span>
                       )}
                     </div>
@@ -144,14 +144,14 @@ export function AgentDemo() {
           ) : (
             <div className="space-y-3">
               <p className="text-slate-400 text-sm mb-4">
-                Select a scenario. The agent will automatically: parse intent, analyze risk, create receipt, execute transaction, and verify execution.
+                Select a scenario. The agent will automatically: parse intent, analyze risk, create a receipt, send a real approve on Monad testnet, check it against the receipt, and record the verdict on-chain. Expect four wallet confirmations.
               </p>
               {DEMO_SCENARIOS.map(scenario => (
                 <button
                   key={scenario.id}
                   onClick={() => handleRun(scenario)}
                   className={`w-full text-left p-4 rounded-lg bg-white/5 border transition-all group cursor-pointer ${
-                    scenario.expectedOutcome === 'MISMATCH'
+                    scenario.executedAmount
                       ? 'border-red-500/30 hover:bg-red-500/5 hover:border-red-500/50'
                       : 'border-white/10 hover:bg-white/10 hover:border-white/20'
                   }`}
@@ -169,9 +169,9 @@ export function AgentDemo() {
                         }`}>
                           {scenario.expectedRiskLevel}
                         </span>
-                        {scenario.expectedOutcome === 'MISMATCH' && (
+                        {scenario.executedAmount && (
                           <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
-                            MISMATCH
+                            TAMPERS TX
                           </span>
                         )}
                       </div>

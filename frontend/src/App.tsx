@@ -1,10 +1,15 @@
-import { useState } from 'react'
-import { Routes, Route, Link, NavLink } from 'react-router-dom'
+import { lazy, Suspense, useState } from 'react'
+import { Routes, Route, Link, NavLink, useSearchParams } from 'react-router-dom'
 import { Toaster, toast } from 'react-hot-toast'
 import { WalletConnect } from './components/WalletConnect'
 import { CreateReceiptModal } from './components/CreateReceiptModal'
 import { VerifyProofModal } from './components/VerifyProofModal'
-import { Home, MyReceipts, ReceiptDetail, Fleet } from './pages'
+import { Home } from './pages/Home'
+
+// Home is the landing page; the rest load on first visit.
+const Fleet = lazy(() => import('./pages/Fleet').then((m) => ({ default: m.Fleet })))
+const MyReceipts = lazy(() => import('./pages/MyReceipts').then((m) => ({ default: m.MyReceipts })))
+const ReceiptDetail = lazy(() => import('./pages/ReceiptDetail').then((m) => ({ default: m.ReceiptDetail })))
 
 // Receipt mark: a slip with a torn bottom edge
 const ReceiptMark = ({ className = 'w-7 h-7' }: { className?: string }) => (
@@ -28,14 +33,21 @@ const MonadLogo = () => (
 function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false)
+  // Other pages open the create modal by linking to /?create=1
+  const [params, setParams] = useSearchParams()
+  const createOpen = isCreateModalOpen || params.get('create') === '1'
+  const closeCreate = () => {
+    setIsCreateModalOpen(false)
+    if (params.has('create')) setParams({}, { replace: true })
+  }
 
   const handleCreateSuccess = (receiptId: string) => {
-    toast.success(`Receipt #${receiptId} created successfully!`, {
+    toast.success(`Receipt #${receiptId} created`, {
       duration: 5000,
       style: {
-        background: '#1E293B',
-        color: '#F1F5F9',
-        border: '1px solid rgba(16, 185, 129, 0.3)',
+        background: 'var(--color-dark-50)',
+        color: 'var(--color-paper)',
+        border: '1px solid var(--color-primary-700)',
       },
     })
   }
@@ -47,8 +59,8 @@ function App() {
 
       {/* Modals */}
       <CreateReceiptModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        isOpen={createOpen}
+        onClose={closeCreate}
         onSuccess={handleCreateSuccess}
       />
       <VerifyProofModal
@@ -75,6 +87,7 @@ function App() {
       </nav>
 
       {/* Routes */}
+      <Suspense fallback={<p className="pt-28 px-4 max-w-6xl mx-auto font-mono text-sm text-slate-400">Loading…</p>}>
       <Routes>
         <Route
           path="/"
@@ -89,6 +102,7 @@ function App() {
         <Route path="/receipts" element={<MyReceipts />} />
         <Route path="/receipt/:id" element={<ReceiptDetail />} />
       </Routes>
+      </Suspense>
 
       {/* Footer */}
       <footer className="border-t border-white/5 py-8 px-4">

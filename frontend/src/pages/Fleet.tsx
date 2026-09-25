@@ -16,7 +16,7 @@ import {
 type LoadState =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; agents: AgentProfile[]; receipts: V2Receipt[] };
+  | { kind: 'ready'; agents: AgentProfile[]; receipts: (V2Receipt | { id: number; error: string })[] };
 
 const explorer = (address: string) => `${V2_NETWORK.blockExplorer}/address/${address}`;
 const formatTime = (unix: number) => new Date(unix * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
@@ -73,7 +73,7 @@ export function Fleet() {
               ActionRegistry
             </a>
             <br />
-            The same contracts are deployed on Base Sepolia, where no agents are registered yet.
+            This page reads V2.1. The earlier V2.0 registries (Monad and Base Sepolia) are listed in DEPLOYMENTS.md.
           </p>
         </header>
 
@@ -95,7 +95,11 @@ export function Fleet() {
               </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {state.agents.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    count={state.receipts.filter((r) => 'agentId' in r && r.agentId === agent.id).length}
+                  />
                 ))}
               </div>
             </section>
@@ -104,18 +108,27 @@ export function Fleet() {
               <h2 id="receipts-heading" className="font-display text-xl font-semibold text-white mb-1">
                 Receipts <span className="text-slate-500 font-mono text-sm font-normal">({state.receipts.length})</span>
               </h2>
-              <p className="text-sm text-slate-400 mb-6">The stamp shows the recorded outcome. Verify to check that the evidence behind it is untouched.</p>
+              <p className="text-sm text-slate-400 mb-6">
+                Newest first. The stamp shows the outcome recorded on-chain. Verify re-checks it here: the evidence is
+                untouched, it belongs to this receipt, and the policy rules give the same verdict.
+              </p>
               {state.receipts.length === 0 ? (
                 <p className="text-slate-400">No receipts on-chain yet.</p>
               ) : (
                 <div className="grid lg:grid-cols-2 gap-8 items-start">
-                  {state.receipts.map((receipt) => (
-                    <ReceiptCard
-                      key={receipt.id}
-                      receipt={receipt}
-                      agentName={state.agents.find((a) => a.id === receipt.agentId)?.metadata?.name}
-                    />
-                  ))}
+                  {state.receipts.map((receipt) =>
+                    'error' in receipt ? (
+                      <div key={receipt.id} className="glass-card p-5 font-mono text-sm text-slate-400">
+                        Receipt #{receipt.id} could not be read: {receipt.error}
+                      </div>
+                    ) : (
+                      <ReceiptCard
+                        key={receipt.id}
+                        receipt={receipt}
+                        agentName={state.agents.find((a) => a.id === receipt.agentId)?.metadata?.name}
+                      />
+                    )
+                  )}
                 </div>
               )}
               <p className="text-xs text-slate-500 mt-8 max-w-2xl leading-relaxed">
@@ -135,9 +148,8 @@ export function Fleet() {
   );
 }
 
-function AgentCard({ agent }: { agent: AgentProfile }) {
+function AgentCard({ agent, count }: { agent: AgentProfile; count: number }) {
   const name = agent.metadata?.name ?? `Agent #${agent.id}`;
-  const count = agent.receiptIds.length;
   return (
     <article className="glass-card p-5">
       <div className="flex items-baseline justify-between mb-2">
@@ -229,13 +241,14 @@ function ReceiptCard({ receipt, agentName }: { receipt: V2Receipt; agentName?: s
 
 // How each receipt was produced. Not recoverable from chain data, so stated here.
 const RUN_NOTES: Record<number, string> = {
-  1: 'live run of the contract test suite',
-  2: 'staged: wrapper/run-mismatch-demo.mjs reads test/ on purpose to show scope creep being caught',
+  1: 'the wrapper ran npm run test itself (a script, not an LLM): 50 passing',
+  2: 'staged: run-mismatch-demo.mjs makes the scanner read test/ as well as docs/. The reads really happen; the overstep is scripted',
 };
 
 function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: IndependentVerification }) {
-  const intact = result.outcomeMatches && result.intentMatches;
+  const intact = result.outcomeMatches && result.intentMatches && result.idsMatch;
   const intent = result.trace.declaredIntent as { goal?: string; declaredScope?: string[] } | undefined;
+  const rules = result.policy.rulesTriggered;
   return (
     <div>
       <ol className="space-y-2 mb-4">
@@ -252,7 +265,16 @@ function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: In
         </li>
         <li>
           4. Compared them: outcome {result.outcomeMatches ? 'matches' : 'differs'}, declared intent{' '}
-          {result.intentMatches ? 'matches' : 'differs'}.
+          {result.intentMatches ? 'matches' : 'differs'}, receipt and agent ids {result.idsMatch ? 'match' : 'differ'}.
+        </li>
+        <li>
+          5. Re-ran the policy rules here: {rules.length ? rules.join(', ') : 'none fired'}
+          {result.policy.outOfScope.length > 0 && ` (outside scope: ${result.policy.outOfScope.join(', ')})`}, so{' '}
+          {result.policy.verified ? 'VERIFIED' : 'MISMATCH'}, which {result.policyAgrees ? 'agrees with' : 'contradicts'} the
+          recorded status.
+        </li>
+        <li>
+          6. Filer {result.actorOwnsAgent ? 'still owns' : 'no longer owns'} agent #{receipt.agentId}.
         </li>
       </ol>
       {intent?.goal && (
@@ -265,11 +287,13 @@ function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: In
       <SlipRule />
       <div className="flex items-center justify-between gap-4 py-1">
         <p className="max-w-[60%]">
-          {intact
-            ? receipt.status === 'MISMATCH'
-              ? 'The agent went outside what it declared, and the evidence showing that has not been altered.'
-              : 'The evidence is exactly what was committed on-chain.'
-            : 'The published trace no longer matches what was committed on-chain.'}
+          {!intact
+            ? 'The published trace no longer matches what was committed on-chain.'
+            : !result.policyAgrees
+              ? 'The evidence is untouched, but the recorded status disagrees with the policy rules.'
+              : receipt.status === 'MISMATCH'
+                ? 'The trace shows the agent going outside what it declared, and it has not changed since it was committed.'
+                : 'The evidence is exactly what was committed on-chain.'}
         </p>
         <Stamp kind={intact ? 'verified' : 'mismatch'} label={intact ? 'INTACT' : 'ALTERED'} press />
       </div>

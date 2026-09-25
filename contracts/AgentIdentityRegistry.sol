@@ -24,8 +24,8 @@ contract AgentIdentityRegistry is ERC721 {
 
     function registerAgent(string calldata agentTokenURI) external returns (uint256 agentId) {
         agentId = nextAgentId++;
+        _tokenURIs[agentId] = agentTokenURI; // set before _safeMint's receiver callback
         _safeMint(msg.sender, agentId);
-        _tokenURIs[agentId] = agentTokenURI;
 
         emit AgentRegistered(agentId, msg.sender, agentTokenURI);
     }

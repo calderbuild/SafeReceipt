@@ -77,7 +77,7 @@ export const RISK_RULES = {
   OUTLIER_AMOUNT: {
     name: 'OUTLIER_AMOUNT',
     weight: 5,
-    description: 'Amount is significantly higher than historical median',
+    description: 'Amount is over 10x the median of your recent approvals of this token',
     recommendation: 'Double-check the amount is correct',
   },
 } as const;
@@ -158,9 +158,8 @@ function checkDuplicateRecipients(recipients: BatchPayRecipient[]): boolean {
 }
 
 /**
- * Check if address is a contract (requires provider)
- * For MVP, this is a placeholder that returns false
- * In production, would call provider.getCode(address)
+ * Check if address has contract code. An RPC failure counts as "not a
+ * contract" (the rule is weight 5; a lookup hiccup should not block the receipt).
  */
 async function checkIsContract(
   address: string,
@@ -180,9 +179,7 @@ async function checkIsContract(
 }
 
 /**
- * Check if amount is an outlier compared to historical median
- * For MVP, this is a placeholder that returns false
- * In production, would fetch user's historical transactions
+ * Check if amount is more than 10x the historical median
  */
 function checkOutlierAmount(
   amount: string,
@@ -225,6 +222,13 @@ export function calculateScore(triggeredRules: string[]): number {
   return Math.min(score, 100);
 }
 
+export type RiskLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
+/** The one place score bands are defined; every badge and label uses it. */
+export function riskLevel(score: number): RiskLevel {
+  return score >= 50 ? 'HIGH' : score >= 25 ? 'MEDIUM' : 'LOW';
+}
+
 // ============================================================================
 // Main Evaluation Functions
 // ============================================================================
@@ -245,7 +249,7 @@ export function evaluateApprove(
 ): RiskResult {
   const knownContracts = options?.knownContracts || [];
   const userAddress = options?.userAddress || '';
-  const historicalMedian = options?.historicalMedian;
+  const historicalMedian = options?.historicalMedian ?? approvalMedian(userAddress, intent.token);
 
   const ruleDetails: RuleDetail[] = [];
   const triggeredRules: string[] = [];
@@ -358,9 +362,10 @@ export async function evaluateBatchPay(
     recommendations.push(RISK_RULES.DUPLICATE_RECIPIENTS.recommendation);
   }
 
-  // Rule 5: RECIPIENT_IS_CONTRACT (check first recipient only for MVP)
+  // Rule 5: RECIPIENT_IS_CONTRACT (any recipient)
   if (recipients.length > 0 && provider) {
-    const isContract = await checkIsContract(recipients[0].address, provider);
+    const flags = await Promise.all(recipients.map((r) => checkIsContract(r.address, provider)));
+    const isContract = flags.some(Boolean);
     ruleDetails.push({
       ruleName: RISK_RULES.RECIPIENT_IS_CONTRACT.name,
       weight: RISK_RULES.RECIPIENT_IS_CONTRACT.weight,
@@ -422,7 +427,8 @@ export async function evaluateBatchPay(
 export function recordApproval(
   token: string,
   spender: string,
-  userAddress: string
+  userAddress: string,
+  amount?: string
 ): void {
   try {
     const key = `safereceipt:approvals:${userAddress}`;
@@ -434,6 +440,7 @@ export function recordApproval(
     approvals.push({
       token,
       spender,
+      amount,
       timestamp: Date.now(),
     });
 
@@ -446,5 +453,27 @@ export function recordApproval(
     localStorage.setItem(key, JSON.stringify(filtered));
   } catch (error) {
     console.error('Failed to record approval:', error);
+  }
+}
+
+const MIN_SAMPLES_FOR_MEDIAN = 3;
+
+/**
+ * Median of this user's recorded (non-unlimited) approval amounts for a token,
+ * or undefined with fewer than 3 samples. Feeds OUTLIER_AMOUNT.
+ */
+export function approvalMedian(userAddress: string, token: string): string | undefined {
+  if (!userAddress) return undefined;
+  try {
+    const stored = localStorage.getItem(`safereceipt:approvals:${userAddress}`);
+    const approvals = (stored ? JSON.parse(stored) : []) as Array<{ token: string; amount?: string }>;
+    const amounts = approvals
+      .filter((a) => a.token.toLowerCase() === token.toLowerCase() && a.amount && !checkUnlimitedAllowance(a.amount))
+      .map((a) => BigInt(a.amount!))
+      .sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
+    if (amounts.length < MIN_SAMPLES_FOR_MEDIAN) return undefined;
+    return amounts[Math.floor(amounts.length / 2)].toString();
+  } catch {
+    return undefined;
   }
 }

@@ -21,32 +21,37 @@
       "data": {
         "intentHash": "0xba2cbe105928513305747ae1ea7b19aed943c56761b569d95326acfc1b1dbbd9"
       },
-      "timestamp": 1784191659
+      "timestamp": 1790343653
     },
     {
       "stage": "scan",
-      "message": "Scanning docs/",
+      "message": "Scanned 2 files in docs/, 0 secret-shaped matches",
       "progress": 40,
       "data": {
         "touched": [
-          "docs/"
-        ]
+          "docs/ACCOUNTABILITY.md",
+          "docs/OPENARENA_SUBMISSION.md"
+        ],
+        "hits": 0
       },
-      "timestamp": 1784191659
+      "timestamp": 1790343653
     },
     {
       "stage": "scan",
-      "message": "Also reading test/ (NOT in declared scope)",
+      "message": "Also read 3 files in test/ (outside declared scope)",
       "progress": 80,
       "data": {
         "touched": [
-          "test/"
-        ]
+          "test/ActionRegistry.test.ts",
+          "test/AgentIdentityRegistry.test.ts",
+          "test/ReceiptRegistry.test.ts"
+        ],
+        "hits": 0
       },
-      "timestamp": 1784191659
+      "timestamp": 1790343653
     }
   ],
-  "durationMs": 4035,
+  "durationMs": 9313,
   "policy": {
     "score": 85,
     "verified": false,
@@ -60,12 +65,14 @@
         "message": "Agent touched a resource outside its declared scope.",
         "detail": {
           "outOfScope": [
-            "test/"
+            "test/ActionRegistry.test.ts",
+            "test/AgentIdentityRegistry.test.ts",
+            "test/ReceiptRegistry.test.ts"
           ]
         }
       }
     ],
     "riskLevel": "low"
   },
-  "createdAt": 1784191655
+  "createdAt": 1790343644
 }

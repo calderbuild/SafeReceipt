@@ -193,21 +193,6 @@ export interface ReceiptWithId extends Receipt {
   receiptId: string;
 }
 
-export function getStatusLabel(status: ReceiptStatus): string {
-  switch (status) {
-    case ReceiptStatus.CREATED:
-      return 'Created';
-    case ReceiptStatus.EXECUTED:
-      return 'Executed';
-    case ReceiptStatus.VERIFIED:
-      return 'Verified';
-    case ReceiptStatus.MISMATCH:
-      return 'Mismatch';
-    default:
-      return 'Unknown';
-  }
-}
-
 export enum ActionType {
   APPROVE = 1,
   BATCH_PAY = 2,
@@ -312,13 +297,13 @@ export class ReceiptRegistryContract {
       return {
         receiptId,
         actor: receipt.actor,
-        actionType: receipt.actionType,
-        riskScore: receipt.riskScore,
+        actionType: Number(receipt.actionType),
+        riskScore: Number(receipt.riskScore),
         timestamp: Number(receipt.timestamp),
         intentHash: receipt.intentHash,
         proofHash: receipt.proofHash,
         txHash: receipt.txHash,
-        status: receipt.status as ReceiptStatus,
+        status: Number(receipt.status) as ReceiptStatus,
       };
     } catch (error) {
       console.error('Failed to get receipt:', error);
@@ -425,15 +410,4 @@ export const createReceiptRegistryContract = (
 // Utility function to get read-only provider
 export const getReadOnlyProvider = (): ethers.JsonRpcProvider => {
   return new ethers.JsonRpcProvider(ACTIVE_CHAIN.rpcUrl);
-};
-
-// Utility function to format receipt for display
-export const formatReceipt = (receipt: ReceiptWithId) => {
-  return {
-    ...receipt,
-    actionTypeString: receipt.actionType === ActionType.APPROVE ? 'Approve' : 'Batch Pay',
-    statusString: getStatusLabel(receipt.status),
-    timestampFormatted: new Date(receipt.timestamp * 1000).toLocaleString(),
-    explorerUrl: `${NETWORKS[ACTIVE_NETWORK].blockExplorer}/tx/${receipt.receiptId}`,
-  };
 };
