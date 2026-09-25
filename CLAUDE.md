@@ -11,7 +11,7 @@ SafeReceipt is an Agent Accountability Protocol that creates verifiable on-chain
 
 ## Tech Stack
 
-- **Contract**: Hardhat + Solidity 0.8.19, optimizer enabled (200 runs)
+- **Contract**: Hardhat + Solidity 0.8.24 for every contract, optimizer enabled (200 runs). The deployed V1 `ReceiptRegistry` was compiled with 0.8.19 (native 0.8.19 needs Rosetta on this Mac, so local builds use 0.8.24; bytecode differs, source is the same)
 - **Frontend**: Vite 7 + React 19 + TypeScript 5.9 (strict) + Tailwind CSS v4
 - **Chain Interaction**: ethers.js v6
 - **Wallet**: MetaMask
@@ -119,11 +119,13 @@ On-chain proofHash  ←→  keccak256(canonicalizeDigest(localDigest))
 
 Match = data integrity proven. Mismatch = tampered.
 
-### Execution Verification (useExecutionVerifier hook)
+### Execution Verification (lib/verifyExecution.ts, used by the hook and agentRunner)
 
 ```
-Fetch tx by hash → Decode ERC20 approve(spender, amount) → Compare token/spender/amount against stored intent
+Fetch tx + receipt → status ok, from == receipt actor, mined after receipt → decode approve → token/spender/amount vs intent
 ```
+
+Lookup failures throw (shown as an error, never saved as MISMATCH). The verdict is written on-chain with `linkExecution` by the receipt owner, so the stored flag is owner-attested.
 
 ### localStorage Schema
 
@@ -154,7 +156,7 @@ await contract.linkExecution(receiptId, txHashBytes32, verified);
 /              → Home (landing page + agent demo)
 /receipts      → MyReceipts (list user's receipts with status badges)
 /receipt/:id   → ReceiptDetail (detail view + link execution UI)
-/fleet         → Fleet (V2: agents + receipts read from Monad, in-browser independent verification via lib/v2.ts)
+/fleet         → Fleet (V2.1: agents + receipts read from Monad; Verify re-hashes the trace, checks ids and agent owner, re-runs lib/tracePolicy.ts)
 ```
 
 `App.tsx` manages global state for Create/Verify modals and the floating navbar. Vercel deployment uses SPA rewrites (`vercel.json`).
@@ -181,7 +183,7 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 ## Frontend Conventions
 
 - **React 19 JSX transform**: `jsx: "react-jsx"` -- do not add `import React from 'react'`
-- **State management**: Pure `useState`/hooks only. No Redux, Context API, or state libraries. Wallet state in `useWallet` hook; toast via `react-hot-toast`
+- **State management**: Pure `useState`/hooks only. No Redux, Context API, or state libraries. Wallet state is one module store read via `useSyncExternalStore` in `useWallet` (call `onActiveNetwork()` before any tx); toast via `react-hot-toast`
 - **`verbatimModuleSyntax`**: Type-only imports must use `import type { ... }`. Re-exports must be explicit
 - **No barrel exports**: Types are exported from their defining module (no `types/index.ts`)
 - **Intent types**: `ParsedIntent = ApproveIntent | BatchPayIntent` (discriminated union in `intentParser.ts`)
@@ -195,14 +197,17 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 - **frontend/src/lib/storage.ts**: localStorage CRUD + updateDigestStatus
 - **frontend/src/lib/llm.ts**: LLM-powered natural language intent parsing
 - **frontend/src/lib/intentParser.ts**: Address/amount validation, form-to-intent parsing, ParsedIntent types
-- **frontend/src/lib/knownContracts.ts**: Whitelist of known protocol addresses (Uniswap, 1inch, etc.)
+- **frontend/src/lib/knownContracts.ts**: Known Monad testnet contracts (Permit2, WMON, Multicall3, DemoUSD), each checked to have code
 - **frontend/src/lib/walletErrors.ts**: MetaMask/ethers error mapping to human-readable messages
 - **frontend/src/lib/exportEvidence.ts**: Evidence export for receipts
-- **frontend/src/lib/liabilityNotice.ts**: Human-readable liability text generation
+- **frontend/src/lib/liabilityNotice.ts**: "Rules triggered: ..." text (hashed; receipts before 2026-09 say "User acknowledged: ..." and keep it)
 - **frontend/src/hooks/useVerify.ts**: Proof verification (chain hash vs local hash)
-- **frontend/src/hooks/useExecutionVerifier.ts**: ERC20 calldata decoding + intent comparison
+- **frontend/src/lib/verifyExecution.ts**: pure approve-tx vs intent check + RPC fetch
+- **frontend/src/hooks/useExecutionVerifier.ts**: loads digest + on-chain receipt, runs the check
 - **frontend/src/hooks/useWallet.ts**: MetaMask connection and Monad network switching
-- **frontend/src/lib/v2.ts**: V2 registry reads (Monad), `hashTrace` (mirrors `wrapper/canonicalize.mjs`), `verifyIndependently`
+- **frontend/src/lib/v2.ts**: V2.1 registry reads (Monad), `hashTrace` (mirrors `wrapper/canonicalize.mjs`), `verifyIndependently` / pure `checkTrace`
+- **frontend/src/lib/tracePolicy.ts**: browser port of `wrapper/policy.mjs`; `v2.test.ts` checks parity, keep them identical
+- **wrapper/**: commit-reveal client; `ledger.mjs` publishes traces to `traces/v2.1/` before linking; addresses from `wrapper/deployments.json`
 - **frontend/src/pages/Fleet.tsx**: agent fleet + receipt slips with independent verification
 - **frontend/src/components/ReceiptSlip.tsx**: thermal-receipt slip + rubber-stamp primitives (styles in `index.css`)
 - **frontend/src/lib/agentRunner.ts**: End-to-end lifecycle orchestrator (parse → risk → receipt → execute → verify)
@@ -213,9 +218,9 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 
 ## Testing
 
-- Unit tests: `frontend/src/lib/__tests__/` (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser)
-- Hook tests: `frontend/src/hooks/__tests__/useVerify.test.ts`
-- Contract tests: `test/ReceiptRegistry.test.ts` (run via `npm run test` at root)
+- Unit tests: `frontend/src/lib/__tests__/` (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser, verifyExecution, exportEvidence, v2)
+- Hook tests: `frontend/src/hooks/__tests__/` (useVerify, useWallet shared state)
+- Contract tests: `test/*.test.ts`, 50 tests (run via `npm run test` at root, Node 18)
 - Test environment: vitest + happy-dom, globals enabled (no imports needed for `describe`/`it`/`expect`)
 - Critical invariant: same canonical input must always produce the same hash
 - TypeScript strict mode enforced: `noUnusedLocals`, `noUnusedParameters`, and `noUncheckedSideEffectImports` will fail the build
@@ -229,7 +234,7 @@ Explorer: https://testnet.monadscan.com
 Currency: MON (18 decimals)
 ```
 
-Deployed contract: `0x7761871A017c1C703C06B0021bF341d707c6226A` (source verified on MonadScan).
+V1 ReceiptRegistry: `0x7761871A017c1C703C06B0021bF341d707c6226A` (source verified on MonadScan). V2.1 registries and DemoUSD: see `DEPLOYMENTS.md` / `wrapper/deployments.json`.
 Explorer: https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A#code
 
 ## Commit Convention

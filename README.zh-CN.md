@@ -4,7 +4,7 @@
 
 > AI 出错的时候，收据能说明该谁负责。
 
-[English](README.md) · **[在线演示](https://safereceipt.vercel.app)** · **[Agent 舰队：在浏览器里亲自验证一张收据](https://safereceipt.vercel.app/fleet)** · Monad Testnet + Base Sepolia
+[English](README.md) · **[在线演示](https://safereceipt.vercel.app)** · **[Agent 舰队：在浏览器里亲自验证一张收据](https://safereceipt.vercel.app/fleet)** · Monad Testnet
 
 ---
 
@@ -17,7 +17,7 @@ AI agent 已经在替人发交易、查资料、审代码，但它**本来应该
 
 | 路径                             | 机制                                                                                                           | 信任程度                                                                                                                                                                                                    |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **链上动作**（approve、转账）    | 按哈希取回交易，解码 calldata，和声明的意图比对                                                                | **无需信任**：代码开源，任何人重跑都得到同样结果                                                                                                                                                            |
+| **链上动作**（ERC20 approve）    | 按哈希取回交易，检查交易成功、由收据的 actor 在收据之后发出，并逐项比对 token、spender、金额 | **任何人都能复核**：代码开源、结果确定；但链上那个 VERIFIED/MISMATCH 标记是收据所有者写的，应该自己重跑一遍，而不是直接信这个标记 |
 | **链下动作**（调研、审查、决策） | commit-reveal：agent 运行**之前**提交意图哈希，运行**之后**公开完整 trace 并把它的哈希上链，任何人都能独立复核 | **可发现篡改，但没有被证明为真**：能证明意图没有被事后改写、trace 没有被动过；不能证明 trace 完整、真实地记录了 agent 做的所有事。要做到这一点需要 TEE 证明或独立重跑，这写在路线图里，没有当作已完成来宣传 |
 
 完整的能力边界见 [docs/ACCOUNTABILITY.md](docs/ACCOUNTABILITY.md)。
@@ -29,9 +29,10 @@ AI agent 已经在替人发交易、查资料、审代码，但它**本来应该
 1. 从 [accountability-ledger](https://github.com/calderbuild/accountability-ledger) 拉取这张收据公开的 trace；
 2. 在本地按规范化规则计算它的 keccak256；
 3. 直接从 Monad 的 `ActionRegistry` 读出链上存的哈希；
-4. 两者比对，同时检查 trace 里的 `declaredIntent` 是否和链上的 `intentHash` 一致。
+4. 两者比对，同时检查 trace 里的 `declaredIntent` 是否和链上的 `intentHash` 一致；
+5. 确认 trace 写的收据编号和 agent 编号与链上一致，在浏览器里重新跑一遍策略规则，看结论是否和链上记录的状态相同，并检查提交者是否仍持有这个 agent。
 
-整个过程只读链、不需要钱包，也不依赖这个网站的后端。2 号收据是一个故意留下的反例：security-scanner 声明只扫描 `docs/`，实际还读了 `test/`，所以记录的结果是 MISMATCH；而独立验证会显示证明它越界的证据完好无损。
+整个过程只读链、不需要钱包，也不依赖这个网站的后端。2 号收据是我故意构造的反例：security-scanner 声明只扫描 `docs/`，脚本让它把 `test/` 下的三个文件也读了一遍。读取是真实发生的，越界是脚本安排的，SCOPE_CREEP 根据 trace 里记录的真实路径触发，结果是 MISMATCH；独立验证显示这份证据没有被改过。1 号收据是 wrapper 自己跑 `npm run test`（一个脚本，不是 LLM），50 个测试通过。
 
 ## 工作原理
 
@@ -45,9 +46,9 @@ AI agent 已经在替人发交易、查资料、审代码，但它**本来应该
 
 - **意图哈希**：确定性的规范化规则，同一个意图永远得到同一个哈希
 - **风险引擎**：执行前用 6 条规则给交易打分（0 到 100）
-- **Agent 身份**：`AgentIdentityRegistry` 为每个 agent 铸造一个 ERC-721 身份（v1 由我本人的钱包托管，这一点公开说明，不夸大）
-- **链上收据**：证明哈希存放在 Monad 和 Base Sepolia 上
-- **执行验证**：把收据和真实交易关联起来，解码 calldata，确认和意图一致
+- **Agent 身份**：`AgentIdentityRegistry` 为每个 agent 铸造一个 ERC-721 身份；V2.1 起只有 agent 的持有者能以它的名义开收据。演示用的三个 agent 都由我一个部署钱包持有
+- **链上收据**：意图哈希和证明哈希存放在 Monad 测试网上
+- **执行验证**：把收据和真实的 approve 交易关联起来，比对后用 `linkExecution` 把结论写上链。首页演示用测试代币 DemoUSD 发真实交易，Rogue 场景声明 100、实际 approve 了 10,000
 - **链下 commit-reveal**：`linkOffChainOutcome()` 把验证扩展到没有交易可查的动作
 - **公开证据库**：trace 发布在 [accountability-ledger](https://github.com/calderbuild/accountability-ledger)，可以对照链上哈希独立复核
 - **浏览器内独立验证**：`/fleet` 页面把上面的复核过程一步一步展示出来
@@ -55,14 +56,14 @@ AI agent 已经在替人发交易、查资料、审代码，但它**本来应该
 ## 合约
 
 - `ReceiptRegistry.sol`（V1）：`createReceipt`、`linkExecution`、`getReceipt`、`getUserReceipts`
-- `AgentIdentityRegistry.sol`（V2）：`registerAgent(string agentTokenURI)`、`revokeAgent(uint256 agentId)`、`tokenURI`、`isActive`
-- `ActionRegistry.sol`（V2）：`createReceipt(agentId, actionType, intentHash, proofHash, riskScore)`、`linkExecution(receiptId, txHash, verified, evidenceURI)`、`linkOffChainOutcome(receiptId, outcomeHash, verified, evidenceURI)`、`getReceipt`、`getAgentReceipts`
+- `AgentIdentityRegistry.sol`（V2.1）：`registerAgent(string agentTokenURI)`、`revokeAgent(uint256 agentId)`、`tokenURI`、`isActive`
+- `ActionRegistry.sol`（V2.1，创建收据时要求调用者持有该 agent 且未被吊销）：`createReceipt(agentId, actionType, intentHash, proofHash, riskScore)`、`linkExecution(receiptId, txHash, verified, evidenceURI)`、`linkOffChainOutcome(receiptId, outcomeHash, verified, evidenceURI)`、`getReceipt`、`getAgentReceipts`
 
-两条链上的地址见 [DEPLOYMENTS.md](DEPLOYMENTS.md)。V1 的合约源码已在 MonadScan 验证。
+地址、收据和 V2.0 的历史记录见 [DEPLOYMENTS.md](DEPLOYMENTS.md)。V1 的合约源码已在 MonadScan 验证。
 
 ## 快速开始
 
-需要：合约相关命令用 Node.js 18（Hardhat 2.x 在 Node 20 以上会报警告、行为异常），前端用 Node.js 20 以上（Vite 7 的要求）；MetaMask；Monad Testnet 的 MON 或 Base Sepolia 的 ETH。
+需要：合约相关命令用 Node.js 18（Hardhat 2.x 在 Node 20 以上会报警告、行为异常），前端用 Node.js 20 以上（Vite 7 的要求）；MetaMask；少量 Monad 测试网 MON 用作 gas。
 
 ```bash
 git clone https://github.com/calderbuild/SafeReceipt.git
@@ -73,7 +74,7 @@ cd frontend && npm install        # 前端依赖
 cd frontend && npm run dev        # 本地开发，localhost:5173
 cd frontend && npm test -- --run  # 前端单元测试
 npm run compile                   # 编译 V1 + V2 合约（Node 18）
-npm run test                      # 合约测试（Node 18）
+npm run test                      # 合约测试，50 个（Node 18）
 ```
 
 如果要用自然语言解析意图，在 `frontend/.env` 里配置 `VITE_OPENAI_API_KEY`、`VITE_OPENAI_BASE_URL`、`VITE_OPENAI_MODEL`。不配置时，演示会使用预设的场景。注意：`VITE_` 开头的变量会被打进公开的前端包，所以不要在要部署到公网的构建里放真实的 key。

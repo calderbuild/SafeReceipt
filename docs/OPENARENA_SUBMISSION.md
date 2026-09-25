@@ -1,5 +1,12 @@
 # OpenArena submission draft (BUIDL_QUESTS 2026)
 
+> **Historical record, corrected 2026-09-25.** This is the draft as submitted.
+> Two statements in it were wrong: the receipts were not made by "actual
+> subagents" (receipt #1 was the wrapper running `npm run test`; receipt #2 was
+> a staged scope-creep demo whose script did not even read `test/`), and "live
+> on Base Sepolia" only meant contracts were deployed there. The addresses below
+> are V2.0. For the current state see [../DEPLOYMENTS.md](../DEPLOYMENTS.md).
+
 Draft only. Submitting is a publish action -- do it yourself when you're happy
 with the copy. This is the rough v1 to land early and start climbing; iterate
 through the review window (OpenArena is build-in-public, not a fixed deadline).
