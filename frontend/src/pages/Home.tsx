@@ -47,6 +47,7 @@ function HeroSlip() {
         <SlipRow label="Agent">security-scanner (#3)</SlipRow>
         <SlipRow label="Declared goal">Scan only the docs/ directory for leaked secrets</SlipRow>
         <SlipRow label="Declared scope">docs/</SlipRow>
+        <SlipRow label="Run">staged demo of scope creep</SlipRow>
         <SlipRule />
         <SlipRow label="Touched">docs/</SlipRow>
         <SlipRow label="Touched">test/ (outside scope)</SlipRow>

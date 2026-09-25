@@ -190,6 +190,7 @@ function ReceiptCard({ receipt, agentName }: { receipt: V2Receipt; agentName?: s
       <SlipRule />
       <SlipRow label="Agent">{agentName ? `${agentName} (#${receipt.agentId})` : `#${receipt.agentId}`}</SlipRow>
       <SlipRow label="Action">{receipt.actionType}</SlipRow>
+      {RUN_NOTES[receipt.id] && <SlipRow label="Run">{RUN_NOTES[receipt.id]}</SlipRow>}
       <SlipRow label="Intent hash">{shortHash(receipt.intentHash)}</SlipRow>
       <SlipRow label="Outcome hash">{shortHash(receipt.outcomeHash)}</SlipRow>
       <SlipRow label="Evidence">
@@ -225,6 +226,12 @@ function ReceiptCard({ receipt, agentName }: { receipt: V2Receipt; agentName?: s
     </ReceiptSlip>
   );
 }
+
+// How each receipt was produced. Not recoverable from chain data, so stated here.
+const RUN_NOTES: Record<number, string> = {
+  1: 'live run of the contract test suite',
+  2: 'staged: wrapper/run-mismatch-demo.mjs reads test/ on purpose to show scope creep being caught',
+};
 
 function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: IndependentVerification }) {
   const intact = result.outcomeMatches && result.intentMatches;
