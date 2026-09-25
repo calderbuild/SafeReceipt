@@ -19,6 +19,7 @@ import type { DemoScenario } from './demoScenarios';
 import type { ApproveIntent } from './intentParser';
 import type { RiskResult } from './riskEngine';
 import type { CanonicalDigest } from './canonicalize';
+import { messageOf } from './errors';
 
 // Step definition
 export interface AgentStep {
@@ -227,16 +228,16 @@ export async function runAgentDemo(
       mismatchDetail,
       steps,
     };
-  } catch (error: any) {
+  } catch (error) {
     // Mark current running step as error
     steps = steps.map(s =>
-      s.status === 'running' ? { ...s, status: 'error' as const, detail: error.message } : s
+      s.status === 'running' ? { ...s, status: 'error' as const, detail: messageOf(error) } : s
     );
     onStepChange(steps);
 
     return {
       success: false,
-      error: error.message,
+      error: messageOf(error),
       steps,
     };
   }

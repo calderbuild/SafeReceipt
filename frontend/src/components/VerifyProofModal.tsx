@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Modal } from './Modal';
 import { useVerify } from '../hooks/useVerify';
 import { getDigest, getUserReceipts } from '../lib/storage';
@@ -18,15 +18,11 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
 
   const [receiptId, setReceiptId] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
-  const [userReceipts, setUserReceipts] = useState<string[]>([]);
 
-  // Load user's receipts when modal opens
-  useEffect(() => {
-    if (isOpen && isConnected && address) {
-      const receipts = getUserReceipts(address);
-      setUserReceipts(receipts);
-    }
-  }, [isOpen, isConnected, address]);
+  const userReceipts = useMemo(
+    () => (isOpen && isConnected && address ? getUserReceipts(address) : []),
+    [isOpen, isConnected, address]
+  );
 
   const handleVerify = async () => {
     setInputError(null);

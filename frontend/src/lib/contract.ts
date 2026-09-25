@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { messageOf } from './errors';
 
 // Contract ABI - Generated from ReceiptRegistry.sol
 export const RECEIPT_REGISTRY_ABI = [
@@ -218,8 +219,8 @@ export class ReceiptRegistryContract {
   private readOnlyContract: ethers.Contract | null = null;
 
   constructor(
-    private provider: ethers.BrowserProvider | null = null,
-    private signer: ethers.JsonRpcSigner | null = null
+    private provider: ethers.Provider | null = null,
+    private signer: ethers.Signer | null = null
   ) {
     this.initializeContracts();
   }
@@ -279,7 +280,7 @@ export class ReceiptRegistryContract {
 
       // Extract receipt ID from event logs
       const receiptCreatedEvent = receipt.logs.find(
-        (log: any) => log.fragment?.name === 'ReceiptCreated'
+        (log: ethers.Log) => (log as ethers.EventLog).fragment?.name === 'ReceiptCreated'
       );
 
       if (!receiptCreatedEvent) {
@@ -292,9 +293,9 @@ export class ReceiptRegistryContract {
         receiptId,
         txHash: receipt.hash,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to create receipt:', error);
-      throw new Error(`Failed to create receipt: ${error.message}`);
+      throw new Error(`Failed to create receipt: ${messageOf(error)}`);
     }
   }
 
@@ -319,9 +320,9 @@ export class ReceiptRegistryContract {
         txHash: receipt.txHash,
         status: receipt.status as ReceiptStatus,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to get receipt:', error);
-      throw new Error(`Failed to get receipt: ${error.message}`);
+      throw new Error(`Failed to get receipt: ${messageOf(error)}`);
     }
   }
 
@@ -347,9 +348,9 @@ export class ReceiptRegistryContract {
       return {
         txHash: receipt.hash,
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to link execution:', error);
-      throw new Error(`Failed to link execution: ${error.message}`);
+      throw new Error(`Failed to link execution: ${messageOf(error)}`);
     }
   }
 
@@ -363,9 +364,9 @@ export class ReceiptRegistryContract {
     try {
       const receiptIds = await contract.getUserReceipts(userAddress);
       return receiptIds.map((id: bigint) => id.toString());
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to get user receipts:', error);
-      throw new Error(`Failed to get user receipts: ${error.message}`);
+      throw new Error(`Failed to get user receipts: ${messageOf(error)}`);
     }
   }
 
@@ -379,9 +380,9 @@ export class ReceiptRegistryContract {
     try {
       const nextId = await contract.nextReceiptId();
       return nextId.toString();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to get next receipt ID:', error);
-      throw new Error(`Failed to get next receipt ID: ${error.message}`);
+      throw new Error(`Failed to get next receipt ID: ${messageOf(error)}`);
     }
   }
 
@@ -415,8 +416,8 @@ export class ReceiptRegistryContract {
 
 // Utility function to create contract instance
 export const createReceiptRegistryContract = (
-  provider?: ethers.BrowserProvider,
-  signer?: ethers.JsonRpcSigner
+  provider?: ethers.Provider,
+  signer?: ethers.Signer
 ): ReceiptRegistryContract => {
   return new ReceiptRegistryContract(provider || null, signer || null);
 };

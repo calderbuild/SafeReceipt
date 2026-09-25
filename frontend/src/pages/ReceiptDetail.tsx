@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { useVerify } from '../hooks/useVerify';
 import { useExecutionVerifier } from '../hooks/useExecutionVerifier';
@@ -104,17 +104,15 @@ export function ReceiptDetail() {
   const { address } = useWallet();
   const { verifyProof, isVerifying, lastResult } = useVerify();
   const { verifyExecution, isVerifying: isVerifyingExecution, lastResult: executionResult } = useExecutionVerifier();
-  const [digest, setDigest] = useState<CanonicalDigest | null>(null);
+  const [digest, setDigest] = useState<CanonicalDigest | null>(() => (id ? getDigest(id) : null));
+  const [digestId, setDigestId] = useState(id);
+  if (id !== digestId) {
+    setDigestId(id);
+    setDigest(id ? getDigest(id) : null);
+  }
   const [verified, setVerified] = useState<boolean | null>(null);
   const [txHashInput, setTxHashInput] = useState('');
   const [linkError, setLinkError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (id) {
-      const d = getDigest(id);
-      setDigest(d);
-    }
-  }, [id]);
 
   const handleVerify = async () => {
     if (!id) return;

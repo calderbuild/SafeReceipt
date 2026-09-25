@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { ACTIVE_CHAIN } from '../lib/contract';
+import { codeOf } from '../lib/errors';
 
 interface WalletState {
   address: string | null;
@@ -30,11 +31,11 @@ const WALLET_CHAIN_PARAMS = {
 function getWalletProvider(): EthereumProvider | null {
   if (typeof window === 'undefined' || !window.ethereum) return null;
 
-  const providers = (window.ethereum as any).providers as EthereumProvider[] | undefined;
+  const providers = window.ethereum.providers;
   if (providers?.length) {
     // Prefer real MetaMask (has isMetaMask but NOT isTrustWallet)
     const realMetaMask = providers.find(
-      (p: any) => p.isMetaMask && !p.isTrust && !p.isTrustWallet
+      (p) => p.isMetaMask && !p.isTrust && !p.isTrustWallet
     );
     if (realMetaMask) return realMetaMask;
     // Fallback to first provider
@@ -76,6 +77,40 @@ export const useWallet = () => {
     }
   }, []);
 
+  // Switch to the active network
+  const switchNetwork = useCallback(async () => {
+    const wallet = getWalletProvider();
+    if (!wallet) return;
+
+    try {
+      await wallet.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: WALLET_CHAIN_PARAMS.chainId }],
+      });
+    } catch (error) {
+      if (codeOf(error) === 4902) {
+        try {
+          await wallet.request({
+            method: 'wallet_addEthereumChain',
+            params: [WALLET_CHAIN_PARAMS],
+          });
+        } catch (addError) {
+          console.error(`Failed to add ${ACTIVE_CHAIN.name}:`, addError);
+          setError({
+            code: 'NETWORK_ADD_FAILED',
+            message: `Failed to add ${ACTIVE_CHAIN.name}`,
+          });
+        }
+      } else {
+        console.error('Failed to switch network:', error);
+        setError({
+          code: 'NETWORK_SWITCH_FAILED',
+          message: `Failed to switch to ${ACTIVE_CHAIN.name}`,
+        });
+      }
+    }
+  }, []);
+
   // Connect wallet
   const connect = useCallback(async () => {
     const wallet = getWalletProvider();
@@ -91,7 +126,7 @@ export const useWallet = () => {
     setError(null);
 
     try {
-      const accounts = await wallet.request({
+      const accounts = await wallet.request<string[]>({
         method: 'eth_requestAccounts',
       });
 
@@ -128,19 +163,19 @@ export const useWallet = () => {
           });
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Connection failed:', error);
 
       let errorMessage = 'Failed to connect wallet';
       let errorCode = 'CONNECTION_FAILED';
 
-      if (error.code === 4001) {
+      if (codeOf(error) === 4001) {
         errorMessage = 'Connection rejected by user';
         errorCode = 'USER_REJECTED';
-      } else if (error.code === -32002) {
+      } else if (codeOf(error) === -32002) {
         errorMessage = 'Connection request already pending';
         errorCode = 'REQUEST_PENDING';
-      } else if (error.code === -32603) {
+      } else if (codeOf(error) === -32603) {
         errorMessage = 'Wallet has no active account. Please unlock or set up your wallet.';
         errorCode = 'NO_ACTIVE_WALLET';
       }
@@ -148,7 +183,7 @@ export const useWallet = () => {
       setError({ code: errorCode, message: errorMessage });
       setState(prev => ({ ...prev, isConnecting: false }));
     }
-  }, [initializeProvider]);
+  }, [initializeProvider, switchNetwork]);
 
   // Disconnect wallet
   const disconnect = useCallback(() => {
@@ -161,40 +196,6 @@ export const useWallet = () => {
       signer: null,
     });
     setError(null);
-  }, []);
-
-  // Switch to the active network
-  const switchNetwork = useCallback(async () => {
-    const wallet = getWalletProvider();
-    if (!wallet) return;
-
-    try {
-      await wallet.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: WALLET_CHAIN_PARAMS.chainId }],
-      });
-    } catch (error: any) {
-      if (error.code === 4902) {
-        try {
-          await wallet.request({
-            method: 'wallet_addEthereumChain',
-            params: [WALLET_CHAIN_PARAMS],
-          });
-        } catch (addError) {
-          console.error(`Failed to add ${ACTIVE_CHAIN.name}:`, addError);
-          setError({
-            code: 'NETWORK_ADD_FAILED',
-            message: `Failed to add ${ACTIVE_CHAIN.name}`,
-          });
-        }
-      } else {
-        console.error('Failed to switch network:', error);
-        setError({
-          code: 'NETWORK_SWITCH_FAILED',
-          message: `Failed to switch to ${ACTIVE_CHAIN.name}`,
-        });
-      }
-    }
   }, []);
 
   // Check if connected to correct network
@@ -244,7 +245,7 @@ export const useWallet = () => {
       if (!wallet) return;
 
       try {
-        const accounts = await wallet.request({
+        const accounts = await wallet.request<string[]>({
           method: 'eth_accounts',
         });
 
@@ -297,9 +298,9 @@ type EthereumProvider = {
   isTrust?: boolean;
   isTrustWallet?: boolean;
   providers?: EthereumProvider[];
-  request: (args: { method: string; params?: any[] }) => Promise<any>;
-  on: (event: string, callback: (...args: any[]) => void) => void;
-  removeListener: (event: string, callback: (...args: any[]) => void) => void;
+  request: <T = unknown>(args: { method: string; params?: unknown[] }) => Promise<T>;
+  on: (event: string, callback: (...args: never[]) => void) => void;
+  removeListener: (event: string, callback: (...args: never[]) => void) => void;
 };
 
 declare global {

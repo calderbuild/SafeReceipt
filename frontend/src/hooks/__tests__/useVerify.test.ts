@@ -48,8 +48,8 @@ describe('useVerify', () => {
       }),
     };
 
-    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as any);
-    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as any);
+    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as unknown as ReturnType<typeof contract.createReceiptRegistryContract>);
+    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as unknown as ReturnType<typeof contract.getReadOnlyProvider>);
 
     // Render hook
     const { result } = renderHook(() => useVerify());
@@ -91,8 +91,8 @@ describe('useVerify', () => {
       }),
     };
 
-    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as any);
-    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as any);
+    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as unknown as ReturnType<typeof contract.createReceiptRegistryContract>);
+    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as unknown as ReturnType<typeof contract.getReadOnlyProvider>);
 
     // Render hook
     const { result } = renderHook(() => useVerify());
@@ -126,8 +126,11 @@ describe('useVerify', () => {
     // Call verifyProof
     const verificationPromise = result.current.verifyProof(testReceiptId);
 
-    // Wait for verification to complete
-    await waitFor(() => expect(result.current.isVerifying).toBe(false));
+    // isVerifying starts false, so waiting on it alone passes before state flushes
+    await waitFor(() => {
+      expect(result.current.isVerifying).toBe(false);
+      expect(result.current.error).toBeTruthy();
+    });
 
     const verificationResult = await verificationPromise;
 
@@ -148,8 +151,8 @@ describe('useVerify', () => {
       isDeployed: vi.fn().mockReturnValue(false),
     };
 
-    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as any);
-    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as any);
+    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as unknown as ReturnType<typeof contract.createReceiptRegistryContract>);
+    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as unknown as ReturnType<typeof contract.getReadOnlyProvider>);
 
     // Render hook
     const { result } = renderHook(() => useVerify());
@@ -157,8 +160,11 @@ describe('useVerify', () => {
     // Call verifyProof
     const verificationPromise = result.current.verifyProof(testReceiptId);
 
-    // Wait for verification to complete
-    await waitFor(() => expect(result.current.isVerifying).toBe(false));
+    // isVerifying starts false, so waiting on it alone passes before state flushes
+    await waitFor(() => {
+      expect(result.current.isVerifying).toBe(false);
+      expect(result.current.error).toBeTruthy();
+    });
 
     const verificationResult = await verificationPromise;
 
@@ -179,8 +185,8 @@ describe('useVerify', () => {
       getReceipt: vi.fn().mockRejectedValue(new Error('Network error')),
     };
 
-    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as any);
-    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as any);
+    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as unknown as ReturnType<typeof contract.createReceiptRegistryContract>);
+    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as unknown as ReturnType<typeof contract.getReadOnlyProvider>);
 
     // Render hook
     const { result } = renderHook(() => useVerify());
@@ -219,8 +225,8 @@ describe('useVerify', () => {
       }),
     };
 
-    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as any);
-    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as any);
+    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as unknown as ReturnType<typeof contract.createReceiptRegistryContract>);
+    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as unknown as ReturnType<typeof contract.getReadOnlyProvider>);
 
     // Render hook
     const { result } = renderHook(() => useVerify());
@@ -255,8 +261,8 @@ describe('useVerify', () => {
       }),
     };
 
-    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as any);
-    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as any);
+    vi.mocked(contract.createReceiptRegistryContract).mockReturnValue(mockContract as unknown as ReturnType<typeof contract.createReceiptRegistryContract>);
+    vi.mocked(contract.getReadOnlyProvider).mockReturnValue({} as unknown as ReturnType<typeof contract.getReadOnlyProvider>);
 
     // Render hook
     const { result } = renderHook(() => useVerify());

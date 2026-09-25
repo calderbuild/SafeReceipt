@@ -308,7 +308,7 @@ export function createUnlimitedAmount(): string {
 export function parseHumanAmount(amount: string, decimals: number = 18): string {
   try {
     return ethers.parseUnits(amount, decimals).toString();
-  } catch (error) {
+  } catch {
     throw new Error(`Invalid amount format: ${amount}`);
   }
 }
@@ -322,7 +322,7 @@ export function parseHumanAmount(amount: string, decimals: number = 18): string 
 export function formatHumanAmount(amount: string, decimals: number = 18): string {
   try {
     return ethers.formatUnits(amount, decimals);
-  } catch (error) {
+  } catch {
     throw new Error(`Invalid amount: ${amount}`);
   }
 }

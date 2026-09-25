@@ -48,8 +48,8 @@ describe('generateLiabilityNotice', () => {
   });
 
   it('should handle null/undefined', () => {
-    const result1 = generateLiabilityNotice(null as any);
-    const result2 = generateLiabilityNotice(undefined as any);
+    const result1 = generateLiabilityNotice(null as unknown as Parameters<typeof generateLiabilityNotice>[0]);
+    const result2 = generateLiabilityNotice(undefined as unknown as Parameters<typeof generateLiabilityNotice>[0]);
     expect(result1).toBe('User acknowledged: No risk rules triggered');
     expect(result2).toBe('User acknowledged: No risk rules triggered');
   });

@@ -440,7 +440,7 @@ export function recordApproval(
     // Keep only last 30 days of approvals
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const filtered = approvals.filter(
-      (a: any) => a.timestamp > thirtyDaysAgo
+      (a: { timestamp: number }) => a.timestamp > thirtyDaysAgo
     );
 
     localStorage.setItem(key, JSON.stringify(filtered));

@@ -3,6 +3,7 @@ import { getDigest } from '../lib/storage';
 import { computeProofHash } from '../lib/canonicalize';
 import { createReceiptRegistryContract, getReadOnlyProvider } from '../lib/contract';
 import type { CanonicalDigest } from '../lib/canonicalize';
+import { messageOf } from '../lib/errors';
 
 export interface VerificationResult {
   isValid: boolean;
@@ -55,7 +56,7 @@ export function useVerify(): UseVerifyReturn {
 
       // Step 3: Get on-chain receipt
       const provider = getReadOnlyProvider();
-      const contract = createReceiptRegistryContract(provider as any);
+      const contract = createReceiptRegistryContract(provider);
 
       if (!contract.isDeployed()) {
         const result: VerificationResult = {
@@ -90,8 +91,8 @@ export function useVerify(): UseVerifyReturn {
       }
 
       return result;
-    } catch (err: any) {
-      const errorMessage = err.message || 'Unknown error occurred during verification';
+    } catch (err) {
+      const errorMessage = messageOf(err) || 'Unknown error occurred during verification';
       const result: VerificationResult = {
         isValid: false,
         onChainProofHash: '',

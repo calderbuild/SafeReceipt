@@ -42,7 +42,7 @@ const localStorageMock = (() => {
 })();
 
 // Replace global localStorage with mock
-global.localStorage = localStorageMock as any;
+global.localStorage = localStorageMock as unknown as Storage;
 
 describe('Storage', () => {
   const mockDigest: CanonicalDigest = {

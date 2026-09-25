@@ -9,6 +9,7 @@ import { useState, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { getDigest } from '../lib/storage';
 import { ACTIVE_CHAIN } from '../lib/contract';
+import { messageOf } from '../lib/errors';
 
 export interface VerificationResult {
   isVerified: boolean;
@@ -161,13 +162,13 @@ export function useExecutionVerifier() {
 
         setLastResult(result);
         return result;
-      } catch (error: any) {
+      } catch (error) {
         const result: VerificationResult = {
           isVerified: false,
           txHash,
           details: {},
-          mismatchReasons: [error.message],
-          error: error.message,
+          mismatchReasons: [messageOf(error)],
+          error: messageOf(error),
         };
         setLastResult(result);
         return result;

@@ -1,3 +1,4 @@
+import { messageOf } from './errors';
 /**
  * LLM Service - Natural Language Intent Parsing
  *
@@ -193,10 +194,10 @@ export async function parseNaturalLanguageIntent(
       success: false,
       error: 'Unknown action type',
     };
-  } catch (error: any) {
+  } catch (error) {
     return {
       success: false,
-      error: error.message || 'Failed to parse intent',
+      error: messageOf(error) || 'Failed to parse intent',
     };
   }
 }
@@ -266,10 +267,10 @@ Please explain these risks in simple terms.`;
       success: true,
       explanation: explanation || 'Unable to generate risk explanation.',
     };
-  } catch (error: any) {
+  } catch (error) {
     return {
       success: false,
-      error: error.message,
+      error: messageOf(error),
     };
   }
 }

@@ -14,6 +14,7 @@ import { parseNaturalLanguageIntent, explainRisks, isLLMConfigured } from '../li
 import { exportAndDownload } from '../lib/exportEvidence';
 import { parseWalletError, isUserRejection } from '../lib/walletErrors';
 import type { RiskResult } from '../lib/riskEngine';
+import { messageOf } from '../lib/errors';
 
 interface CreateReceiptModalProps {
   isOpen: boolean;
@@ -133,8 +134,8 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
       // Switch to manual mode to show parsed results
       setInputMode('manual');
       setIsParsingAI(false);
-    } catch (error: any) {
-      setAiParseError(error.message || 'Failed to parse');
+    } catch (error) {
+      setAiParseError(messageOf(error) || 'Failed to parse');
       setIsParsingAI(false);
     }
   };
@@ -258,8 +259,8 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
       // Create contract instance
       const contract = createReceiptRegistryContract(
-        provider as any,
-        signer as any
+        provider ?? undefined,
+        signer ?? undefined
       );
 
       if (!contract.isDeployed()) {

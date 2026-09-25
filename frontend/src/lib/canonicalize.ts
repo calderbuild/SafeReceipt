@@ -26,14 +26,14 @@ export interface CanonicalDigest {
  * @param obj - Object to sort
  * @returns New object with sorted keys
  */
-export function sortObjectKeys(obj: any): any {
+export function sortObjectKeys<T>(obj: T): T {
   if (obj === null || obj === undefined) {
     return obj;
   }
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => sortObjectKeys(item));
+    return obj.map(item => sortObjectKeys(item)) as T;
   }
 
   // Handle non-object primitives
@@ -42,14 +42,15 @@ export function sortObjectKeys(obj: any): any {
   }
 
   // Sort object keys
-  const sorted: any = {};
-  const keys = Object.keys(obj).sort();
+  const source = obj as Record<string, unknown>;
+  const sorted: Record<string, unknown> = {};
+  const keys = Object.keys(source).sort();
 
   for (const key of keys) {
-    sorted[key] = sortObjectKeys(obj[key]);
+    sorted[key] = sortObjectKeys(source[key]);
   }
 
-  return sorted;
+  return sorted as T;
 }
 
 /**

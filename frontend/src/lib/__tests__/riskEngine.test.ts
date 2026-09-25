@@ -266,7 +266,7 @@ describe('riskEngine', () => {
       // Mock provider that returns contract code
       const mockProvider = {
         getCode: vi.fn().mockResolvedValue('0x6080604052'), // Contract bytecode
-      } as any;
+      } as unknown as ethers.Provider;
 
       const result = await evaluateBatchPay(recipients, { provider: mockProvider });
 
@@ -282,7 +282,7 @@ describe('riskEngine', () => {
       // Mock provider that returns no code (EOA)
       const mockProvider = {
         getCode: vi.fn().mockResolvedValue('0x'),
-      } as any;
+      } as unknown as ethers.Provider;
 
       const result = await evaluateBatchPay(recipients, { provider: mockProvider });
 
