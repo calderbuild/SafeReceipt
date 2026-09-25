@@ -1,9 +1,11 @@
 {
   "monad": {
     "chainId": 10143,
-    "agentIdentityRegistry": "0x89FFce2796909addf5C8E4A924247d2F2715e133",
-    "actionRegistry": "0x8aeee534f7C954fC1Fcb942c4DA8E58f779fcFA6",
-    "version": "2.0"
+    "agentIdentityRegistry": "0x65F4A584E88b7a9831dbC187E75EF7247c47fe6d",
+    "actionRegistry": "0x975bD215C549F315A066306B161119cec480c927",
+    "version": "2.1",
+    "demoUSD": "0x5a3b52260C44cD1Ec70C7157131bC15913Cd835f",
+    "deployedAt": "2026-09-25T13:39:17.801Z"
   },
   "baseSepolia": {
     "chainId": 84532,

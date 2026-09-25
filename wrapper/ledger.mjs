@@ -1,10 +1,12 @@
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { hashTrace } from "./canonicalize.mjs";
+const HERE = dirname(fileURLToPath(import.meta.url)); // Node 18 has no import.meta.dirname
 
 // Local clone of https://github.com/calderbuild/accountability-ledger.
-export const LEDGER_DIR = process.env.LEDGER_DIR ?? join(import.meta.dirname, "..", "..", "accountability-ledger");
+export const LEDGER_DIR = process.env.LEDGER_DIR ?? join(HERE, "..", "..", "accountability-ledger");
 // Receipt ids restart at 1 on every registry deploy, so each version gets its own directory.
 const TRACE_DIR = "traces/v2.1";
 export const LEDGER_RAW_TRACES = `https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/${TRACE_DIR}`;

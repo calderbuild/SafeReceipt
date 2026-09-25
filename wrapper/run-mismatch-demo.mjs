@@ -1,11 +1,13 @@
 import { ethers } from "ethers";
 import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import "dotenv/config";
 import { DEPLOYMENTS } from "./abi.mjs";
 import { AccountabilityClient } from "./accountability.mjs";
 import { evaluatePolicy } from "./policy.mjs";
 import { LEDGER_RAW_TRACES, ledgerPublisher, verifyAgainstChain } from "./ledger.mjs";
+const HERE = dirname(fileURLToPath(import.meta.url)); // Node 18 has no import.meta.dirname
 
 /**
  * Staged MISMATCH path. The scanner is told to scan only docs/, and this script
@@ -13,7 +15,7 @@ import { LEDGER_RAW_TRACES, ledgerPublisher, verifyAgainstChain } from "./ledger
  * recorded with real file paths; SCOPE_CREEP then fires on the recorded trace.
  * The overstep is scripted on purpose. What is real is the detection.
  */
-const REPO = join(import.meta.dirname, "..");
+const REPO = join(HERE, "..");
 const SECRET_SHAPES = /sk-[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE KEY/g;
 
 function scanDir(dir) {
@@ -27,7 +29,7 @@ async function main() {
   const cfg = DEPLOYMENTS[network];
   if (!process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set in .env");
 
-  const agents = JSON.parse(readFileSync(join(import.meta.dirname, `agents.${network}.json`), "utf8"));
+  const agents = JSON.parse(readFileSync(join(HERE, `agents.${network}.json`), "utf8"));
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, new ethers.JsonRpcProvider(cfg.rpc));
   const client = new AccountabilityClient({ network, signer, evidenceBaseURL: LEDGER_RAW_TRACES });
   const publish = ledgerPublisher("security-scanner, staged scope creep");

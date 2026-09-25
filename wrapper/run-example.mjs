@@ -1,12 +1,14 @@
 import { ethers } from "ethers";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import "dotenv/config";
 import { DEPLOYMENTS } from "./abi.mjs";
 import { AccountabilityClient } from "./accountability.mjs";
 import { evaluatePolicy } from "./policy.mjs";
 import { LEDGER_RAW_TRACES, ledgerPublisher, verifyAgainstChain } from "./ledger.mjs";
+const HERE = dirname(fileURLToPath(import.meta.url)); // Node 18 has no import.meta.dirname
 
 /**
  * Happy path: the wrapper itself runs the contract test suite (a plain
@@ -17,7 +19,7 @@ async function main() {
   const cfg = DEPLOYMENTS[network];
   if (!process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set in .env");
 
-  const agents = JSON.parse(readFileSync(join(import.meta.dirname, `agents.${network}.json`), "utf8"));
+  const agents = JSON.parse(readFileSync(join(HERE, `agents.${network}.json`), "utf8"));
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, new ethers.JsonRpcProvider(cfg.rpc));
   const client = new AccountabilityClient({ network, signer, evidenceBaseURL: LEDGER_RAW_TRACES });
   const publish = ledgerPublisher("code-reviewer"); // fails fast if the ledger clone is missing
@@ -43,7 +45,7 @@ async function main() {
   client.emit("start", "Invoking npm run test", 0, { touched: ["test/", "contracts/"] });
   let output = "";
   try {
-    output = execSync("npm run test", { cwd: join(import.meta.dirname, ".."), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    output = execSync("npm run test", { cwd: join(HERE, ".."), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   } catch (err) {
     output = (err.stdout || "") + (err.stderr || "");
   }
