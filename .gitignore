@@ -55,6 +55,8 @@ docs/drafts/
 # Personal notes and non-code docs
 prompt规范.md
 *.pdf
+gccgrant.md
+README.base.md
 
 # Hackathon scratch files
 consensus hackathon/

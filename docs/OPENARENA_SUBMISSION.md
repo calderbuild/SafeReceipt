@@ -9,8 +9,7 @@ through the review window (OpenArena is build-in-public, not a fixed deadline).
 - **Project name:** SafeReceipt -- Agent Fleet Accountability
 - **Primary track:** Sovereignty (technical depth lives here: ERC-8004-inspired
   identity + hash-based verifiable execution). Frame OPC as the narrative.
-- **Repo:** https://github.com/calderbuild/SafeReceipt (branch
-  `calder/buidl-quests-2026` until merged)
+- **Repo:** https://github.com/calderbuild/SafeReceipt (merged to `main`)
 - **Evidence ledger:** https://github.com/calderbuild/accountability-ledger
 - **Live demo:** https://safereceipt.vercel.app (frontend refresh lands Week 3)
 
