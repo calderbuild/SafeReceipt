@@ -15,7 +15,7 @@ SafeReceipt is an Agent Accountability Protocol that creates verifiable on-chain
 - **Frontend**: Vite 7 + React 19 + TypeScript 5.9 (strict) + Tailwind CSS v4
 - **Chain Interaction**: ethers.js v6
 - **Wallet**: MetaMask
-- **AI**: OpenAI-compatible API (GPT-4o) for natural language intent parsing
+- **AI**: OpenAI-compatible API (DeepSeek `deepseek-flash`, V4.1) for natural language intent parsing
 - **Testing**: vitest + happy-dom + @testing-library/react
 - **Linting**: ESLint 9 (flat config format in `frontend/eslint.config.js`)
 
@@ -54,8 +54,8 @@ MONAD_RPC_URL=https://testnet-rpc.monad.xyz    # optional override
 **Frontend `frontend/.env`** (for LLM intent parsing):
 ```
 VITE_OPENAI_API_KEY=your-api-key
-VITE_OPENAI_BASE_URL=https://api.openai.com/v1
-VITE_OPENAI_MODEL=gpt-4o
+VITE_OPENAI_BASE_URL=https://api.deepseek.com
+VITE_OPENAI_MODEL=deepseek-flash
 ```
 
 Without LLM env vars, the agent demo uses preset fallback intents from `demoScenarios.ts`.

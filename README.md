@@ -108,7 +108,7 @@ Every receipt is an immutable on-chain record linking **declared intent** to **a
 | Styling           | Tailwind CSS v4                                          |
 | Chain Interaction | ethers.js v6                                             |
 | Wallet            | MetaMask                                                 |
-| NLP               | OpenAI-compatible API (GPT-4o)                           |
+| NLP               | OpenAI-compatible API (DeepSeek `deepseek-flash`)        |
 | Testing           | Vitest (frontend), Hardhat + Chai (contracts)            |
 | Target Chains     | Monad Testnet (10143), Base Sepolia (84532)              |
 
@@ -139,8 +139,8 @@ Create `frontend/.env` for LLM-powered intent parsing:
 
 ```
 VITE_OPENAI_API_KEY=your-api-key
-VITE_OPENAI_BASE_URL=https://api.openai.com/v1
-VITE_OPENAI_MODEL=gpt-4o
+VITE_OPENAI_BASE_URL=https://api.deepseek.com
+VITE_OPENAI_MODEL=deepseek-flash
 ```
 
 Without these, the agent demo uses pre-configured fallback intents.

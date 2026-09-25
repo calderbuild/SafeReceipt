@@ -34,8 +34,8 @@ interface LLMConfig {
 
 const DEFAULT_CONFIG: LLMConfig = {
   apiKey: (import.meta.env.VITE_OPENAI_API_KEY || '').trim(),
-  baseUrl: (import.meta.env.VITE_OPENAI_BASE_URL || 'https://newapi.deepwisdom.ai/v1').trim(),
-  model: (import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o').trim(),
+  baseUrl: (import.meta.env.VITE_OPENAI_BASE_URL || 'https://api.deepseek.com').trim(),
+  model: (import.meta.env.VITE_OPENAI_MODEL || 'deepseek-flash').trim(),
 };
 
 const INTENT_PARSE_PROMPT = `You are an expert at parsing blockchain transaction intents from natural language.
