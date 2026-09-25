@@ -144,7 +144,7 @@ export function AgentDemo() {
           ) : (
             <div className="space-y-3">
               <p className="text-slate-400 text-sm mb-4">
-                Select a scenario. The agent will automatically: parse intent, analyze risk, create a receipt, send a real approve on Monad testnet, check it against the receipt, and record the verdict on-chain. Expect four wallet confirmations.
+                Select a scenario. The agent will automatically: parse intent, analyze risk, create a receipt, send a real approve on Monad testnet, check it against the receipt, and record the verdict on-chain. Expect three wallet confirmations per scenario.
               </p>
               {DEMO_SCENARIOS.map(scenario => (
                 <button
