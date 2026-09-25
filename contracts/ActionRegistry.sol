@@ -13,14 +13,24 @@ pragma solidity ^0.8.24;
  *  - linkOffChainOutcome():  off-chain action, outcome = hash of a published
  *                            trace (commit-reveal; see evidenceURI)
  *
- * `verified` in both paths is computed off-chain (client-side, open source,
- * independently re-runnable) and submitted as a boolean -- this contract
- * timestamps the result immutably, it does not itself decode calldata or
- * re-derive the hash. Same trust model as V1's linkExecution, made explicit
- * here rather than left implicit.
+ * `verified` in both paths is attested by the receipt owner: it is computed
+ * off-chain (client-side, open source, re-runnable from the published evidence)
+ * and submitted as a boolean. This contract timestamps the claim immutably; it
+ * does not decode calldata or re-derive the hash itself. Same trust model as
+ * V1's linkExecution.
+ *
+ * V2.1: receipts filed under an agent identity must come from that agent's
+ * current owner, and a revoked agent cannot open new receipts. (V2.0 accepted
+ * any agentId from any caller.)
  */
+interface IAgentIdentity {
+    function ownerOf(uint256 agentId) external view returns (address);
+    function revoked(uint256 agentId) external view returns (bool);
+}
+
 contract ActionRegistry {
     uint256 public nextReceiptId = 1;
+    IAgentIdentity public immutable identity;
 
     enum Status {
         CREATED,    // Receipt created, no outcome linked yet
@@ -62,6 +72,11 @@ contract ActionRegistry {
         uint256 timestamp
     );
 
+    constructor(address identityRegistry) {
+        require(identityRegistry != address(0), "Identity registry required");
+        identity = IAgentIdentity(identityRegistry);
+    }
+
     event OutcomeLinked(
         uint256 indexed receiptId,
         uint256 indexed agentId,
@@ -77,6 +92,14 @@ contract ActionRegistry {
         bytes32 proofHash,
         uint8 riskScore
     ) external returns (uint256 receiptId) {
+        require(actionType <= OFF_CHAIN_ACTION, "Unknown action type");
+        require(riskScore <= 100, "Risk score out of range");
+        if (agentId != 0) {
+            // ownerOf reverts for an agent id that was never minted.
+            require(identity.ownerOf(agentId) == msg.sender, "Not agent owner");
+            require(!identity.revoked(agentId), "Agent revoked");
+        }
+
         receiptId = nextReceiptId++;
 
         receipts[receiptId] = Receipt({
@@ -116,6 +139,8 @@ contract ActionRegistry {
         bool verified,
         string calldata evidenceURI
     ) external {
+        require(receipts[receiptId].actionType != OFF_CHAIN_ACTION, "Use linkOffChainOutcome");
+        require(txHash != bytes32(0), "Empty tx hash");
         _linkOutcome(receiptId, txHash, verified, evidenceURI);
     }
 
@@ -127,6 +152,9 @@ contract ActionRegistry {
         bool verified,
         string calldata evidenceURI
     ) external {
+        require(receipts[receiptId].actionType == OFF_CHAIN_ACTION, "Use linkExecution");
+        require(outcomeHash != bytes32(0), "Empty outcome hash");
+        require(bytes(evidenceURI).length > 0, "Evidence URI required");
         _linkOutcome(receiptId, outcomeHash, verified, evidenceURI);
     }
 

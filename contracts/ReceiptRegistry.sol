@@ -77,7 +77,8 @@ contract ReceiptRegistry {
      * @notice Link a transaction to a receipt and set its verification status
      * @param receiptId The receipt to link
      * @param txHash The transaction hash that executed the intent
-     * @param verified True if tx matches intent, false if mismatch
+     * @param verified True if tx matches intent, false if mismatch. Attested by the
+     *        receipt owner: the comparison runs off-chain and only its result is stored.
      */
     function linkExecution(
         uint256 receiptId,

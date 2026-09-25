@@ -7,7 +7,9 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        // V1 ReceiptRegistry.sol -- left untouched, pinned to its original compiler.
+        // Kept for reference only. ReceiptRegistry.sol says ^0.8.19, and Hardhat picks the
+        // newest configured compiler that satisfies a pragma, so every contract here actually
+        // builds with 0.8.24 below. (Native 0.8.19 needs Rosetta on Apple Silicon.)
         version: "0.8.19",
         settings: {
           optimizer: {

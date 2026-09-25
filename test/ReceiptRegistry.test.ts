@@ -127,4 +127,46 @@ describe("ReceiptRegistry", function () {
       expect(receipt.riskScore).to.equal(0);
     });
   });
+
+  describe("linkExecution", function () {
+    const Status = { CREATED: 0, EXECUTED: 1, VERIFIED: 2, MISMATCH: 3 };
+    const h = (x: string) => ethers.keccak256(ethers.toUtf8Bytes(x));
+
+    beforeEach(async function () {
+      await receiptRegistry.createReceipt(1, h("intent"), h("proof"), 40);
+    });
+
+    it("Should mark VERIFIED and store the tx hash", async function () {
+      await receiptRegistry.linkExecution(1, h("tx"), true);
+      const receipt = await receiptRegistry.getReceipt(1);
+      expect(receipt.status).to.equal(Status.VERIFIED);
+      expect(receipt.txHash).to.equal(h("tx"));
+    });
+
+    it("Should mark MISMATCH when verified is false", async function () {
+      await receiptRegistry.linkExecution(1, h("tx"), false);
+      expect((await receiptRegistry.getReceipt(1)).status).to.equal(Status.MISMATCH);
+    });
+
+    it("Should emit ExecutionLinked", async function () {
+      await expect(receiptRegistry.linkExecution(1, h("tx"), true))
+        .to.emit(receiptRegistry, "ExecutionLinked")
+        .withArgs(1, h("tx"), Status.VERIFIED);
+    });
+
+    it("Should reject linking from a non-owner", async function () {
+      await expect(receiptRegistry.connect(addr1).linkExecution(1, h("tx"), true)).to.be.revertedWith(
+        "Not receipt owner"
+      );
+    });
+
+    it("Should reject double-linking", async function () {
+      await receiptRegistry.linkExecution(1, h("tx"), true);
+      await expect(receiptRegistry.linkExecution(1, h("tx"), false)).to.be.revertedWith("Already linked");
+    });
+
+    it("Should reject a receipt that does not exist", async function () {
+      await expect(receiptRegistry.linkExecution(42, h("tx"), true)).to.be.revertedWith("Not receipt owner");
+    });
+  });
 });
