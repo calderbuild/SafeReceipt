@@ -7,7 +7,7 @@
   "chainId": 10143,
   "declaredIntent": {
     "agent": "code-reviewer",
-    "goal": "Run the SafeReceipt V2 contract test suite and confirm all tests pass",
+    "goal": "Run the SafeReceipt contract test suite and confirm all tests pass",
     "declaredScope": [
       "test/",
       "contracts/"
@@ -20,9 +20,9 @@
       "message": "Intent committed on-chain as receipt #1",
       "progress": 0,
       "data": {
-        "intentHash": "0xd4d6df3bd3b5f3ab108de548a3487a5710dcf5087bef2a0b27f7e825c55602fc"
+        "intentHash": "0x360741739a7bb864265472cbdfbc7d033d9dc3667e5dbf19a4c8e3a078bbb2c1"
       },
-      "timestamp": 1784191595
+      "timestamp": 1790343613
     },
     {
       "stage": "start",
@@ -34,20 +34,20 @@
           "contracts/"
         ]
       },
-      "timestamp": 1784191595
+      "timestamp": 1790343613
     },
     {
       "stage": "test-run",
-      "message": "Test suite completed: 26 passing",
+      "message": "Test suite completed: 50 passing",
       "progress": 80,
       "data": {
-        "passing": 26,
+        "passing": 50,
         "touched": [
           "test/",
           "contracts/"
         ]
       },
-      "timestamp": 1784191597
+      "timestamp": 1790343615
     },
     {
       "stage": "policy",
@@ -56,10 +56,10 @@
       "data": {
         "rulesTriggered": []
       },
-      "timestamp": 1784191597
+      "timestamp": 1790343615
     }
   ],
-  "durationMs": 4445,
+  "durationMs": 10953,
   "policy": {
     "score": 100,
     "verified": true,
@@ -67,5 +67,5 @@
     "findings": [],
     "riskLevel": "low"
   },
-  "createdAt": 1784191592
+  "createdAt": 1790343604
 }

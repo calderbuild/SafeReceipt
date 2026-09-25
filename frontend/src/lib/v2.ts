@@ -1,23 +1,25 @@
 import { ethers } from 'ethers';
 import { sortObjectKeys, computeIntentHash } from './canonicalize';
 import { NETWORKS } from './contract';
+import { evaluateTrace } from './tracePolicy';
+import type { OffChainTrace, PolicyVerdict } from './tracePolicy';
 
-// V2 is also deployed on Base Sepolia, but no agents are registered there yet.
+// V2.1 (2026-09-25). The V2.0 registries (0x89FF…e133 / 0x8aee…cFA6) are listed in DEPLOYMENTS.md.
 export const V2_NETWORK = NETWORKS.monad;
 export const V2_ADDRESSES = {
-  agentIdentityRegistry: '0x89FFce2796909addf5C8E4A924247d2F2715e133',
-  actionRegistry: '0x8aeee534f7C954fC1Fcb942c4DA8E58f779fcFA6',
+  agentIdentityRegistry: '0x65F4A584E88b7a9831dbC187E75EF7247c47fe6d',
+  actionRegistry: '0x975bD215C549F315A066306B161119cec480c927',
 } as const;
 
 const AGENT_IDENTITY_ABI = [
   'function nextAgentId() view returns (uint256)',
   'function tokenURI(uint256 agentId) view returns (string)',
   'function isActive(uint256 agentId) view returns (bool)',
+  'function ownerOf(uint256 agentId) view returns (address)',
 ];
 
 const ACTION_REGISTRY_ABI = [
   'function nextReceiptId() view returns (uint256)',
-  'function getAgentReceipts(uint256 agentId) view returns (uint256[])',
   'function getReceipt(uint256 receiptId) view returns (tuple(address actor, uint256 agentId, uint8 actionType, uint8 riskScore, uint40 timestamp, bytes32 intentHash, bytes32 proofHash, bytes32 outcomeHash, string evidenceURI, uint8 status))',
 ];
 
@@ -38,7 +40,6 @@ export interface AgentProfile {
   id: number;
   tokenURI: string;
   active: boolean;
-  receiptIds: number[];
   metadata: AgentMetadata | null;
 }
 
@@ -62,6 +63,13 @@ export interface IndependentVerification {
   outcomeMatches: boolean;
   recomputedIntentHash: string;
   intentMatches: boolean;
+  /** The trace names this receipt and agent (a valid trace copied from another receipt fails here). */
+  idsMatch: boolean;
+  /** The address that filed the receipt still owns the agent NFT. */
+  actorOwnsAgent: boolean;
+  /** Policy rules re-run on the trace in this browser, and whether they agree with the recorded status. */
+  policy: PolicyVerdict;
+  policyAgrees: boolean;
 }
 
 export const shortHash = (h: string) => `${h.slice(0, 10)}…${h.slice(-6)}`;
@@ -93,25 +101,25 @@ async function fetchMetadata(uri: string): Promise<AgentMetadata | null> {
 }
 
 export async function listAgents(): Promise<AgentProfile[]> {
-  const { identity, actions } = registries();
+  const { identity } = registries();
   const ids = range(await identity.nextAgentId());
   return Promise.all(
     ids.map(async (id) => {
-      const [tokenURI, active, receiptIds] = await Promise.all([
+      const [tokenURI, active] = await Promise.all([
         identity.tokenURI(id) as Promise<string>,
         identity.isActive(id) as Promise<boolean>,
-        actions.getAgentReceipts(id) as Promise<bigint[]>,
       ]);
-      return { id, tokenURI, active, receiptIds: receiptIds.map(Number), metadata: await fetchMetadata(tokenURI) };
+      return { id, tokenURI, active, metadata: await fetchMetadata(tokenURI) };
     })
   );
 }
 
-export async function listReceipts(): Promise<V2Receipt[]> {
+/** Newest first. A receipt whose read fails comes back as `{ id, error }` instead of failing the page. */
+export async function listReceipts(): Promise<(V2Receipt | { id: number; error: string })[]> {
   const { actions } = registries();
-  const ids = range(await actions.nextReceiptId());
-  return Promise.all(
-    ids.map(async (id) => {
+  const ids = range(await actions.nextReceiptId()).reverse();
+  const settled = await Promise.allSettled(
+    ids.map(async (id): Promise<V2Receipt> => {
       const r = await actions.getReceipt(id);
       return {
         id,
@@ -128,19 +136,33 @@ export async function listReceipts(): Promise<V2Receipt[]> {
       };
     })
   );
+  return settled.map((s, i) =>
+    s.status === 'fulfilled' ? s.value : { id: ids[i], error: s.reason instanceof Error ? s.reason.message : String(s.reason) }
+  );
 }
 
 export async function verifyIndependently(receipt: V2Receipt): Promise<IndependentVerification> {
   const res = await fetch(receipt.evidenceURI, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Could not fetch the published trace (HTTP ${res.status})`);
   const trace = (await res.json()) as Record<string, unknown>;
+  const owner = (await registries().identity.ownerOf(receipt.agentId)) as string;
+  return checkTrace(receipt, trace, owner);
+}
+
+/** Every comparison the Verify button makes, given the fetched trace and the agent's current owner. */
+export function checkTrace(receipt: V2Receipt, trace: Record<string, unknown>, agentOwner: string): IndependentVerification {
   const recomputedOutcomeHash = hashTrace(trace);
   const recomputedIntentHash = computeIntentHash((trace.declaredIntent ?? {}) as object);
+  const policy = evaluateTrace(trace as OffChainTrace);
   return {
     trace,
     recomputedOutcomeHash,
     outcomeMatches: recomputedOutcomeHash.toLowerCase() === receipt.outcomeHash.toLowerCase(),
     recomputedIntentHash,
     intentMatches: recomputedIntentHash.toLowerCase() === receipt.intentHash.toLowerCase(),
+    idsMatch: trace.receiptId === receipt.id && trace.agentId === receipt.agentId,
+    actorOwnsAgent: agentOwner.toLowerCase() === receipt.actor.toLowerCase(),
+    policy,
+    policyAgrees: (policy.verified ? 'VERIFIED' : 'MISMATCH') === receipt.status,
   };
 }
