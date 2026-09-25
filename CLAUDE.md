@@ -154,6 +154,7 @@ await contract.linkExecution(receiptId, txHashBytes32, verified);
 /              → Home (landing page + agent demo)
 /receipts      → MyReceipts (list user's receipts with status badges)
 /receipt/:id   → ReceiptDetail (detail view + link execution UI)
+/fleet         → Fleet (V2: agents + receipts read from Monad, in-browser independent verification via lib/v2.ts)
 ```
 
 `App.tsx` manages global state for Create/Verify modals and the floating navbar. Vercel deployment uses SPA rewrites (`vercel.json`).
@@ -169,12 +170,11 @@ When `CONTRACT_CONFIG.address` is the zero address, `executeIntent.ts` returns s
 ### Tailwind v4 (CSS-First)
 
 No `tailwind.config.js`. All theming is defined via CSS variables in `frontend/src/index.css` using `@theme {}`:
-- Custom colors: `primary-*` (purple), `accent` (orange), `crypto-*` (green/red/blue/cyan), `dark-*`
-- Custom fonts: `font-display` (Space Grotesk), `font-body` (DM Sans), `font-mono` (Fira Code)
-- Custom shadows: `shadow-glow`, `shadow-glow-lg`, `shadow-glow-accent`
-- Animations: `glow-pulse`, `float`, `fade-up`, `scale-in`, `gradient-shift`, `shimmer`
-- Utility classes: `.glass-card`, `.glass-card-elevated`, `.gradient-text`, `.section-divider`, `.shimmer`
-- Staggered animation delays: `.animate-delay-1` through `.animate-delay-7`
+- Palette: graphite desk + thermal paper + rubber-stamp green/red. `primary-*` is the stamp-green scale (500 = #1E9E74); `accent` amber; `dark-*` graphite; `paper`, `paper-ink`, `paper-faint`, `stamp-green`, `stamp-red` for receipt slips
+- Fonts: `font-display` IBM Plex Sans Condensed, `font-body` IBM Plex Sans, `font-mono` IBM Plex Mono (loaded in `index.html`)
+- Legacy class names are kept but restyled flat (`.glass-card*`, `.gradient-text`, `.btn-*`, `.badge-*`), so V1 screens reskin via tokens; don't reintroduce glow/glass/gradients
+- Signature: `.receipt-slip` (torn edges via CSS mask), `.stamp` + `.stamp-verified|mismatch|pending`, `.stamp-press` (the only orchestrated animation; respects reduced motion)
+- `.animate-delay-*` classes still exist but are zeroed (no staggered cascades)
 
 PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcss/postcss` + autoprefixer.
 
@@ -202,6 +202,9 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 - **frontend/src/hooks/useVerify.ts**: Proof verification (chain hash vs local hash)
 - **frontend/src/hooks/useExecutionVerifier.ts**: ERC20 calldata decoding + intent comparison
 - **frontend/src/hooks/useWallet.ts**: MetaMask connection and Monad network switching
+- **frontend/src/lib/v2.ts**: V2 registry reads (Monad), `hashTrace` (mirrors `wrapper/canonicalize.mjs`), `verifyIndependently`
+- **frontend/src/pages/Fleet.tsx**: agent fleet + receipt slips with independent verification
+- **frontend/src/components/ReceiptSlip.tsx**: thermal-receipt slip + rubber-stamp primitives (styles in `index.css`)
 - **frontend/src/lib/agentRunner.ts**: End-to-end lifecycle orchestrator (parse → risk → receipt → execute → verify)
 - **frontend/src/lib/demoScenarios.ts**: Preset demo scenarios with fallback intents
 - **frontend/src/lib/executeIntent.ts**: ERC20 approve execution with mock fallback
@@ -237,9 +240,11 @@ Prefix: `feat:`, `fix:`, `docs:`, `refactor:`, `improve:`. One logical change pe
 
 Frontend deploys to Vercel. `frontend/vercel.json` configures SPA rewrites (all routes → `/`). Build command: `npm run build`, output: `dist`.
 
-**Manual deploy** (no Git integration configured -- push does not auto-deploy):
+**Git integration is on**: pushing to `main` deploys production (Vercel project `safereceipt`, team `jasons-projects-f68fdb32`, Root Directory = `frontend`).
+Manual deploy, if ever needed, runs from the **repo root** (Root Directory already points at `frontend/`):
 ```bash
-cd frontend && npx vercel --prod    # MUST run from frontend/, not project root
+npx vercel --prod
 ```
+`frontend/.vercelignore` excludes `.env*`: any `VITE_*` value is inlined into the public bundle, so the LLM key must never be present at build time. After a deploy, scan the live JS bundle for `sk-` shapes.
 
 Live site: https://safereceipt.vercel.app

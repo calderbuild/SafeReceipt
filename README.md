@@ -4,7 +4,9 @@
 
 > When AI fails, receipts prove who's responsible.
 
-**[Live Demo](https://safereceipt.vercel.app)** | Monad Testnet + Base Sepolia
+[中文说明](README.zh-CN.md)
+
+**[Live Demo](https://safereceipt.vercel.app)** | **[Agent fleet: verify a receipt in your browser](https://safereceipt.vercel.app/fleet)** | Monad Testnet + Base Sepolia
 
 ---
 
@@ -162,11 +164,12 @@ npm run test                      # Contract test suite -- 26 passing (Node 18)
 
 `AgentIdentityRegistry.sol` + `ActionRegistry.sol` (V2) -- the agent fleet layer.
 
-- `registerAgent(name, model, tokenURI)` -- Mint an ERC-721 identity for an agent
+- `registerAgent(string agentTokenURI)` -- Mint an ERC-721 identity for an agent (name, role, model live in the tokenURI JSON)
 - `revokeAgent(agentId)` -- Owner-only revocation
-- `createReceipt(agentId, actionType, intentHash, proofHash, riskScore, evidenceURI)` -- V2 of `createReceipt`, scoped to an agent identity
-- `linkExecution(receiptId, txHash, verified)` -- On-chain path (same trustless verification as V1)
-- `linkOffChainOutcome(receiptId, outcomeHash, evidenceURI, verified)` -- Off-chain commit-reveal path
+- `createReceipt(uint256 agentId, uint8 actionType, bytes32 intentHash, bytes32 proofHash, uint8 riskScore)` -- V2 of `createReceipt`, scoped to an agent identity
+- `linkExecution(uint256 receiptId, bytes32 txHash, bool verified, string evidenceURI)` -- On-chain path (same trustless verification as V1)
+- `linkOffChainOutcome(uint256 receiptId, bytes32 outcomeHash, bool verified, string evidenceURI)` -- Off-chain commit-reveal path
+- `getReceipt(receiptId)` / `getAgentReceipts(agentId)` / `getUserReceipts(address)` -- Read receipt data
 
 Full addresses on both chains: [DEPLOYMENTS.md](DEPLOYMENTS.md). Trust boundary of each path: [docs/ACCOUNTABILITY.md](docs/ACCOUNTABILITY.md).
 
@@ -206,6 +209,7 @@ SafeReceipt/
 ├── frontend/src/
 │   ├── lib/
 │   │   ├── canonicalize.ts        # Deterministic hashing
+│   │   ├── v2.ts                  # V2 registry reads + in-browser independent verification
 │   │   ├── contract.ts            # ABI + contract interaction
 │   │   ├── riskEngine.ts          # 6 risk assessment rules
 │   │   ├── agentRunner.ts         # End-to-end lifecycle orchestrator
@@ -219,6 +223,7 @@ SafeReceipt/
 │   │   └── AgentDemo.tsx          # One-click demo stepper UI
 │   └── pages/
 │       ├── Home.tsx               # Landing + agent demo
+│       ├── Fleet.tsx              # V2 agent fleet + verify a receipt yourself
 │       ├── MyReceipts.tsx         # Receipt list with status
 │       └── ReceiptDetail.tsx      # Detail + execution linking
 └── hardhat.config.ts
