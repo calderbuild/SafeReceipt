@@ -31,7 +31,7 @@ const RULES = [
   { rule: 'REPEAT_APPROVE_PATTERN', weight: 15, desc: 'Repeated approvals to one spender' },
   { rule: 'DUPLICATE_RECIPIENTS', weight: 10, desc: 'Same address twice in a batch' },
   { rule: 'RECIPIENT_IS_CONTRACT', weight: 5, desc: 'Recipient has contract code' },
-  { rule: 'OUTLIER_AMOUNT', weight: 5, desc: 'Amount far from the batch norm' },
+  { rule: 'OUTLIER_AMOUNT', weight: 5, desc: 'Over 10x your usual amount for that token' },
 ];
 
 function HeroSlip() {
@@ -42,15 +42,15 @@ function HeroSlip() {
           <span>SAFERECEIPT</span>
           <span>No. 0002</span>
         </div>
-        <div className="text-[var(--color-paper-faint)]">2026-07-16 08:47 UTC · Monad</div>
+        <div className="text-[var(--color-paper-faint)]">2026-09-25 13:40 UTC · Monad</div>
         <SlipRule />
         <SlipRow label="Agent">security-scanner (#3)</SlipRow>
         <SlipRow label="Declared goal">Scan only the docs/ directory for leaked secrets</SlipRow>
         <SlipRow label="Declared scope">docs/</SlipRow>
-        <SlipRow label="Run">staged demo of scope creep</SlipRow>
+        <SlipRow label="Run">staged: scripted to also read test/</SlipRow>
         <SlipRule />
-        <SlipRow label="Touched">docs/</SlipRow>
-        <SlipRow label="Touched">test/ (outside scope)</SlipRow>
+        <SlipRow label="Read">2 files in docs/</SlipRow>
+        <SlipRow label="Read">3 files in test/ (outside scope)</SlipRow>
         <SlipRow label="Rule">SCOPE_CREEP</SlipRow>
         <SlipRule />
         <div className="flex items-center justify-between py-1">
@@ -58,7 +58,7 @@ function HeroSlip() {
           <Stamp kind="mismatch" label="MISMATCH" />
         </div>
         <SlipRule />
-        <p className="text-[var(--color-paper-faint)] text-xs">Evidence: accountability-ledger/traces/2.json. Verify it yourself →</p>
+        <p className="text-[var(--color-paper-faint)] text-xs">Evidence: accountability-ledger/traces/v2.1/2.json. Verify it yourself →</p>
       </ReceiptSlip>
     </Link>
   );
@@ -82,7 +82,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
               <Link to="/fleet" className="btn-primary text-center">Inspect the agent fleet</Link>
               <button onClick={onCreateClick} className="btn-secondary">Create a receipt</button>
             </div>
-            <p className="font-mono text-xs text-slate-500">Live on Monad Testnet and Base Sepolia · MIT licensed</p>
+            <p className="font-mono text-xs text-slate-500">Running on Monad testnet · MIT licensed</p>
           </div>
           <HeroSlip />
         </section>
@@ -93,12 +93,16 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="glass-card p-6">
               <h3 className="font-display text-xl font-semibold text-white mb-1">On-chain actions</h3>
-              <p className="font-mono text-xs text-primary-300 mb-4">approve · transfer</p>
+              <p className="font-mono text-xs text-primary-300 mb-4">ERC20 approve</p>
               <p className="text-slate-300 text-sm leading-relaxed mb-4">
-                The transaction is fetched by hash, its calldata decoded and compared with the declared intent. The
-                inputs are public and the code is open, so anyone gets the same answer.
+                The transaction is fetched by hash, its calldata decoded and compared with the declared intent: token,
+                spender, amount, sender, and that it came after the receipt. The inputs are public and the code is open,
+                so anyone gets the same answer.
               </p>
-              <p className="text-sm text-white"><span className="text-primary-300 font-medium">Trustless.</span> No need to trust the agent, its operator, or this site.</p>
+              <p className="text-sm text-white">
+                <span className="text-primary-300 font-medium">Re-checkable by anyone.</span> The VERIFIED or MISMATCH
+                flag on-chain is written by the receipt owner, so treat it as a claim and re-run the check.
+              </p>
             </div>
             <div className="glass-card p-6">
               <h3 className="font-display text-xl font-semibold text-white mb-1">Off-chain actions</h3>
@@ -124,7 +128,8 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         <section className="mb-20" aria-labelledby="demo-heading">
           <h2 id="demo-heading" className="font-display text-3xl font-semibold text-white mb-2">Try it with a transaction</h2>
           <p className="text-slate-400 mb-6 max-w-2xl">
-            Three approvals: a safe one, a risky one, and one where the agent changes the amount behind your back.
+            Three real approvals on Monad testnet, using a test token: a safe one, a risky one, and one where the agent
+            declares 100 and then approves 10,000. You need a little testnet MON for gas.
             <button onClick={onVerifyClick} className="ml-2 text-primary-300 hover:text-primary-200 underline underline-offset-4">
               Already have a receipt? Verify it
             </button>
@@ -157,7 +162,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
           <div className="grid md:grid-cols-2 gap-x-8">
             {RULES.map((item) => (
               <div key={item.rule} className="flex items-center gap-4 py-3 border-b border-dark-100">
-                <span className={`font-mono text-sm w-10 shrink-0 ${item.weight >= 25 ? 'text-[#EE7A71]' : item.weight >= 10 ? 'text-accent-light' : 'text-primary-300'}`}>
+                <span className={`font-mono text-sm w-10 shrink-0 ${item.weight >= 25 ? 'text-red-400' : item.weight >= 10 ? 'text-accent-light' : 'text-primary-300'}`}>
                   +{item.weight}
                 </span>
                 <div className="min-w-0">
@@ -172,8 +177,8 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         <section className="border-t border-dark-100 pt-8 grid sm:grid-cols-3 gap-4 text-sm">
           {[
             { label: 'ReceiptRegistry (V1)', href: V1_REGISTRY },
-            { label: 'AgentIdentityRegistry (V2)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.agentIdentityRegistry}` },
-            { label: 'ActionRegistry (V2)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.actionRegistry}` },
+            { label: 'AgentIdentityRegistry (V2.1)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.agentIdentityRegistry}` },
+            { label: 'ActionRegistry (V2.1)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.actionRegistry}` },
           ].map((c) => (
             <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white">
               <span className="block font-mono text-xs text-slate-500 mb-1">Contract on MonadScan</span>

@@ -146,6 +146,17 @@ async function connect() {
   }
 }
 
+/**
+ * Call before sending any transaction. On the wrong chain it asks the wallet to
+ * switch and returns false; the caller stops and lets the user retry.
+ */
+export function onActiveNetwork(): boolean {
+  if (snapshot.chainId === ACTIVE_CHAIN.chainId) return true;
+  update({ error: wrongNetwork() });
+  void switchNetwork();
+  return false;
+}
+
 // In-app only: the wallet keeps its permission, so a reload reconnects.
 function disconnect() {
   update({ ...DISCONNECTED, error: null });

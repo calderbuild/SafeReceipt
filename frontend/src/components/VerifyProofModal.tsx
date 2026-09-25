@@ -61,9 +61,10 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
       <div className="space-y-6">
         {/* Receipt ID Input */}
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">Receipt ID</label>
+          <label htmlFor="vp-receipt-id" className="block text-sm font-medium text-slate-300 mb-2">Receipt ID</label>
           <div className="flex space-x-3">
             <input
+              id="vp-receipt-id"
               type="text"
               value={receiptId}
               onChange={(e) => setReceiptId(e.target.value)}

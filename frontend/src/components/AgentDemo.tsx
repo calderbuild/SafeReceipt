@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useWallet } from '../hooks/useWallet';
+import { useWallet, onActiveNetwork } from '../hooks/useWallet';
 import { DEMO_SCENARIOS } from '../lib/demoScenarios';
 import { runAgentDemo } from '../lib/agentRunner';
 import type { AgentStep, AgentDemoResult } from '../lib/agentRunner';
@@ -74,7 +74,7 @@ export function AgentDemo() {
   const [selectedScenario, setSelectedScenario] = useState<DemoScenario | null>(null);
 
   const handleRun = useCallback(async (scenario: DemoScenario) => {
-    if (!signer || !address) return;
+    if (!signer || !address || !onActiveNetwork()) return;
 
     setSelectedScenario(scenario);
     setIsRunning(true);

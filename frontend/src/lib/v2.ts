@@ -89,6 +89,18 @@ function registries() {
   };
 }
 
+// The public Monad RPC now and then fails a single eth_call with an empty revert; a short retry clears it.
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (i === attempts) throw error;
+      await new Promise((r) => setTimeout(r, 400 * i));
+    }
+  }
+}
+
 const range = (n: bigint) => Array.from({ length: Number(n) - 1 }, (_, i) => i + 1);
 
 async function fetchMetadata(uri: string): Promise<AgentMetadata | null> {
@@ -120,7 +132,7 @@ export async function listReceipts(): Promise<(V2Receipt | { id: number; error: 
   const ids = range(await actions.nextReceiptId()).reverse();
   const settled = await Promise.allSettled(
     ids.map(async (id): Promise<V2Receipt> => {
-      const r = await actions.getReceipt(id);
+      const r = await withRetry(() => actions.getReceipt(id));
       return {
         id,
         actor: r.actor,

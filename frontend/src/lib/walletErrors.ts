@@ -180,38 +180,6 @@ export function parseWalletError(error: unknown): WalletError {
 }
 
 /**
- * Get user-friendly error message
- */
-export function getErrorMessage(error: unknown): string {
-  const walletError = parseWalletError(error);
-  return walletError.message;
-}
-
-/**
- * Get full error info with suggestion
- */
-export function getErrorWithSuggestion(error: unknown): {
-  title: string;
-  message: string;
-  suggestion?: string;
-} {
-  const walletError = parseWalletError(error);
-  return {
-    title: walletError.title,
-    message: walletError.message,
-    suggestion: walletError.suggestion,
-  };
-}
-
-/**
- * Check if error is recoverable
- */
-export function isRecoverableError(error: unknown): boolean {
-  const walletError = parseWalletError(error);
-  return walletError.recoverable;
-}
-
-/**
  * Check if error is a user rejection
  */
 export function isUserRejection(error: unknown): boolean {

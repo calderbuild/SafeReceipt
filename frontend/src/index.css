@@ -34,6 +34,26 @@
   --color-stamp-green: #1b8c66;
   --color-stamp-red: #c2372f;
 
+  /* Tailwind's default scales, re-pointed at this palette so older screens that
+     still use slate/emerald/red/amber/blue classes stay on-token. */
+  --color-slate-300: #b4b8bd;
+  --color-slate-400: #979ca3;
+  --color-slate-500: #7a7f85;
+  --color-slate-600: #5d626a;
+  --color-slate-700: #3d434c;
+  --color-slate-900: #171a1f;
+  --color-emerald-400: #33b28c;
+  --color-emerald-500: #1e9e74;
+  --color-red-400: #e0655c;
+  --color-red-500: #d2443b;
+  --color-amber-400: #edbe55;
+  --color-amber-500: #e0a526;
+  --color-blue-300: #a3bff5;
+  --color-blue-400: #7fa6f2;
+  --color-blue-500: #5b8def;
+  --color-cyan-300: #86cdd6;
+  --color-cyan-500: #4fb6c4;
+
   --font-display: "IBM Plex Sans Condensed", sans-serif;
   --font-body: "IBM Plex Sans", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
@@ -443,7 +463,11 @@ pre {
     animation: none;
     opacity: 1;
   }
-  .shimmer {
+  .shimmer,
+  .animate-pulse {
     animation: none;
+  }
+  .transition-transform {
+    transition: none;
   }
 }

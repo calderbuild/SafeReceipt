@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
-import { useWallet } from '../hooks/useWallet';
+import { useWallet, onActiveNetwork } from '../hooks/useWallet';
 import { useVerify } from '../hooks/useVerify';
 import { useExecutionVerifier } from '../hooks/useExecutionVerifier';
 import { getDigest, updateDigestStatus } from '../lib/storage';
@@ -144,6 +144,10 @@ export function ReceiptDetail() {
     }
     if (!digest || !provider || !signer) {
       setLinkError('Connect the wallet that created this receipt to record the result on-chain');
+      return;
+    }
+    if (!onActiveNetwork()) {
+      setLinkError(`Switch your wallet to ${ACTIVE_CHAIN.name}, then try again`);
       return;
     }
 
@@ -326,6 +330,7 @@ export function ReceiptDetail() {
               <div className="flex space-x-3">
                 <input
                   type="text"
+                  aria-label="Execution transaction hash"
                   value={txHashInput}
                   onChange={(e) => setTxHashInput(e.target.value)}
                   placeholder="0x... transaction hash"
@@ -413,7 +418,7 @@ export function ReceiptDetail() {
             </div>
             <div className="flex items-center justify-between py-2 border-b border-white/5">
               <span className="text-slate-400">Created At</span>
-              <span className="text-white font-mono">{digest.createdAt}</span>
+              <span className="text-white font-mono">{formatDate(digest.createdAt)}</span>
             </div>
             <div className="flex items-start justify-between py-2">
               <span className="text-slate-400">Rules Triggered</span>
