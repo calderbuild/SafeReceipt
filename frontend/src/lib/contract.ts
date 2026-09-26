@@ -170,6 +170,12 @@ export const CONTRACT_CONFIG = {
 // Active network config
 export const ACTIVE_CHAIN = NETWORKS[ACTIVE_NETWORK];
 
+/** No registry configured: callers simulate txs instead of sending them. */
+export const IS_MOCK = CONTRACT_CONFIG.address === ethers.ZeroAddress;
+
+export const explorerTx = (hash: string) => `${ACTIVE_CHAIN.blockExplorer}/tx/${hash}`;
+export const explorerAddress = (address: string) => `${ACTIVE_CHAIN.blockExplorer}/address/${address}`;
+
 // Types
 export enum ReceiptStatus {
   CREATED = 0,
@@ -211,7 +217,7 @@ export class ReceiptRegistryContract {
   }
 
   private initializeContracts() {
-    if (CONTRACT_CONFIG.address === '0x0000000000000000000000000000000000000000') {
+    if (IS_MOCK) {
       console.warn('Contract address not set. Please deploy the contract first.');
       return;
     }
@@ -395,7 +401,7 @@ export class ReceiptRegistryContract {
 
   // Check if contract is deployed
   isDeployed(): boolean {
-    return CONTRACT_CONFIG.address !== '0x0000000000000000000000000000000000000000';
+    return !IS_MOCK;
   }
 }
 

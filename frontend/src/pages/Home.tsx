@@ -2,13 +2,14 @@ import { Link } from 'react-router-dom';
 import { AgentDemo } from '../components/AgentDemo';
 import { ReceiptSlip, SlipRow, SlipRule, Stamp } from '../components/ReceiptSlip';
 import { V2_ADDRESSES, V2_NETWORK } from '../lib/v2';
+import { CONTRACT_CONFIG, explorerAddress } from '../lib/contract';
 
 interface HomeProps {
   onCreateClick: () => void;
   onVerifyClick: () => void;
 }
 
-const V1_REGISTRY = 'https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A#code';
+const V1_REGISTRY = `${explorerAddress(CONTRACT_CONFIG.address)}#code`;
 
 const STEPS = [
   {

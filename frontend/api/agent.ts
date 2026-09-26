@@ -14,11 +14,12 @@
 import { verifyMessage } from 'ethers';
 
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
-export const MODEL = 'deepseek-flash';
+export const MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-flash';
 
-// Mirrors src/lib/knownContracts.ts
-const DEMO_USD = '0x5a3b52260c44cd1ec70c7157131bc15913cd835f';
-const PERMIT2 = '0x000000000022d473030f116ddee9f6b43ac78ba3';
+// Mirrors src/lib/knownContracts.ts; networkConfig.test.ts fails if they drift
+export const DEMO_USD = '0x5a3b52260c44cd1ec70c7157131bc15913cd835f';
+export const PERMIT2 = '0x000000000022d473030f116ddee9f6b43ac78ba3';
+export const WMON = '0xfb8bf4c1cc7a94c73d209a149ea2abea852bc541';
 
 const MAX_INPUT = 500;
 const SIGN_IN_TTL_MS = 30 * 60 * 1000;
@@ -117,7 +118,7 @@ const PARSE_PROMPT = `You turn a user's request into a structured ERC20 transact
 
 Known names on Monad testnet (chain 10143):
 - DemoUSD (dUSD, 6 decimals): ${DEMO_USD}
-- WMON (Wrapped MON, 18 decimals): 0xfb8bf4c1cc7a94c73d209a149ea2abea852bc541
+- WMON (Wrapped MON, 18 decimals): ${WMON}
 - Permit2 (spender): ${PERMIT2}
 
 Rules:

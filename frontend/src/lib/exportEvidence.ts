@@ -134,8 +134,8 @@ Verification Steps:
 
 Chain Info:
 - Chain ID: ${chainId}
-- Network: Monad Testnet
-- RPC: https://testnet-rpc.monad.xyz
+- Network: ${ACTIVE_CHAIN.name}
+- RPC: ${ACTIVE_CHAIN.rpcUrl}
 
 This evidence file can be used for dispute arbitration, proving the user's true intent before transaction execution.
 `.trim();
