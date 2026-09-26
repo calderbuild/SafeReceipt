@@ -43,8 +43,8 @@ Every receipt links a **declared intent**, committed before the action, to the *
 - **Execution Verification** -- Link a receipt to the real approve tx; the verdict is written on-chain with `linkExecution`
 - **Off-Chain Commit-Reveal** -- `linkOffChainOutcome()` extends verification to actions with no transaction to check
 - **Public Evidence Ledger** -- traces published to [accountability-ledger](https://github.com/calderbuild/accountability-ledger), independently re-verifiable against the on-chain hash
-- **One-Click Agent Demo** -- Real approves on Monad testnet with a test token (DemoUSD): parse, risk, receipt, execute, verify, record. The rogue scenario declares 100 and actually approves 10,000
-- **NLP Intent Parsing** -- "Approve Permit2 to spend 100 DemoUSD" parsed into structured intent via LLM (optional; preset intents without a key)
+- **One-Click Agent Demo** -- A live model agent (DeepSeek, called from a server function) sends real approves on Monad testnet with a test token (DemoUSD): the model parses the request, the receipt commits it, the model reads the token metadata and plans the tx, and the receipt checks what was actually sent. In the poisoned-metadata scenario the metadata claims a 10,000 minimum; when the model falls for it, the receipt comes out MISMATCH
+- **NLP Intent Parsing** -- "Approve Permit2 to spend 100 DemoUSD" parsed into structured intent by the model. Calls go through `frontend/api/agent.ts`, which holds the key, needs a wallet sign-in signature, and is rate-limited
 
 ## Architecture
 
@@ -135,15 +135,13 @@ cd frontend && npm install
 
 ### Environment Variables (optional)
 
-Create `frontend/.env` for LLM-powered intent parsing:
+Create `frontend/.env` so the agent API works under `npm run dev`:
 
 ```
-VITE_OPENAI_API_KEY=your-api-key
-VITE_OPENAI_BASE_URL=https://api.deepseek.com
-VITE_OPENAI_MODEL=deepseek-flash
+DEEPSEEK_API_KEY=your-api-key
 ```
 
-Without these, the agent demo uses pre-configured fallback intents.
+It has no `VITE_` prefix on purpose: only `frontend/api/agent.ts` reads it, server-side, and it never reaches the browser bundle. In production it is a Vercel environment variable. Without it the AI features are hidden and the demo can't run.
 
 ### Run
 
@@ -216,7 +214,7 @@ SafeReceipt/
 │   │   ├── contract.ts            # ABI + contract interaction
 │   │   ├── riskEngine.ts          # 6 risk assessment rules
 │   │   ├── agentRunner.ts         # End-to-end lifecycle orchestrator
-│   │   ├── llm.ts                 # LLM intent parsing
+│   │   ├── agentApi.ts            # client for /api/agent (sign-in + model calls)
 │   │   └── executeIntent.ts       # ERC20 approve execution
 │   ├── hooks/
 │   │   ├── useVerify.ts           # Proof verification

@@ -64,6 +64,22 @@ wrote, or decided), the mechanism is commit-reveal:
   the same intent hash, and a short intent can be guessed by hashing candidates.
   Salted commitments are on the roadmap.
 
+## The homepage agent
+
+The homepage demo agent is a real model call (DeepSeek `deepseek-flash`),
+made from a server function (`frontend/api/agent.ts`) that holds the key. The
+model parses your request, the receipt commits that intent, and then the model
+reads the token's metadata and decides what to send. In the poisoned-metadata
+scenario that metadata claims approvals under 10,000 revert. That is a real
+prompt injection, so the outcome depends on the model: MISMATCH when it
+raises the amount, VERIFIED when it doesn't.
+
+What this does not prove: that our server forwarded the model's answer
+unchanged. The browser shows what the server returned; the on-chain check only
+compares the sent transaction with the receipt. Calls need a wallet sign-in
+signature and are rate-limited per function instance, in memory, so the limit
+resets on a cold start.
+
 ## Who can file a receipt (V2.1)
 
 `createReceipt` with an `agentId` requires `msg.sender` to own that agent NFT

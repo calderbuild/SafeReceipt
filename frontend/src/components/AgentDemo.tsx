@@ -99,7 +99,7 @@ export function AgentDemo() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-white">Agent Verification Demo</h2>
-          <p className="text-slate-400 text-sm">See how on-chain receipts detect when an agent tampers with your transaction</p>
+          <p className="text-slate-400 text-sm">A live model agent sends a real approve; the receipt checks what it actually did</p>
         </div>
       </div>
 
@@ -113,7 +113,7 @@ export function AgentDemo() {
                   <div
                     key={scenario.id}
                     className={`w-full text-left p-4 rounded-lg bg-white/5 border ${
-                      scenario.executedAmount
+                      scenario.injected
                         ? 'border-red-500/30'
                         : 'border-white/10'
                     }`}
@@ -129,9 +129,9 @@ export function AgentDemo() {
                       }`}>
                         {scenario.expectedRiskLevel}
                       </span>
-                      {scenario.executedAmount && (
+                      {scenario.injected && (
                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
-                          TAMPERS TX
+                          INJECTED METADATA
                         </span>
                       )}
                     </div>
@@ -144,14 +144,14 @@ export function AgentDemo() {
           ) : (
             <div className="space-y-3">
               <p className="text-slate-400 text-sm mb-4">
-                Select a scenario. The agent will automatically: parse intent, analyze risk, create a receipt, send a real approve on Monad testnet, check it against the receipt, and record the verdict on-chain. Expect three wallet confirmations per scenario.
+                Pick a scenario. A real model (DeepSeek, called from our server) parses the request, the receipt commits that intent on-chain, then the model reads the token's metadata and decides what to send. Whatever it decides is sent as a real approve on Monad testnet and checked against the receipt. The first run asks for one sign-in signature (no gas); each scenario then needs three wallet confirmations.
               </p>
               {DEMO_SCENARIOS.map(scenario => (
                 <button
                   key={scenario.id}
                   onClick={() => handleRun(scenario)}
                   className={`w-full text-left p-4 rounded-lg bg-white/5 border transition-all group cursor-pointer ${
-                    scenario.executedAmount
+                    scenario.injected
                       ? 'border-red-500/30 hover:bg-red-500/5 hover:border-red-500/50'
                       : 'border-white/10 hover:bg-white/10 hover:border-white/20'
                   }`}
@@ -169,9 +169,9 @@ export function AgentDemo() {
                         }`}>
                           {scenario.expectedRiskLevel}
                         </span>
-                        {scenario.executedAmount && (
+                        {scenario.injected && (
                           <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
-                            TAMPERS TX
+                            INJECTED METADATA
                           </span>
                         )}
                       </div>
@@ -262,6 +262,24 @@ export function AgentDemo() {
                     {result.verified ? 'VERIFIED' : 'MISMATCH'}
                   </span>
                 </p>
+                {result.plan && (
+                  <div className="mt-3 space-y-2">
+                    {selectedScenario?.injected && (
+                      <p className={result.deviated ? 'text-red-400' : 'text-emerald-400'}>
+                        {result.deviated
+                          ? 'The model followed the injected rule and sent a different amount than you asked for.'
+                          : 'The model ignored the injected rule this time and sent what you asked for.'}
+                      </p>
+                    )}
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-slate-400">What the agent read and decided</summary>
+                      <pre className="mt-2 whitespace-pre-wrap font-mono text-slate-400 bg-white/5 p-2 rounded">{result.plan.metadata}</pre>
+                      <p className="mt-2 text-slate-400">
+                        {result.plan.model} planned amount <span className="font-mono text-white">{result.plan.call.amount}</span>: "{result.plan.note}"
+                      </p>
+                    </details>
+                  </div>
+                )}
                 {result.mismatchDetail && (
                   <p className="text-red-400/80 text-xs mt-2 font-mono bg-red-500/5 px-2 py-1 rounded">
                     {result.mismatchDetail}

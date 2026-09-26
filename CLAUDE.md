@@ -15,7 +15,7 @@ SafeReceipt is an Agent Accountability Protocol that creates verifiable on-chain
 - **Frontend**: Vite 7 + React 19 + TypeScript 5.9 (strict) + Tailwind CSS v4
 - **Chain Interaction**: ethers.js v6
 - **Wallet**: MetaMask
-- **AI**: OpenAI-compatible API (DeepSeek `deepseek-flash`, V4.1) for natural language intent parsing
+- **AI**: DeepSeek `deepseek-flash` (V4.1 Flash), called only from the Vercel function `frontend/api/agent.ts`
 - **Testing**: vitest + happy-dom + @testing-library/react
 - **Linting**: ESLint 9 (flat config format in `frontend/eslint.config.js`)
 
@@ -51,14 +51,12 @@ PRIVATE_KEY=your_private_key_here
 MONAD_RPC_URL=https://testnet-rpc.monad.xyz    # optional override
 ```
 
-**Frontend `frontend/.env`** (for LLM intent parsing):
+**Frontend `frontend/.env`** (read by the dev middleware in `vite.config.ts`, never bundled):
 ```
-VITE_OPENAI_API_KEY=your-api-key
-VITE_OPENAI_BASE_URL=https://api.deepseek.com
-VITE_OPENAI_MODEL=deepseek-flash
+DEEPSEEK_API_KEY=your-api-key
 ```
 
-Without LLM env vars, the agent demo uses preset fallback intents from `demoScenarios.ts`.
+No `VITE_` prefix: a `VITE_*` value is inlined into the public bundle. In production `DEEPSEEK_API_KEY` is a Vercel env var. Without it `GET /api/agent` reports `available: false`, the AI mode is hidden and the demo errors instead of faking a result.
 
 ## Critical Technical Constraints
 
@@ -167,7 +165,7 @@ When `CONTRACT_CONFIG.address` is the zero address, `executeIntent.ts` returns s
 
 ### LLM Integration
 
-`llm.ts` calls an OpenAI-compatible API to parse natural language like "Approve 100 USDC to Uniswap" into structured intent. When API keys are not configured, `demoScenarios.ts` provides hardcoded fallback intents.
+`frontend/api/agent.ts` is a Vercel Node function (`export default { fetch }`, self-contained because Vercel runs it as ESM) with fixed ops only: `parse` (request to intent), `plan` (committed intent + that scenario's server-side token metadata to approve args), `explain` (risk flags in plain language). Every POST needs a `personal_sign` sign-in (`signInMessage`, 30 min, must match `lib/agentApi.ts`) and is rate-limited in memory (10/min per IP, 40/h per address, 300/h total per instance). Model output is validated as untrusted input (422 on bad shape). The `rogue` metadata carries a fake "minimum allowance" rule: a real prompt injection, so that scenario can come out VERIFIED when the model resists. `npm run dev` serves the function through a Vite middleware; `vercel.json` rewrites everything except `/api/`.
 
 ### Tailwind v4 (CSS-First)
 
@@ -195,7 +193,8 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 - **frontend/src/lib/contract.ts**: ABI, types (Receipt, ReceiptStatus), ReceiptRegistryContract class
 - **frontend/src/lib/riskEngine.ts**: 6 risk rules implementation
 - **frontend/src/lib/storage.ts**: localStorage CRUD + updateDigestStatus
-- **frontend/src/lib/llm.ts**: LLM-powered natural language intent parsing
+- **frontend/api/agent.ts**: server-side model calls (key, sign-in check, rate limit, output validation)
+- **frontend/src/lib/agentApi.ts**: browser client for `/api/agent`, caches the sign-in signature in memory
 - **frontend/src/lib/intentParser.ts**: Address/amount validation, form-to-intent parsing, ParsedIntent types
 - **frontend/src/lib/knownContracts.ts**: Known Monad testnet contracts (Permit2, WMON, Multicall3, DemoUSD), each checked to have code
 - **frontend/src/lib/walletErrors.ts**: MetaMask/ethers error mapping to human-readable messages
@@ -211,14 +210,14 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 - **frontend/src/pages/Fleet.tsx**: agent fleet + receipt slips with independent verification
 - **frontend/src/components/ReceiptSlip.tsx**: thermal-receipt slip + rubber-stamp primitives (styles in `index.css`)
 - **frontend/src/lib/agentRunner.ts**: End-to-end lifecycle orchestrator (parse → risk → receipt → execute → verify)
-- **frontend/src/lib/demoScenarios.ts**: Preset demo scenarios with fallback intents
+- **frontend/src/lib/demoScenarios.ts**: the three demo requests (the agent's metadata per scenario lives in `api/agent.ts`)
 - **frontend/src/lib/executeIntent.ts**: ERC20 approve execution with mock fallback
 - **frontend/src/components/AgentDemo.tsx**: One-click agent demo stepper UI
 - **frontend/src/pages/ReceiptDetail.tsx**: Receipt detail with Link Execution UI
 
 ## Testing
 
-- Unit tests: `frontend/src/lib/__tests__/` (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser, verifyExecution, exportEvidence, v2)
+- Unit tests: `frontend/src/lib/__tests__/` (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser, verifyExecution, exportEvidence, v2, agentServer for `api/agent.ts`)
 - Hook tests: `frontend/src/hooks/__tests__/` (useVerify, useWallet shared state)
 - Contract tests: `test/*.test.ts`, 50 tests (run via `npm run test` at root, Node 18)
 - Test environment: vitest + happy-dom, globals enabled (no imports needed for `describe`/`it`/`expect`)
@@ -250,6 +249,6 @@ Manual deploy, if ever needed, runs from the **repo root** (Root Directory alrea
 ```bash
 npx vercel --prod
 ```
-`frontend/.vercelignore` excludes `.env*`: any `VITE_*` value is inlined into the public bundle, so the LLM key must never be present at build time. After a deploy, scan the live JS bundle for `sk-` shapes.
+`frontend/.vercelignore` excludes `.env*`: any `VITE_*` value is inlined into the public bundle, so the model key must never have that prefix; it lives in the Vercel env as `DEEPSEEK_API_KEY`. After a deploy, scan the live JS bundle for `sk-` shapes.
 
 Live site: https://safereceipt.vercel.app
