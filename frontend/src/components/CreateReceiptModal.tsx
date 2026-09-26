@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import { Modal } from './Modal';
 import { RiskCard } from './RiskCard';
@@ -11,7 +11,7 @@ import { createCanonicalDigest, computeIntentHash, computeProofHash } from '../l
 import { saveDigest, addReceiptToUser, getDigest } from '../lib/storage';
 import { createReceiptRegistryContract, getReadOnlyProvider, ActionType, ACTIVE_CHAIN } from '../lib/contract';
 import { KNOWN_SAFE_CONTRACTS } from '../lib/knownContracts';
-import { parseNaturalLanguageIntent, explainRisks, isLLMConfigured } from '../lib/llm';
+import { agentAvailable, parseIntent, explainRisks, isSignedIn } from '../lib/agentApi';
 import { exportAndDownload } from '../lib/exportEvidence';
 import { parseWalletError, isUserRejection } from '../lib/walletErrors';
 import type { RiskResult } from '../lib/riskEngine';
@@ -41,11 +41,11 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
   const { address, isConnected, provider, signer } = useWallet();
 
   // Input mode state
-  const [inputMode, setInputMode] = useState<InputMode>(isLLMConfigured() ? 'ai' : 'manual');
+  const [aiAvailable, setAiAvailable] = useState(false);
+  const [inputMode, setInputMode] = useState<InputMode>('manual');
   const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
   const [isParsingAI, setIsParsingAI] = useState(false);
   const [aiParseError, setAiParseError] = useState<string | null>(null);
-  const [aiConfidence, setAiConfidence] = useState<number | null>(null);
   const [aiReasoning, setAiReasoning] = useState<string | null>(null);
   const [aiRiskExplanation, setAiRiskExplanation] = useState<string | null>(null);
 
@@ -65,12 +65,18 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
   const [receiptId, setReceiptId] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
+  useEffect(() => {
+    agentAvailable().then((ok) => {
+      setAiAvailable(ok);
+      if (ok) setInputMode('ai');
+    });
+  }, []);
+
   const resetForm = () => {
-    setInputMode(isLLMConfigured() ? 'ai' : 'manual');
+    setInputMode(aiAvailable ? 'ai' : 'manual');
     setNaturalLanguageInput('');
     setIsParsingAI(false);
     setAiParseError(null);
-    setAiConfidence(null);
     setAiReasoning(null);
     setAiRiskExplanation(null);
     setActionType('APPROVE');
@@ -101,20 +107,11 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
     setIsParsingAI(true);
     setAiParseError(null);
-    setAiConfidence(null);
     setAiReasoning(null);
 
     try {
-      const result = await parseNaturalLanguageIntent(naturalLanguageInput);
-
-      if (!result.success) {
-        setAiParseError(result.error || 'Failed to parse');
-        setIsParsingAI(false);
-        return;
-      }
-
-      const intent = result.intent!;
-      setAiConfidence(intent.confidence);
+      if (!signer) throw new Error('Connect your wallet first');
+      const intent = await parseIntent(signer, naturalLanguageInput);
       setAiReasoning(intent.reasoning);
 
       // Fill form with parsed data
@@ -123,7 +120,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
         setToken(intent.token);
         setSpender(intent.spender);
         setAmount(intent.amount);
-        setIsUnlimited(intent.isUnlimited);
+        setIsUnlimited(intent.amount === createUnlimitedAmount());
       } else if (intent.actionType === 'BATCH_PAY') {
         setActionType('BATCH_PAY');
         const csvLines = intent.recipients
@@ -170,17 +167,13 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
       setRiskResult(result);
 
-      // Generate AI risk explanation if LLM is configured
-      if (isLLMConfigured() && result.rulesTriggered.length > 0) {
+      // Model explanation of the triggered rules
+      // Only after an AI parse, so manual users never get a surprise sign-in prompt
+      if (signer && isSignedIn(address) && result.rulesTriggered.length > 0) {
         const intentContext = `Approve ${isUnlimited ? 'unlimited' : amount} tokens to ${spender}`;
-        const explanation = await explainRisks(
-          result.rulesTriggered,
-          result.riskScore,
-          intentContext
-        );
-        if (explanation.success) {
-          setAiRiskExplanation(explanation.explanation || null);
-        }
+        explainRisks(signer, result.rulesTriggered, result.riskScore, intentContext)
+          .then(setAiRiskExplanation)
+          .catch(() => setAiRiskExplanation(null));
       }
 
       setStep('review');
@@ -202,17 +195,13 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
 
       setRiskResult(result);
 
-      // Generate AI risk explanation if LLM is configured
-      if (isLLMConfigured() && result.rulesTriggered.length > 0) {
+      // Model explanation of the triggered rules
+      // Only after an AI parse, so manual users never get a surprise sign-in prompt
+      if (signer && isSignedIn(address) && result.rulesTriggered.length > 0) {
         const intentContext = `Batch pay to ${parseResult.data!.recipients.length} recipients`;
-        const explanation = await explainRisks(
-          result.rulesTriggered,
-          result.riskScore,
-          intentContext
-        );
-        if (explanation.success) {
-          setAiRiskExplanation(explanation.explanation || null);
-        }
+        explainRisks(signer, result.rulesTriggered, result.riskScore, intentContext)
+          .then(setAiRiskExplanation)
+          .catch(() => setAiRiskExplanation(null));
       }
 
       setStep('review');
@@ -333,8 +322,8 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
         </div>
       ) : step === 'form' ? (
         <div className="space-y-6">
-          {/* Input Mode Toggle - only show if LLM is configured */}
-          {isLLMConfigured() && (
+          {/* Input Mode Toggle - only when the server has a model */}
+          {aiAvailable && (
             <div className="flex items-center justify-center space-x-2 p-1 bg-white/5 rounded-xl">
               <button
                 onClick={() => setInputMode('ai')}
@@ -366,7 +355,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
           )}
 
           {/* AI Natural Language Input */}
-          {inputMode === 'ai' && isLLMConfigured() && (
+          {inputMode === 'ai' && aiAvailable && (
             <div className="space-y-4">
               <div>
                 <label htmlFor="cr-nl" className="block text-sm font-medium text-slate-300 mb-2">
@@ -408,18 +397,10 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 </div>
               )}
 
-              {aiConfidence !== null && aiReasoning && (
+              {aiReasoning && (
                 <div className="p-3 bg-primary-500/10 border border-primary-500/20 rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-primary-400">AI Parse Result</span>
-                    <span className={`text-xs font-mono ${
-                      aiConfidence >= 0.8 ? 'text-crypto-green' :
-                      aiConfidence >= 0.5 ? 'text-accent' : 'text-crypto-red'
-                    }`}>
-                      Confidence: {(aiConfidence * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-300">{aiReasoning}</p>
+                  <span className="text-xs text-primary-400">Model reading</span>
+                  <p className="text-sm text-slate-300 mt-1">{aiReasoning}</p>
                 </div>
               )}
 

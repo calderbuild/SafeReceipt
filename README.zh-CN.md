@@ -32,7 +32,7 @@ AI agent 已经在替人发交易、查资料、审代码，但它**本来应该
 4. 两者比对，同时检查 trace 里的 `declaredIntent` 是否和链上的 `intentHash` 一致；
 5. 确认 trace 写的收据编号和 agent 编号与链上一致，在浏览器里重新跑一遍策略规则，看结论是否和链上记录的状态相同，并检查提交者是否仍持有这个 agent。
 
-整个过程只读链、不需要钱包，也不依赖这个网站的后端。2 号收据是我故意构造的反例：security-scanner 声明只扫描 `docs/`，脚本让它把 `test/` 下的三个文件也读了一遍。读取是真实发生的，越界是脚本安排的，SCOPE_CREEP 根据 trace 里记录的真实路径触发，结果是 MISMATCH；独立验证显示这份证据没有被改过。1 号收据是 wrapper 自己跑 `npm run test`（一个脚本，不是 LLM），50 个测试通过。
+整个过程只读链、不需要钱包，也不依赖这个网站的后端。2 号收据是我故意构造的反例：security-scanner 声明只扫描 `docs/`，脚本让它把 `test/` 下的三个文件也读了一遍。读取是真实发生的，越界是脚本安排的，SCOPE_CREEP 根据 trace 里记录的真实路径触发，结果是 MISMATCH；独立验证显示这份证据没有被改过。1 号收据是 wrapper 自己跑 `npm run test`（一个脚本，不是 LLM），50 个测试通过。3 号收据是真实的 DeepSeek 调用：code-reviewer 让模型审查 `contracts/DemoUSD.sol`，模型的完整回答记在 trace 里。
 
 ## 工作原理
 
@@ -48,7 +48,7 @@ AI agent 已经在替人发交易、查资料、审代码，但它**本来应该
 - **风险引擎**：执行前用 6 条规则给交易打分（0 到 100）
 - **Agent 身份**：`AgentIdentityRegistry` 为每个 agent 铸造一个 ERC-721 身份；V2.1 起只有 agent 的持有者能以它的名义开收据。演示用的三个 agent 都由我一个部署钱包持有
 - **链上收据**：意图哈希和证明哈希存放在 Monad 测试网上
-- **执行验证**：把收据和真实的 approve 交易关联起来，比对后用 `linkExecution` 把结论写上链。首页演示用测试代币 DemoUSD 发真实交易，Rogue 场景声明 100、实际 approve 了 10,000
+- **执行验证**：把收据和真实的 approve 交易关联起来，比对后用 `linkExecution` 把结论写上链。首页演示由真实的模型 agent（DeepSeek，经服务端函数调用）用测试代币 DemoUSD 发真实交易。其中一个场景的代币说明里藏着伪造的“最低授权 10,000”规则，模型信了就会多授权，收据会判为 MISMATCH
 - **链下 commit-reveal**：`linkOffChainOutcome()` 把验证扩展到没有交易可查的动作
 - **公开证据库**：trace 发布在 [accountability-ledger](https://github.com/calderbuild/accountability-ledger)，可以对照链上哈希独立复核
 - **浏览器内独立验证**：`/fleet` 页面把上面的复核过程一步一步展示出来
@@ -77,7 +77,7 @@ npm run compile                   # 编译 V1 + V2 合约（Node 18）
 npm run test                      # 合约测试，50 个（Node 18）
 ```
 
-如果要用自然语言解析意图，在 `frontend/.env` 里配置 `VITE_OPENAI_API_KEY`、`VITE_OPENAI_BASE_URL`、`VITE_OPENAI_MODEL`。不配置时，演示会使用预设的场景。注意：`VITE_` 开头的变量会被打进公开的前端包，所以不要在要部署到公网的构建里放真实的 key。
+本地开发时在 `frontend/.env` 里配置 `DEEPSEEK_API_KEY`。它故意不带 `VITE_` 前缀：只有服务端的 `frontend/api/agent.ts` 会读它，不会进入浏览器里的代码。线上它是 Vercel 的环境变量。调用模型需要先用钱包签一次名登录（不花 gas），并且有频率限制。
 
 ## 贡献者
 

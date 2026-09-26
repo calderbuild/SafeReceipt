@@ -128,8 +128,9 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         <section className="mb-20" aria-labelledby="demo-heading">
           <h2 id="demo-heading" className="font-display text-3xl font-semibold text-white mb-2">Try it with a transaction</h2>
           <p className="text-slate-400 mb-6 max-w-2xl">
-            Three real approvals on Monad testnet, using a test token: a safe one, a risky one, and one where the agent
-            declares 100 and then approves 10,000. You need a little testnet MON for gas.
+            A live model agent sends three real approvals on Monad testnet with a test token: a safe one, a risky one,
+            and one where the token's metadata tries to talk the agent into approving 10,000 instead of 100. You need a
+            little testnet MON for gas.
             <button onClick={onVerifyClick} className="ml-2 text-primary-300 hover:text-primary-200 underline underline-offset-4">
               Already have a receipt? Verify it
             </button>
