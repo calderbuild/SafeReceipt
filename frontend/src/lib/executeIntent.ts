@@ -6,7 +6,7 @@
  */
 
 import { ethers } from 'ethers';
-import { CONTRACT_CONFIG } from './contract';
+import { IS_MOCK } from './contract';
 
 const ERC20_ABI = ['function approve(address spender, uint256 amount) returns (bool)'];
 
@@ -20,7 +20,7 @@ export async function executeApprove(
   amount: string
 ): Promise<string> {
   // Mock mode: contract not deployed
-  if (CONTRACT_CONFIG.address === '0x0000000000000000000000000000000000000000') {
+  if (IS_MOCK) {
     return mockExecuteApprove();
   }
 

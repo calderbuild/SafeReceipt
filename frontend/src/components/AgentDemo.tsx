@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useWallet, onActiveNetwork } from '../hooks/useWallet';
 import { DEMO_SCENARIOS } from '../lib/demoScenarios';
 import { runAgentDemo } from '../lib/agentRunner';
+import { explorerTx } from '../lib/contract';
 import type { AgentStep, AgentDemoResult } from '../lib/agentRunner';
 import type { DemoScenario } from '../lib/demoScenarios';
 
@@ -251,7 +252,7 @@ export function AgentDemo() {
                 </p>
                 <p className="text-slate-400">
                   Tx: <a
-                    href={`https://testnet.monadscan.com/tx/${result.executionTxHash}`}
+                    href={explorerTx(result.executionTxHash ?? '')}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary-400 hover:text-primary-300 font-mono underline"

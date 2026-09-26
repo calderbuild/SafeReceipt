@@ -14,7 +14,7 @@ import { parseIntent, planApprove } from './agentApi';
 import type { ApprovePlan } from './agentApi';
 import { evaluateApprove, recordApproval, riskLevel } from './riskEngine';
 import { createCanonicalDigest, computeIntentHash, computeProofHash } from './canonicalize';
-import { createReceiptRegistryContract, getReadOnlyProvider, CONTRACT_CONFIG } from './contract';
+import { createReceiptRegistryContract, getReadOnlyProvider, IS_MOCK } from './contract';
 import { fetchApproveExecution } from './verifyExecution';
 import type { ExecutionCheck } from './verifyExecution';
 import { saveDigest, addReceiptToUser, updateDigestStatus } from './storage';
@@ -141,7 +141,7 @@ export async function runAgentDemo(
     let receiptId: string;
     let createTxHash: string;
 
-    const isMock = CONTRACT_CONFIG.address === '0x0000000000000000000000000000000000000000';
+    const isMock = IS_MOCK;
     const provider = signer.provider;
     const contract = createReceiptRegistryContract(provider, signer);
 
