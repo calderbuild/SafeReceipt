@@ -110,6 +110,21 @@ describe('agent api', () => {
     expect(JSON.stringify(body)).not.toContain('test-key');
   });
 
+  it('explain only forwards rule ids, not arbitrary text', async () => {
+    vi.stubEnv('DEEPSEEK_API_KEY', 'test-key');
+    const fetchSpy = vi.fn().mockResolvedValue(Response.json({ choices: [{ message: { content: 'ok' } }] }));
+    vi.stubGlobal('fetch', fetchSpy);
+    const res = await handle(post({ op: 'explain', score: 40, context: 'Approve', rules: ['x'.repeat(5000)], auth: await signIn(wallet) }));
+    expect(res.status).toBe(400);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('caps total calls per instance across addresses', async () => {
+    for (let i = 0; i < 300; i++) rateLimit('all', 300, 3_600_000);
+    const res = await handle(post({ op: 'parse', input: 'Approve 100 DemoUSD', auth: await signIn(Wallet.createRandom()) }, '9.9.9.9'));
+    expect(res.status).toBe(429);
+  });
+
   it('rejects free-form ops', async () => {
     const res = await handle(post({ op: 'chat', input: 'hi', auth: await signIn(wallet) }));
     expect(res.status).toBe(400);

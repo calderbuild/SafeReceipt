@@ -212,7 +212,8 @@ async function planOp(body: Record<string, unknown>) {
 }
 
 async function explainOp(body: Record<string, unknown>) {
-  const rules = Array.isArray(body.rules) ? body.rules.filter((r) => typeof r === 'string').slice(0, 6) : [];
+  // Rule ids are short constants; anything longer isn't one
+  const rules = Array.isArray(body.rules) ? body.rules.filter((r) => typeof r === 'string' && /^[A-Z_]{1,40}$/.test(r)).slice(0, 6) : [];
   if (rules.length === 0) throw new HttpError(400, 'rules is required');
   const score = Number(body.score);
   const context = text(body.context, 'context');
@@ -248,10 +249,13 @@ export async function handle(request: Request): Promise<Response> {
     })) as Record<string, unknown>;
     const op = OPS[String(body.op)];
     if (!op) throw new HttpError(400, 'Unknown op');
-    const ip = request.headers.get('x-real-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+    // Vercel sets these and overwrites client-supplied values
+    const ip = request.headers.get('x-vercel-forwarded-for') ?? request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
     rateLimit(`ip:${ip}`, 10, 60_000);
     const address = checkAuth(body.auth);
+    // New wallets are free to make, so the per-address limit alone doesn't bound cost
     rateLimit(`addr:${address}`, 40, 60 * 60_000);
+    rateLimit('all', 300, 60 * 60_000);
     return Response.json(await op(body));
   } catch (error) {
     if (error instanceof HttpError) return Response.json({ error: error.message }, { status: error.status });

@@ -165,7 +165,7 @@ When `CONTRACT_CONFIG.address` is the zero address, `executeIntent.ts` returns s
 
 ### LLM Integration
 
-`frontend/api/agent.ts` is a Vercel Node function (`export default { fetch }`, self-contained because Vercel runs it as ESM) with fixed ops only: `parse` (request to intent), `plan` (committed intent + that scenario's server-side token metadata to approve args), `explain` (risk flags in plain language). Every POST needs a `personal_sign` sign-in (`signInMessage`, 30 min, must match `lib/agentApi.ts`) and is rate-limited in memory (10/min per IP, 40/h per address). Model output is validated as untrusted input (422 on bad shape). The `rogue` metadata carries a fake "minimum allowance" rule: a real prompt injection, so that scenario can come out VERIFIED when the model resists. `npm run dev` serves the function through a Vite middleware; `vercel.json` rewrites everything except `/api/`.
+`frontend/api/agent.ts` is a Vercel Node function (`export default { fetch }`, self-contained because Vercel runs it as ESM) with fixed ops only: `parse` (request to intent), `plan` (committed intent + that scenario's server-side token metadata to approve args), `explain` (risk flags in plain language). Every POST needs a `personal_sign` sign-in (`signInMessage`, 30 min, must match `lib/agentApi.ts`) and is rate-limited in memory (10/min per IP, 40/h per address, 300/h total per instance). Model output is validated as untrusted input (422 on bad shape). The `rogue` metadata carries a fake "minimum allowance" rule: a real prompt injection, so that scenario can come out VERIFIED when the model resists. `npm run dev` serves the function through a Vite middleware; `vercel.json` rewrites everything except `/api/`.
 
 ### Tailwind v4 (CSS-First)
 
