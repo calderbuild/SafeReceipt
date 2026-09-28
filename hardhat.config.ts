@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-verify";
 import "dotenv/config";
 
 const config: HardhatUserConfig = {
@@ -44,6 +45,16 @@ const config: HardhatUserConfig = {
       chainId: 84532,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
+  },
+  // `npx hardhat verify --network monad <address> [constructor args]` publishes source to
+  // Sourcify (MonadVision), which needs no API key. MonadScan (Etherscan) would need one.
+  sourcify: {
+    enabled: true,
+    apiUrl: "https://sourcify-api-monad.blockvision.org",
+    browserUrl: "https://testnet.monadvision.com",
+  },
+  etherscan: {
+    enabled: false,
   },
 };
 

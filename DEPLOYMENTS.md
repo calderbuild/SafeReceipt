@@ -10,12 +10,17 @@ All addresses are on testnets. The app reads Monad Testnet (chain 10143) only.
 | --------------- | -------------------------------------------- |
 | ReceiptRegistry | `0x7761871A017c1C703C06B0021bF341d707c6226A` |
 
-Receipts created from the home page demo (2026-09-25, deployer wallet, real approves on DemoUSD):
+Receipts created from the home page demo (2026-09-25 and 09-26, deployer wallet, real approves on DemoUSD):
 
 | receiptId | scenario                                      | on-chain status | execution tx                                                         |
 | --------- | --------------------------------------------- | --------------- | -------------------------------------------------------------------- |
 | 6         | safe: 100 dUSD to Permit2                     | VERIFIED        | `0x3f8a24e9d07ca5625087b4e690b9b1c9a4173b3378527b0b37ca8c384cb82340` |
 | 7         | rogue: declared 100, actually approved 10,000 | MISMATCH        | `0x16a129cff2890898cc10e3ad4b707ae1ffcf0a196a73421a7204c8e7c408764e` |
+| 8         | safe: 100 dUSD to Permit2 (2026-09-26)        | VERIFIED        | `0xe772bd221b7d2e54b589823509a104556d75aa16c37370750131a4808fdbbddf` |
+| 9         | dangerous: unlimited, risk 65 (2026-09-26)    | VERIFIED        | `0x304a7e813cfdb4617589c821489f8679a4a3303adbe99e38ad004f48dccaa69a` |
+| 10        | rogue: declared 100, actually approved 10,000 | MISMATCH        | `0x36e3eef97fa46b5278c84340a9b00fbd96f6d99d1bd6fca955f1400dc2280476` |
+
+Receipts 6 to 10 predate the model-driven agent: the rogue tamper in 7 and 10 was scripted. Since PR #3 the rogue amount comes from the model reading poisoned token metadata.
 
 Earlier V1 receipts were created before the app wrote verdicts on-chain and stay CREATED.
 
@@ -26,6 +31,8 @@ Earlier V1 receipts were created before the app wrote verdicts on-chain and stay
 | AgentIdentityRegistry                         | `0x65F4A584E88b7a9831dbC187E75EF7247c47fe6d` |
 | ActionRegistry                                | `0x975bD215C549F315A066306B161119cec480c927` |
 | DemoUSD (test ERC20, 6 decimals, public mint) | `0x5a3b52260C44cD1Ec70C7157131bC15913Cd835f` |
+
+All three have source verified on Sourcify (exact match), which MonadVision reads. Check: `curl https://sourcify-api-monad.blockvision.org/v2/contract/10143/<address>`. To verify a new deploy: `npx hardhat verify --network monad <address> [constructor args]`.
 
 What changed from V2.0: `createReceipt` with an agentId requires the caller to own that agent and the agent not to be revoked (in V2.0 anyone could file under any agent); action type and risk score are range-checked; each link function only accepts its own action type; an off-chain link needs a non-empty outcome hash and evidence URI.
 
