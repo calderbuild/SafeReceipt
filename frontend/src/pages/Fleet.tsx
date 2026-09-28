@@ -158,7 +158,11 @@ function AgentCard({ agent, count }: { agent: AgentProfile; count: number }) {
       </div>
       {agent.metadata?.role && <p className="text-sm text-slate-400 mb-4 leading-relaxed">{agent.metadata.role}</p>}
       <div className="flex flex-wrap gap-2 text-xs font-mono">
-        {agent.metadata?.model && <span className="badge-info">{agent.metadata.model}</span>}
+        {agent.metadata?.model && (
+          <span className="badge-info" title="The model named in the on-chain registration. Each receipt's Run line says what actually ran.">
+            registered as {agent.metadata.model}
+          </span>
+        )}
         <span className={agent.active ? 'badge-success' : 'badge-danger'}>{agent.active ? 'active' : 'revoked'}</span>
         <span className="text-slate-500 self-center">{count === 0 ? 'no receipts yet' : `${count} receipt${count > 1 ? 's' : ''}`}</span>
       </div>
