@@ -47,14 +47,26 @@ const config: HardhatUserConfig = {
     },
   },
   // `npx hardhat verify --network monad <address> [constructor args]` publishes source to
-  // Sourcify (MonadVision), which needs no API key. MonadScan (Etherscan) would need one.
+  // Sourcify (MonadVision) and, when ETHERSCAN_API_KEY is set, to MonadScan through the
+  // Etherscan V2 API (one key for every chain).
   sourcify: {
     enabled: true,
     apiUrl: "https://sourcify-api-monad.blockvision.org",
     browserUrl: "https://testnet.monadvision.com",
   },
   etherscan: {
-    enabled: false,
+    enabled: Boolean(process.env.ETHERSCAN_API_KEY),
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
+    customChains: [
+      {
+        network: "monad",
+        chainId: 10143,
+        urls: {
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://testnet.monadscan.com",
+        },
+      },
+    ],
   },
 };
 
