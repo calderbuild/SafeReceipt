@@ -48,7 +48,7 @@ AI agent 已经在替人发交易、查资料、审代码，但它**本来应该
 - **风险引擎**：执行前用 6 条规则给交易打分（0 到 100）
 - **Agent 身份**：`AgentIdentityRegistry` 为每个 agent 铸造一个 ERC-721 身份；V2.1 起只有 agent 的持有者能以它的名义开收据。演示用的三个 agent 都由我一个部署钱包持有
 - **链上收据**：意图哈希和证明哈希存放在 Monad 测试网上
-- **执行验证**：把收据和真实的 approve 交易关联起来，比对后用 `linkExecution` 把结论写上链。首页演示由真实的模型 agent（DeepSeek，经服务端函数调用）用测试代币 DemoUSD 发真实交易。其中一个场景的代币说明里藏着伪造的“最低授权 10,000”规则，模型信了就会多授权，收据会判为 MISMATCH
+- **执行验证**：把收据和真实的 approve 交易关联起来，比对后用 `linkExecution` 把结论写上链。首页演示由真实的模型 agent（DeepSeek，经服务端函数调用）用测试代币 DemoUSD 发真实交易。其中一个场景的代币说明里藏着伪造的“最低授权 10,000”规则，模型信了就会多授权，收据会判为 MISMATCH。[11 号收据](https://testnet.monadscan.com/tx/0xb6c5c0cb84c350f80906cc925f519e36ea59c960363b4367a1bb9353c1b29809) 就是一次真实的例子：让它授权 100，模型自己改成了 10,000，还给出了理由（[截图](docs/images/poisoned-metadata-mismatch.jpg)）
 - **链下 commit-reveal**：`linkOffChainOutcome()` 把验证扩展到没有交易可查的动作
 - **公开证据库**：trace 发布在 [accountability-ledger](https://github.com/calderbuild/accountability-ledger)，可以对照链上哈希独立复核
 - **浏览器内独立验证**：`/fleet` 页面把上面的复核过程一步一步展示出来
