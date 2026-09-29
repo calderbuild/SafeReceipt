@@ -49,6 +49,7 @@ cd frontend && npx tsc --noEmit                                      # Type chec
 ```
 PRIVATE_KEY=your_private_key_here
 MONAD_RPC_URL=https://testnet-rpc.monad.xyz    # optional override
+ETHERSCAN_API_KEY=your_key                      # optional, for MonadScan source verification
 ```
 
 **Frontend `frontend/.env`** (read by the dev middleware in `vite.config.ts`, never bundled):

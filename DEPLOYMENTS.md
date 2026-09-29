@@ -33,7 +33,7 @@ Earlier V1 receipts were created before the app wrote verdicts on-chain and stay
 | ActionRegistry                                | `0x975bD215C549F315A066306B161119cec480c927` |
 | DemoUSD (test ERC20, 6 decimals, public mint) | `0x5a3b52260C44cD1Ec70C7157131bC15913Cd835f` |
 
-All three have source verified on Sourcify (exact match), which MonadVision reads. Check: `curl https://sourcify-api-monad.blockvision.org/v2/contract/10143/<address>`. To verify a new deploy: `npx hardhat verify --network monad <address> [constructor args]`.
+All three have source verified on MonadScan and on Sourcify (exact match, which MonadVision reads). To verify a new deploy: `npx hardhat verify --network monad <address> [constructor args]`; MonadScan needs `ETHERSCAN_API_KEY` in the root `.env`, Sourcify needs no key.
 
 What changed from V2.0: `createReceipt` with an agentId requires the caller to own that agent and the agent not to be revoked (in V2.0 anyone could file under any agent); action type and risk score are range-checked; each link function only accepts its own action type; an off-chain link needs a non-empty outcome hash and evidence URI.
 
