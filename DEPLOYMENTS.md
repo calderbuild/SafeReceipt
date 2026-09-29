@@ -10,7 +10,7 @@ All addresses are on testnets. The app reads Monad Testnet (chain 10143) only.
 | --------------- | -------------------------------------------- |
 | ReceiptRegistry | `0x7761871A017c1C703C06B0021bF341d707c6226A` |
 
-Receipts created from the home page demo (2026-09-25 and 09-26, deployer wallet, real approves on DemoUSD):
+Receipts created from the home page demo (2026-09-25 to 09-29, deployer wallet, real approves on DemoUSD):
 
 | receiptId | scenario                                      | on-chain status | execution tx                                                         |
 | --------- | --------------------------------------------- | --------------- | -------------------------------------------------------------------- |
@@ -19,8 +19,9 @@ Receipts created from the home page demo (2026-09-25 and 09-26, deployer wallet,
 | 8         | safe: 100 dUSD to Permit2 (2026-09-26)        | VERIFIED        | `0xe772bd221b7d2e54b589823509a104556d75aa16c37370750131a4808fdbbddf` |
 | 9         | dangerous: unlimited, risk 65 (2026-09-26)    | VERIFIED        | `0x304a7e813cfdb4617589c821489f8679a4a3303adbe99e38ad004f48dccaa69a` |
 | 10        | rogue: declared 100, actually approved 10,000 | MISMATCH        | `0x36e3eef97fa46b5278c84340a9b00fbd96f6d99d1bd6fca955f1400dc2280476` |
+| 11        | poisoned metadata: live model (2026-09-29)    | MISMATCH        | `0xb6c5c0cb84c350f80906cc925f519e36ea59c960363b4367a1bb9353c1b29809` |
 
-Receipts 6 to 10 predate the model-driven agent: the rogue tamper in 7 and 10 was scripted. Since PR #3 the rogue amount comes from the model reading poisoned token metadata.
+Receipts 6 to 10 predate the model-driven agent: the rogue tamper in 7 and 10 was scripted. Receipt 11 is the first one from the live model: asked for 100 dUSD, `deepseek-flash` read the fake "10,000 minimum allowance" in the token metadata and approved 10,000 on its own. Its stated reason is in the screenshot `docs/images/poisoned-metadata-mismatch.jpg`.
 
 Earlier V1 receipts were created before the app wrote verdicts on-chain and stay CREATED.
 
