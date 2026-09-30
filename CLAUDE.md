@@ -29,6 +29,7 @@ npm run compile                  # hardhat compile
 npm run test                     # hardhat test (contract tests)
 npm run deploy:monad             # deploy to Monad testnet
 npm run clean                    # hardhat clean
+npx hardhat verify --network monad <address> [args]  # publish source to MonadScan + Sourcify
 
 # Frontend (requires Node 20+; Vite 7 fails on Node 18 with crypto.hash error)
 cd frontend && npm run dev       # Dev server at localhost:5173
@@ -234,7 +235,7 @@ Explorer: https://testnet.monadscan.com
 Currency: MON (18 decimals)
 ```
 
-V1 ReceiptRegistry: `0x7761871A017c1C703C06B0021bF341d707c6226A` (source verified on MonadScan). V2.1 registries and DemoUSD: see `DEPLOYMENTS.md` / `wrapper/deployments.json`.
+V1 ReceiptRegistry: `0x7761871A017c1C703C06B0021bF341d707c6226A`. V2.1 registries and DemoUSD: see `DEPLOYMENTS.md` / `wrapper/deployments.json`. All four have source verified on MonadScan; V2.1 also on Sourcify. After a new deploy run `npx hardhat verify --network monad <address> [constructor args]` (MonadScan needs `ETHERSCAN_API_KEY`). The explorer pages sit behind a Cloudflare check, so read verification status through the Etherscan V2 or Sourcify API.
 Explorer: https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A#code
 
 ## Commit Convention
