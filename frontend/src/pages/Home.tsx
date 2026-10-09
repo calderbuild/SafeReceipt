@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { AgentDemo } from '../components/AgentDemo';
 import { ReceiptSlip, SlipRow, SlipRule, Stamp } from '../components/ReceiptSlip';
 import { V2_ADDRESSES, V2_NETWORK } from '../lib/v2';
@@ -34,6 +35,45 @@ const RULES = [
   { rule: 'RECIPIENT_IS_CONTRACT', weight: 5, desc: 'Recipient has contract code' },
   { rule: 'OUTLIER_AMOUNT', weight: 5, desc: 'Over 10x your usual amount for that token' },
 ];
+
+const WRAPPER_README = 'https://github.com/calderbuild/SafeReceipt/tree/main/wrapper#readme';
+
+const INTEGRATION_CALLS = [
+  {
+    call: 'beginAction()',
+    body: 'Before the agent starts: hash what it says it will do and its scope, and write that on-chain. This opens the receipt.',
+  },
+  {
+    call: 'emit()',
+    body: 'While it works: record each step, including the files it touched and the model it called. This becomes the trace.',
+  },
+  {
+    call: 'endAction()',
+    body: 'When it finishes: check the trace against the declared scope, publish it, and link its hash on-chain.',
+  },
+];
+
+const INTEGRATION_SNIPPET = `const client = new AccountabilityClient({
+  network: "monad", signer, evidenceBaseURL,
+});
+
+// 1. before the agent acts
+const { receiptId } = await client.beginAction({
+  agentId,
+  declaredIntent: {
+    goal: "Summarize docs/ for a new reader",
+    declaredScope: ["docs/"],
+  },
+});
+
+// 2. while it works
+client.emit("read", "Read docs/guide.md", 40, {
+  touched: ["docs/guide.md"],
+});
+
+// 3. after it finishes
+const policy = evaluatePolicy(client.buildTrace(null));
+await client.endAction({ policyResult: policy, publish });`;
 
 // V1 receipt #11: the live model followed the poisoned token metadata (DEPLOYMENTS.md).
 const HERO_TX = '0xb6c5c0cb84c350f80906cc925f519e36ea59c960363b4367a1bb9353c1b29809';
@@ -74,6 +114,13 @@ function HeroSlip() {
 }
 
 export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
+  const { hash } = useLocation();
+
+  // React Router doesn't scroll to a hash; /fleet links to #integrate.
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash]);
+
   return (
     <main className="pt-24 pb-16 px-4">
       <div className="max-w-6xl mx-auto">
@@ -146,6 +193,40 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
           </p>
           <div className="glass-card-elevated p-1">
             <AgentDemo />
+          </div>
+        </section>
+
+        <section id="integrate" className="mb-20 scroll-mt-24" aria-labelledby="integrate-heading">
+          <h2 id="integrate-heading" className="font-display text-3xl font-semibold text-white mb-2">Put receipts on your own agent</h2>
+          <p className="text-slate-400 mb-8 max-w-2xl">
+            Agents don't run from this site. Your agent runs wherever it already runs, and three calls around its work
+            produce the receipt. The fleet's receipts were made this way.
+          </p>
+          <div className="grid lg:grid-cols-[1fr_1.25fr] gap-8 items-start">
+            <ol className="space-y-5">
+              {INTEGRATION_CALLS.map((c, i) => (
+                <li key={c.call} className="flex gap-4">
+                  <span className="font-mono text-xs text-slate-500 pt-1 w-4 shrink-0">{i + 1}</span>
+                  <div>
+                    <code className="text-primary-300 text-sm">{c.call}</code>
+                    <p className="text-slate-300 text-sm leading-relaxed mt-1">{c.body}</p>
+                  </div>
+                </li>
+              ))}
+              <li className="flex gap-4 pt-2">
+                <span className="w-4 shrink-0" />
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  Today the client lives in the repo, so wiring it in means cloning it. Packaging it for npm is the next
+                  milestone.{' '}
+                  <a className="text-primary-300 hover:text-primary-200 underline underline-offset-4" href={WRAPPER_README} target="_blank" rel="noopener noreferrer">
+                    Read the client's README
+                  </a>
+                </p>
+              </li>
+            </ol>
+            <pre className="glass-card p-5 overflow-x-auto text-[13px] leading-relaxed font-mono text-slate-300" aria-label="Example: wrapping one agent action">
+              <code>{INTEGRATION_SNIPPET}</code>
+            </pre>
           </div>
         </section>
 
