@@ -51,8 +51,24 @@ Receipts:
 | --------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | 1         | code-reviewer    | `wrapper/run-example.mjs`: the wrapper runs `npm run test` (a script, not an LLM); 50 passing                                                                                                             | VERIFIED | [traces/v2.1/1.json](https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1/1.json) |
 | 2         | security-scanner | `wrapper/run-mismatch-demo.mjs`: staged. Declared scope is `docs/`; the script also reads the three files in `test/`. The reads happen, the overstep is scripted, SCOPE_CREEP fires on the recorded paths | MISMATCH | [traces/v2.1/2.json](https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1/2.json) |
-| 3         | code-reviewer    | `wrapper/run-llm-review.mjs`: a real DeepSeek (`deepseek-flash`) call reviews `contracts/DemoUSD.sol`; the full model answer is in the trace | VERIFIED | [traces/v2.1/3.json](https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1/3.json) |
-| 4         | doc-researcher   | `wrapper/run-llm-research.mjs` (2026-10-09): a real DeepSeek (`deepseek-flash`) call summarizes `docs/ACCOUNTABILITY.md` for a new reader; the full model answer is in the trace | VERIFIED | [traces/v2.1/4.json](https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1/4.json) |
+| 3         | code-reviewer    | `wrapper/run-llm-review.mjs`: a real DeepSeek (`deepseek-flash`) call reviews `contracts/DemoUSD.sol`; the full model answer is in the trace                                                              | VERIFIED | [traces/v2.1/3.json](https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1/3.json) |
+| 4         | doc-researcher   | `wrapper/run-llm-research.mjs` (2026-10-09): a real DeepSeek (`deepseek-flash`) call summarizes `docs/ACCOUNTABILITY.md` for a new reader; the full model answer is in the trace                          | VERIFIED | [traces/v2.1/4.json](https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1/4.json) |
+
+### V2.1 on BOT Chain Bohr testnet (chain 968, 2026-10-10)
+
+A second copy of V2.1 for BOT Chain's ecosystem team to review. The app does not read it; the wrapper does with `NETWORK=bohr`. Explorer: https://scan.bohr.life (Blockscout). Gas came from the BOT Chain faucet.
+
+| Contract              | Bohr testnet                                 |
+| --------------------- | -------------------------------------------- |
+| AgentIdentityRegistry | `0x96D698972c73a0fFe630e67b90e4D1998972f2a0` |
+| ActionRegistry        | `0x7761871A017c1C703C06B0021bF341d707c6226A` |
+| DemoUSD               | `0x0351F0Fe812f87e0fd83aBc51B981F9A30b00dAb` |
+
+Same deployer and nonces as earlier deploys, so these addresses repeat ones on other chains (the Bohr ActionRegistry has the address of the Monad V1 ReceiptRegistry). Always name the chain with the address.
+
+All three are verified on Blockscout with `node scripts/verify-blockscout.mjs https://scan.bohr.life <address> <path.sol:Name>` (hardhat-verify 2.1 sends custom chains to Etherscan V2, which does not list 968, and the Sourcify server in `hardhat.config.ts` is Monad's).
+
+Agents 1 to 3 are registered with the same names and metadata as on Monad. Receipt 1: `wrapper/run-example.mjs`, code-reviewer runs `npm run test`, 50 passing, VERIFIED. Commit tx `0xf94c87917c91bf8fe1c0474f05fc612ff375752639b190c9221e9bf36a4c4850`, link tx `0xe11c680752bd897aeacf5ad3d6d3a4b12c9ef8b9b1cd686e08a1501f518ffd0e`, trace [traces/v2.1-bohr/1.json](https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1-bohr/1.json).
 
 ## Historical (not read by the app)
 

@@ -5,8 +5,16 @@ import { join } from "path";
 async function main() {
   const network = await ethers.provider.getNetwork();
   const chainId = Number(network.chainId);
-  const networkName = chainId === 84532 ? 'Base Sepolia' : chainId === 10143 ? 'Monad Testnet' : `Chain ${chainId}`;
-  const explorer = chainId === 84532 ? 'https://sepolia.basescan.org' : 'https://testnet.monadscan.com';
+  // key is the entry name in wrapper/deployments.json (and wrapper/abi.mjs NETWORKS).
+  const KNOWN: Record<number, { key: string; name: string; explorer: string }> = {
+    10143: { key: "monad", name: "Monad Testnet", explorer: "https://testnet.monadscan.com" },
+    84532: { key: "baseSepolia", name: "Base Sepolia", explorer: "https://sepolia.basescan.org" },
+    968: { key: "bohr", name: "BOT Chain Bohr Testnet", explorer: "https://scan.bohr.life" },
+    31337: { key: "localhost", name: "Hardhat local", explorer: "(local)" },
+  };
+  const known = KNOWN[chainId] ?? { key: `chain${chainId}`, name: `Chain ${chainId}`, explorer: "(unknown)" };
+  const networkName = known.name;
+  const explorer = known.explorer;
 
   console.log(`Deploying AgentIdentityRegistry + ActionRegistry to ${networkName}...`);
 
@@ -35,7 +43,7 @@ async function main() {
   console.log("DemoUSD deployed to:", demoUSDAddress);
 
   // One file the wrapper reads, keyed by network name.
-  const key = chainId === 84532 ? "baseSepolia" : chainId === 10143 ? "monad" : chainId === 31337 ? "localhost" : `chain${chainId}`;
+  const key = known.key;
   const file = join(__dirname, "..", "wrapper", "deployments.json");
   const all = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
   all[key] = {

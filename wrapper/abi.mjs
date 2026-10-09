@@ -30,6 +30,7 @@ export const ACTION_REGISTRY_ABI = [
 const NETWORKS = {
   monad: { chainId: 10143, rpc: "https://testnet-rpc.monad.xyz", explorer: "https://testnet.monadscan.com" },
   baseSepolia: { chainId: 84532, rpc: "https://base-sepolia-rpc.publicnode.com", explorer: "https://sepolia.basescan.org" },
+  bohr: { chainId: 968, rpc: "https://rpc.bohr.life", explorer: "https://scan.bohr.life" },
   localhost: { chainId: 31337, rpc: "http://127.0.0.1:8545", explorer: "(local)" },
 };
 const deployed = JSON.parse(readFileSync(new URL("./deployments.json", import.meta.url), "utf8"));

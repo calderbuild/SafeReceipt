@@ -12,5 +12,13 @@
     "agentIdentityRegistry": "0x9BE98CB90c4E92327c2a7DC68145765A6F5Cb428",
     "actionRegistry": "0x74656f2F834BaF5A53f1283D74Db395E8EcC3151",
     "version": "2.0"
+  },
+  "bohr": {
+    "chainId": 968,
+    "agentIdentityRegistry": "0x96D698972c73a0fFe630e67b90e4D1998972f2a0",
+    "actionRegistry": "0x7761871A017c1C703C06B0021bF341d707c6226A",
+    "demoUSD": "0x0351F0Fe812f87e0fd83aBc51B981F9A30b00dAb",
+    "version": "2.1",
+    "deployedAt": "2026-10-09T15:58:05.280Z"
   }
 }
