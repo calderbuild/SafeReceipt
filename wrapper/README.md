@@ -20,6 +20,10 @@ verifiable record of what it declared and what it produced."
 PipelineEvent shape (`{stage, message, progress, data, timestamp}`) is ported
 from `agentcut/backend/pipeline.py`.
 
+## As a package
+
+`packages/client/` ships these modules as `@safereceipt/client` (not on npm yet): `npm pack` there copies them into `lib/`. Edit them here; this folder stays the source.
+
 ## Run
 
 ```bash
