@@ -74,3 +74,7 @@ safereceipt-video/
 .playwright-mcp/
 .vercel
 docs/gcc/
+
+# Built copy of wrapper/ for the client package
+packages/client/lib/
+packages/client/*.tgz

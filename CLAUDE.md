@@ -207,6 +207,7 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 - **frontend/src/hooks/useExecutionVerifier.ts**: loads digest + on-chain receipt, runs the check
 - **frontend/src/hooks/useWallet.ts**: MetaMask connection and Monad network switching
 - **frontend/src/lib/v2.ts**: V2.1 registry reads (Monad), `hashTrace` (mirrors `wrapper/canonicalize.mjs`), `verifyIndependently` / pure `checkTrace`
+- **packages/client/**: `@safereceipt/client`, the wrapper modules packaged for other agents (`npm pack` copies `wrapper/` into `lib/`; not published)
 - **frontend/src/lib/tracePolicy.ts**: browser port of `wrapper/policy.mjs`; `v2.test.ts` checks parity, keep them identical
 - **wrapper/**: commit-reveal client; `ledger.mjs` publishes traces to `traces/v2.1/` before linking; addresses from `wrapper/deployments.json`
 - **frontend/src/pages/Fleet.tsx**: agent fleet + receipt slips with independent verification
