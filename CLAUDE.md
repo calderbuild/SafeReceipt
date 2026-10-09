@@ -47,6 +47,7 @@ cd frontend && npx tsc --noEmit                                      # Type chec
 ## Environment Variables
 
 **Root `.env`** (for contract deployment):
+
 ```
 PRIVATE_KEY=your_private_key_here
 MONAD_RPC_URL=https://testnet-rpc.monad.xyz    # optional override
@@ -54,6 +55,7 @@ ETHERSCAN_API_KEY=your_key                      # optional, for MonadScan source
 ```
 
 **Frontend `frontend/.env`** (read by the dev middleware in `vite.config.ts`, never bundled):
+
 ```
 DEEPSEEK_API_KEY=your-api-key
 ```
@@ -65,11 +67,13 @@ No `VITE_` prefix: a `VITE_*` value is inlined into the public bundle. In produc
 ### Canonicalization (Hash Reproducibility)
 
 Field order is **fixed** -- any deviation breaks verification:
+
 ```
 version, actionType, chainId, normalizedIntent, riskScore, rulesTriggered, liabilityNotice, createdAt
 ```
 
 Rules:
+
 - `rulesTriggered`: sort alphabetically before stringify
 - `normalizedIntent`: sort keys alphabetically
 - `createdAt`: Unix timestamp (integer seconds)
@@ -80,14 +84,14 @@ The `CanonicalDigest` type also has optional runtime fields (`status`, `linkedTx
 
 ### Risk Rules (6 rules, fixed weights)
 
-| Rule | Weight |
-|------|--------|
-| UNLIMITED_ALLOWANCE | 40 |
-| SPENDER_IS_UNKNOWN_CONTRACT | 25 |
-| REPEAT_APPROVE_PATTERN | 15 |
-| DUPLICATE_RECIPIENTS | 10 |
-| RECIPIENT_IS_CONTRACT | 5 |
-| OUTLIER_AMOUNT | 5 |
+| Rule                        | Weight |
+| --------------------------- | ------ |
+| UNLIMITED_ALLOWANCE         | 40     |
+| SPENDER_IS_UNKNOWN_CONTRACT | 25     |
+| REPEAT_APPROVE_PATTERN      | 15     |
+| DUPLICATE_RECIPIENTS        | 10     |
+| RECIPIENT_IS_CONTRACT       | 5      |
+| OUTLIER_AMOUNT              | 5      |
 
 ### Contract Status Lifecycle
 
@@ -172,6 +176,7 @@ When `CONTRACT_CONFIG.address` is the zero address, `executeIntent.ts` returns s
 ### Tailwind v4 (CSS-First)
 
 No `tailwind.config.js`. All theming is defined via CSS variables in `frontend/src/index.css` using `@theme {}`:
+
 - Palette: graphite desk + thermal paper + rubber-stamp green/red. `primary-*` is the stamp-green scale (500 = #1E9E74); `accent` amber; `dark-*` graphite; `paper`, `paper-ink`, `paper-faint`, `stamp-green`, `stamp-red` for receipt slips
 - Fonts: `font-display` IBM Plex Sans Condensed, `font-body` IBM Plex Sans, `font-mono` IBM Plex Mono (loaded in `index.html`)
 - Legacy class names are kept but restyled flat (`.glass-card*`, `.gradient-text`, `.btn-*`, `.badge-*`), so V1 screens reskin via tokens; don't reintroduce glow/glass/gradients
@@ -239,6 +244,8 @@ Currency: MON (18 decimals)
 V1 ReceiptRegistry: `0x7761871A017c1C703C06B0021bF341d707c6226A`. V2.1 registries and DemoUSD: see `DEPLOYMENTS.md` / `wrapper/deployments.json`. All four have source verified on MonadScan; V2.1 also on Sourcify. After a new deploy run `npx hardhat verify --network monad <address> [constructor args]` (MonadScan needs `ETHERSCAN_API_KEY`). The explorer pages sit behind a Cloudflare check, so read verification status through the Etherscan V2 or Sourcify API.
 Explorer: https://testnet.monadscan.com/address/0x7761871A017c1C703C06B0021bF341d707c6226A#code
 
+A second V2.1 copy lives on BOT Chain's Bohr testnet (chain 968, Hardhat network `bohr`, wrapper `NETWORK=bohr`) for their ecosystem review; addresses in `DEPLOYMENTS.md`. Its Blockscout explorer is verified with `node scripts/verify-blockscout.mjs`, not `hardhat verify`. Addresses repeat across chains (same deployer nonces), so always name the chain.
+
 ## Commit Convention
 
 Prefix: `feat:`, `fix:`, `docs:`, `refactor:`, `improve:`. One logical change per commit.
@@ -249,9 +256,11 @@ Frontend deploys to Vercel. `frontend/vercel.json` configures SPA rewrites (all 
 
 **Git integration is on**: pushing to `main` deploys production (Vercel project `safereceipt`, team `jasons-projects-f68fdb32`, Root Directory = `frontend`).
 Manual deploy, if ever needed, runs from the **repo root** (Root Directory already points at `frontend/`):
+
 ```bash
 npx vercel --prod
 ```
+
 `frontend/.vercelignore` excludes `.env*`: any `VITE_*` value is inlined into the public bundle, so the model key must never have that prefix; it lives in the Vercel env as `DEEPSEEK_API_KEY`. After a deploy, scan the live JS bundle for `sk-` shapes.
 
 Live site: https://safereceipt.vercel.app

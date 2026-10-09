@@ -7,16 +7,21 @@ const HERE = dirname(fileURLToPath(import.meta.url)); // Node 18 has no import.m
 
 // Local clone of https://github.com/calderbuild/accountability-ledger.
 export const LEDGER_DIR = process.env.LEDGER_DIR ?? join(HERE, "..", "..", "accountability-ledger");
-// Receipt ids restart at 1 on every registry deploy, so each version gets its own directory.
-const TRACE_DIR = "traces/v2.1";
+// Receipt ids restart at 1 on every registry deploy, so each version and each network gets its
+// own directory. Monad keeps the original path the site reads.
+const NETWORK = process.env.NETWORK || "monad";
+const TRACE_DIR = NETWORK === "monad" ? "traces/v2.1" : `traces/v2.1-${NETWORK}`;
 export const LEDGER_RAW_TRACES = `https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/${TRACE_DIR}`;
 
 /** publish() hook for AccountabilityClient.endAction: commit + push the trace, wait until it is readable. */
 export function ledgerPublisher(label) {
   if (!existsSync(join(LEDGER_DIR, ".git"))) throw new Error(`LEDGER_DIR is not a git clone: ${LEDGER_DIR}`);
   return async (trace, receiptId) => {
+    const file = join(LEDGER_DIR, TRACE_DIR, `${receiptId}.json`);
+    // Published evidence is referenced by an on-chain hash; never overwrite it.
+    if (existsSync(file)) throw new Error(`evidence already exists, refusing to overwrite: ${file}`);
     mkdirSync(join(LEDGER_DIR, TRACE_DIR), { recursive: true });
-    writeFileSync(join(LEDGER_DIR, TRACE_DIR, `${receiptId}.json`), JSON.stringify(trace, null, 2) + "\n");
+    writeFileSync(file, JSON.stringify(trace, null, 2) + "\n");
     // Commit identity comes from the clone's own git config.
     execSync(`git -C "${LEDGER_DIR}" add ${TRACE_DIR}/${receiptId}.json`);
     execSync(`git -C "${LEDGER_DIR}" commit -q -m "evidence: receipt #${receiptId} (${label})"`);

@@ -45,6 +45,13 @@ const config: HardhatUserConfig = {
       chainId: 84532,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
+    // BOT Chain's Bohr testnet. Its Blockscout explorer is not on Etherscan V2 or Sourcify;
+    // verify with scripts/verify-blockscout.mjs.
+    bohr: {
+      url: process.env.BOHR_RPC_URL || "https://rpc.bohr.life",
+      chainId: 968,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   // `npx hardhat verify --network monad <address> [constructor args]` publishes source to
   // Sourcify (MonadVision) and, when ETHERSCAN_API_KEY is set, to MonadScan through the
