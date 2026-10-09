@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ReceiptSlip, SlipRow, SlipRule, Stamp } from '../components/ReceiptSlip';
 import { messageOf } from '../lib/errors';
@@ -62,6 +63,13 @@ export function Fleet() {
             These are the agents I run, each with an identity on-chain. Every receipt below can be checked from this
             page: your browser fetches the published evidence, hashes it, and compares the result with the hash stored
             on Monad. You don't have to trust this site to do it.
+          </p>
+          <p className="text-slate-400 text-sm leading-relaxed mb-5">
+            The agents run from a command line, not from this page: each run commits its intent, does the work,
+            publishes its trace and links it on-chain, and its receipt shows up here.{' '}
+            <Link to="/#integrate" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
+              How to do the same for your agent
+            </Link>
           </p>
           <p className="font-mono text-xs text-slate-500 leading-relaxed">
             {V2_NETWORK.name} · chain {V2_NETWORK.chainId} ·{' '}
