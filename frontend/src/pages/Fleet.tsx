@@ -256,6 +256,7 @@ const RUN_NOTES: Record<number, string> = {
   1: 'the wrapper ran npm run test itself (a script, not an LLM): 50 passing',
   2: 'staged: run-mismatch-demo.mjs makes the scanner read test/ as well as docs/. The reads really happen; the overstep is scripted',
   3: 'a real DeepSeek (deepseek-flash) call reviewed contracts/DemoUSD.sol; the full model answer is in the trace',
+  4: 'a real DeepSeek (deepseek-flash) call summarized docs/ACCOUNTABILITY.md for a new reader; the full model answer is in the trace',
 };
 
 function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: IndependentVerification }) {
