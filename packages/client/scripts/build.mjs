@@ -7,10 +7,13 @@ import { fileURLToPath } from "node:url";
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WRAPPER = join(PKG, "..", "..", "wrapper");
-const FILES = ["accountability.mjs", "canonicalize.mjs", "policy.mjs", "abi.mjs", "ledger.mjs", "deployments.json"];
+const FILES = ["accountability.mjs", "canonicalize.mjs", "policy.mjs", "abi.mjs", "ledger.mjs", "hosted.mjs", "deployments.json"];
 
 const LIB = join(PKG, "lib");
 rmSync(LIB, { recursive: true, force: true });
 mkdirSync(LIB);
 for (const f of FILES) copyFileSync(join(WRAPPER, f), join(LIB, f));
 console.log(`copied ${FILES.length} files from wrapper/ to lib/`);
+
+// npm ships a LICENSE only from the package root.
+copyFileSync(join(PKG, "..", "..", "LICENSE"), join(PKG, "LICENSE"));

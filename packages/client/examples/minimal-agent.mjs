@@ -1,9 +1,22 @@
-// Minimal agent wrapped in a SafeReceipt. Dry by default: it builds the intent
-// and the trace and prints what it would commit. Set SAFERECEIPT_SEND=1 (plus
-// PRIVATE_KEY, AGENT_ID and EVIDENCE_BASE_URL) to send real transactions; then
-// publish() below must actually upload the trace to EVIDENCE_BASE_URL.
+// Minimal agent wrapped in a SafeReceipt, start to finish.
+//
+//   node minimal-agent.mjs                                   dry run: prints what it would commit
+//   SAFERECEIPT_SEND=1 PRIVATE_KEY=0x... node minimal-agent.mjs
+//                                                            registers an agent (unless AGENT_ID is set),
+//                                                            files a receipt on Monad testnet, uploads the
+//                                                            trace to SafeReceipt's hosted store, links it
+//
+// The wallet needs a little testnet MON for gas (https://faucet.monad.xyz).
 import { ethers } from "ethers";
-import { AccountabilityClient, DEPLOYMENTS, evaluatePolicy, hashIntent, hashTrace } from "@safereceipt/client";
+import {
+  AccountabilityClient,
+  DEPLOYMENTS,
+  evaluatePolicy,
+  hashIntent,
+  hashTrace,
+  registerAgent,
+  verifyAgainstChain,
+} from "@safereceipt/client";
 
 const declaredIntent = {
   agent: "minimal-agent",
@@ -23,26 +36,32 @@ if (process.env.SAFERECEIPT_SEND !== "1") {
   console.log("would commit intentHash", hashIntent(declaredIntent));
 
   // A client without a signer records events; nothing is sent.
-  const client = new AccountabilityClient({ network: "monad", signer: null, evidenceBaseURL: "https://example.invalid/traces" });
+  const client = new AccountabilityClient({ network: "monad", signer: null });
   work(client);
   const policy = evaluatePolicy({ declaredIntent, events: client.events, durationMs: 0 });
   console.log("policy", JSON.stringify(policy));
   console.log("trace events hash", hashTrace({ declaredIntent, events: client.events }));
-  console.log("set SAFERECEIPT_SEND=1 to send it");
+  console.log("traces would be hosted at", client.evidenceBaseURL);
+  console.log("set SAFERECEIPT_SEND=1 and PRIVATE_KEY to send it");
 } else {
-  for (const k of ["PRIVATE_KEY", "AGENT_ID", "EVIDENCE_BASE_URL"]) if (!process.env[k]) throw new Error(`${k} not set`);
+  if (!process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set");
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, new ethers.JsonRpcProvider(DEPLOYMENTS.monad.rpc));
-  const client = new AccountabilityClient({ network: "monad", signer, evidenceBaseURL: process.env.EVIDENCE_BASE_URL });
 
-  const { receiptId } = await client.beginAction({ agentId: Number(process.env.AGENT_ID), declaredIntent, riskScore: 10 });
+  let agentId = Number(process.env.AGENT_ID);
+  if (!agentId) {
+    ({ agentId } = await registerAgent(signer, { name: "minimal-agent", role: "Summarizes docs", model: "none" }));
+    console.log(`registered agent #${agentId} (set AGENT_ID=${agentId} to reuse it)`);
+  }
+
+  // No evidenceBaseURL: the trace goes to SafeReceipt's hosted store.
+  const client = new AccountabilityClient({ network: "monad", signer });
+  const { receiptId } = await client.beginAction({ agentId, declaredIntent, riskScore: 10 });
+  console.log(`receipt #${receiptId} opened`);
   work(client);
   const policy = evaluatePolicy(client.buildTrace(null));
-  const result = await client.endAction({
-    policyResult: policy,
-    publish: async (trace, id) => {
-      // Upload `trace` so it is readable at `${EVIDENCE_BASE_URL}/${id}.json` before returning.
-      throw new Error(`implement publish() for receipt #${id} (${JSON.stringify(trace).length} bytes)`);
-    },
-  });
-  console.log(`receipt #${receiptId}: ${result.status}`);
+  const result = await client.endAction({ policyResult: policy });
+  console.log(`receipt #${receiptId}: ${result.status}, trace at ${result.evidenceURI}`);
+
+  await verifyAgainstChain(client, receiptId, result.evidenceURI);
+  console.log("see it, and verify it yourself, at https://safereceipt.vercel.app/fleet");
 }

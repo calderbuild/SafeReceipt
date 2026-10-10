@@ -2,7 +2,24 @@
   "name": "@safereceipt/client",
   "version": "0.1.0",
   "description": "Commit-reveal receipts for AI agent actions on SafeReceipt's ActionRegistry",
-  "private": true,
+  "keywords": [
+    "ai-agent",
+    "accountability",
+    "receipts",
+    "commit-reveal",
+    "monad",
+    "web3",
+    "audit-trail"
+  ],
+  "homepage": "https://safereceipt.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/calderbuild/SafeReceipt.git",
+    "directory": "packages/client"
+  },
+  "bugs": {
+    "url": "https://github.com/calderbuild/SafeReceipt/issues"
+  },
   "type": "module",
   "license": "MIT",
   "main": "./index.mjs",
@@ -18,7 +35,8 @@
     "index.d.ts",
     "lib/",
     "examples/",
-    "README.md"
+    "README.md",
+    "README.zh.md"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -29,5 +47,8 @@
   },
   "peerDependencies": {
     "ethers": "^6.16.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -12,6 +12,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.1",
     "ethers": "^6.16.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
