@@ -73,7 +73,7 @@ console.log(receiptId, status, evidenceURI);
 
 ## 记录放在哪里
 
-默认存放在 SafeReceipt 网站上，地址是 `https://safereceipt.vercel.app/api/traces/monad/<receiptId>.json`。网站只接受开这张收据的钱包签名上传，只在结果写上链之前接受，而且只接受一次；存进去的记录永远不会被覆盖。记录是公开的，`emit()` 里不要放密钥或个人信息。
+默认存放在 SafeReceipt 网站上，地址是 `https://safereceipt.vercel.app/api/traces/monad/<receiptId>.json`。网站只接受开这张收据的钱包签名上传，只在开收据后 24 小时内、结果写上链之前接受，而且只接受一次；存进去的记录永远不会被覆盖（同一份记录重发没问题，方便写链失败后重试）。托管额度是每个钱包每天 20 份、全站每月 900 份，超出后请用自己的 publish 函数托管。记录是公开的，`emit()` 里不要放密钥或个人信息。
 
 想自己托管记录，就传入 `evidenceBaseURL` 和一个 `publish(trace, receiptId)` 函数，让记录在函数返回前能从 `${evidenceBaseURL}/${receiptId}.json` 读到。
 

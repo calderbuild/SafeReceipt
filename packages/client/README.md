@@ -73,7 +73,7 @@ The same flow as a runnable script: `examples/minimal-agent.mjs` (dry run by def
 
 ## Where the record is published
 
-By default the record is stored on SafeReceipt's site and served at `https://safereceipt.vercel.app/api/traces/monad/<receiptId>.json`. The site accepts it only when it is signed by the wallet that filed the receipt, only before the outcome is linked, and only once; a stored record is never overwritten. Records are public, so don't put secrets or personal data in `emit()`.
+By default the record is stored on SafeReceipt's site and served at `https://safereceipt.vercel.app/api/traces/monad/<receiptId>.json`. The site accepts it only when it is signed by the wallet that filed the receipt, within 24 hours of filing and before the outcome is linked, and only once; a stored record is never overwritten (sending the same record again is fine, so a failed link can be retried). The hosted store takes up to 20 records per wallet per day and 900 a month in total; past that, publish with your own hook. Records are public, so don't put secrets or personal data in `emit()`.
 
 To host records yourself, pass `evidenceBaseURL` and a `publish(trace, receiptId)` hook that makes the record readable at `${evidenceBaseURL}/${receiptId}.json` before it returns.
 
