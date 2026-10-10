@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import { ACTION_REGISTRY_ABI, ACTION_TYPE, DEPLOYMENTS, STATUS } from "./abi.mjs";
 import { hashIntent, hashTrace } from "./canonicalize.mjs";
+import { HOSTED_TRACES, hostedPublisher } from "./hosted.mjs";
 
 /**
  * AccountabilityClient wraps a single unit of agent work in the commit-reveal
@@ -24,9 +25,13 @@ export class AccountabilityClient {
   constructor({ network = "monad", signer, evidenceBaseURL }) {
     this.cfg = DEPLOYMENTS[network];
     if (!this.cfg) throw new Error(`Unknown network: ${network}`);
-    if (!evidenceBaseURL) throw new Error("evidenceBaseURL is required (it is written on-chain)");
+    // Without a base URL of its own, the trace goes to SafeReceipt's hosted store (Monad only).
+    this.hosted = !evidenceBaseURL;
+    evidenceBaseURL ??= HOSTED_TRACES[network];
+    if (!evidenceBaseURL) throw new Error(`evidenceBaseURL is required on ${network} (it is written on-chain)`);
+    this.signer = signer;
     this.contract = new ethers.Contract(this.cfg.actionRegistry, ACTION_REGISTRY_ABI, signer);
-    // Public base URL where the caller will publish traces/{receiptId}.json.
+    // Public base URL where the trace is readable as {receiptId}.json.
     this.evidenceBaseURL = evidenceBaseURL;
     this._reset();
   }
@@ -112,12 +117,14 @@ export class AccountabilityClient {
   /**
    * Reveal: hash the trace, publish it, then link the outcome on-chain.
    * `publish(trace, receiptId)` must make the trace readable at
-   * `${evidenceBaseURL}/${receiptId}.json` before it resolves. `verified` comes
-   * from the PolicyEngine result.
+   * `${evidenceBaseURL}/${receiptId}.json` before it resolves. It may be left
+   * out when the client uses the hosted store. `verified` comes from the
+   * PolicyEngine result.
    * @returns { trace, outcomeHash, evidenceURI, verified, status, txHash }
    */
   async endAction({ policyResult, publish }) {
     if (this.receiptId == null) throw new Error("beginAction() not called");
+    if (publish == null && this.hosted) publish = hostedPublisher(this.signer);
     if (typeof publish !== "function") throw new Error("endAction() needs a publish(trace, receiptId) hook");
 
     const trace = this.buildTrace(policyResult);

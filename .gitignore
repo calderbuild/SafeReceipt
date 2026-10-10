@@ -78,3 +78,4 @@ docs/gcc/
 # Built copy of wrapper/ for the client package
 packages/client/lib/
 packages/client/*.tgz
+packages/client/LICENSE

@@ -62,6 +62,8 @@ DEEPSEEK_API_KEY=your-api-key
 
 No `VITE_` prefix: a `VITE_*` value is inlined into the public bundle. In production `DEEPSEEK_API_KEY` is a Vercel env var. Without it `GET /api/agent` reports `available: false`, the AI mode is hidden and the demo errors instead of faking a result.
 
+`BLOB_READ_WRITE_TOKEN` (Vercel Blob store `safereceipt-trace-store`, private, connected to the project) backs `api/traces.ts`. `npx vercel env pull .env.local` in `frontend/` fetches it for `npm run dev`; never print it.
+
 ## Critical Technical Constraints
 
 ### Canonicalization (Hash Reproducibility)
@@ -173,6 +175,10 @@ When `CONTRACT_CONFIG.address` is the zero address, `executeIntent.ts` returns s
 
 `frontend/api/agent.ts` is a Vercel Node function (`export default { fetch }`, self-contained because Vercel runs it as ESM) with fixed ops only: `parse` (request to intent), `plan` (committed intent + that scenario's server-side token metadata to approve args), `explain` (risk flags in plain language). Every POST needs a `personal_sign` sign-in (`signInMessage`, 30 min, must match `lib/agentApi.ts`) and is rate-limited in memory (10/min per IP, 40/h per address, 300/h total per instance). Model output is validated as untrusted input (422 on bad shape). The `rogue` metadata carries a fake "minimum allowance" rule: a real prompt injection, so that scenario can come out VERIFIED when the model resists. `npm run dev` serves the function through a Vite middleware; `vercel.json` rewrites everything except `/api/`.
 
+### Hosted traces
+
+`frontend/api/traces.ts` stores traces for agents that use `@safereceipt/client` without a host of their own. `POST /api/traces` takes `{ chainId, receiptId, trace, signature }`; it stores the trace only if the `personal_sign` over `traceUploadMessage` (chain, receipt id, trace hash; must match `wrapper/hosted.mjs`) recovers to the receipt's filer on Monad's ActionRegistry, the receipt has no outcome linked yet, and nothing is stored for it already (never overwritten; 256 KB cap; in-memory rate limit). `GET /api/traces/monad/<id>.json` (a `vercel.json` rewrite to `?chain=&file=`) serves it with open CORS and an immutable cache header. Hobby Blob quota (2,000 uploads a month) is the hard cap. `tracesServer.test.ts` checks the rules and hash/message parity with the client.
+
 ### Tailwind v4 (CSS-First)
 
 No `tailwind.config.js`. All theming is defined via CSS variables in `frontend/src/index.css` using `@theme {}`:
@@ -212,7 +218,9 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 - **frontend/src/hooks/useExecutionVerifier.ts**: loads digest + on-chain receipt, runs the check
 - **frontend/src/hooks/useWallet.ts**: MetaMask connection and Monad network switching
 - **frontend/src/lib/v2.ts**: V2.1 registry reads (Monad), `hashTrace` (mirrors `wrapper/canonicalize.mjs`), `verifyIndependently` / pure `checkTrace`
-- **packages/client/**: `@safereceipt/client`, the wrapper modules packaged for other agents (`npm pack` copies `wrapper/` into `lib/`; not published)
+- **packages/client/**: `@safereceipt/client`, the wrapper modules packaged for other agents (`npm pack` copies `wrapper/` into `lib/` plus the root LICENSE; publishable, `publishConfig.access` public)
+- **wrapper/hosted.mjs**: `registerAgent` (inline data: URI metadata), `hostedPublisher`, the default evidence base URL; `SAFERECEIPT_TRACES_URL` points it at a preview or dev server
+- **frontend/api/traces.ts**: hosted trace store (see Hosted traces)
 - **frontend/src/lib/tracePolicy.ts**: browser port of `wrapper/policy.mjs`; `v2.test.ts` checks parity, keep them identical
 - **wrapper/**: commit-reveal client; `ledger.mjs` publishes traces to `traces/v2.1/` before linking; addresses from `wrapper/deployments.json`
 - **frontend/src/pages/Fleet.tsx**: agent fleet + receipt slips with independent verification
@@ -225,7 +233,7 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 
 ## Testing
 
-- Unit tests: `frontend/src/lib/__tests__/` (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser, verifyExecution, exportEvidence, v2, agentServer for `api/agent.ts`)
+- Unit tests: `frontend/src/lib/__tests__/` (canonicalize, storage, liabilityNotice, riskEngine, knownContracts, intentParser, verifyExecution, exportEvidence, v2, agentServer for `api/agent.ts`, tracesServer for `api/traces.ts`, which runs in the node environment)
 - Hook tests: `frontend/src/hooks/__tests__/` (useVerify, useWallet shared state)
 - Contract tests: `test/*.test.ts`, 50 tests (run via `npm run test` at root, Node 18)
 - Test environment: vitest + happy-dom, globals enabled (no imports needed for `describe`/`it`/`expect`)

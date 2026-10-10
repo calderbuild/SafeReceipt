@@ -1,6 +1,6 @@
-import type { ContractRunner } from "ethers";
+import type { ContractRunner, Signer } from "ethers";
 
-export type NetworkName = "monad" | "baseSepolia" | "localhost";
+export type NetworkName = "monad" | "baseSepolia" | "bohr" | "localhost";
 
 export interface NetworkDeployment {
   chainId: number;
@@ -72,8 +72,11 @@ export interface ClientOptions {
   network?: NetworkName;
   /** A signer that owns the agent identity. */
   signer: ContractRunner;
-  /** Public base URL the traces are published under; written on-chain. */
-  evidenceBaseURL: string;
+  /**
+   * Public base URL the traces are published under; written on-chain. Leave it
+   * out on monad to use SafeReceipt's hosted store, and `publish` becomes optional.
+   */
+  evidenceBaseURL?: string;
 }
 
 export declare class AccountabilityClient {
@@ -88,7 +91,7 @@ export declare class AccountabilityClient {
     txHash: string;
   }>;
   buildTrace(policyResult: PolicyResult | null): Trace;
-  endAction(args: { policyResult: PolicyResult; publish: PublishHook }): Promise<{
+  endAction(args: { policyResult: PolicyResult; publish?: PublishHook }): Promise<{
     trace: Trace;
     outcomeHash: string;
     evidenceURI: string;
@@ -110,3 +113,29 @@ export declare function verifyAgainstChain(
   receiptId: number,
   evidenceURI: string,
 ): Promise<boolean>;
+
+/** Base URL of SafeReceipt's hosted trace store per network (monad only). `SAFERECEIPT_TRACES_URL` overrides the origin. */
+export declare const HOSTED_TRACES: { monad: string };
+
+/** The text the filer signs to upload a trace: chain id, receipt id and trace hash. */
+export declare function traceUploadMessage(chainId: number, receiptId: number, traceHash: string): string;
+
+/** publish() hook that uploads the trace to the hosted store, signed by the wallet that filed the receipt. */
+export declare function hostedPublisher(signer: Signer, options?: { network?: "monad" }): PublishHook;
+
+export interface AgentMetadata {
+  name: string;
+  role?: string;
+  model?: string;
+  [key: string]: unknown;
+}
+
+/** Agent metadata as a data: URI, so registering needs no hosting. */
+export declare function metadataURI(metadata: AgentMetadata): string;
+
+/** Register an agent identity owned by `signer`: inline metadata, or a tokenURI you host. */
+export declare function registerAgent(
+  signer: Signer,
+  metadata: AgentMetadata | string,
+  options?: { network?: NetworkName },
+): Promise<{ agentId: number; txHash: string }>;

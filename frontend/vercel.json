@@ -3,6 +3,13 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/" }
+    {
+      "source": "/api/traces/:chain/:file",
+      "destination": "/api/traces?chain=:chain&file=:file"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/"
+    }
   ]
 }
