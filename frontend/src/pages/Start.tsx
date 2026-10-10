@@ -97,7 +97,7 @@ export function Start() {
                 <p className="text-slate-300 mb-1">Until it is, build the same package from the repository instead:</p>
                 <Command>git clone --depth 1 https://github.com/calderbuild/SafeReceipt.git</Command>
                 <Command>npm pack ./SafeReceipt/packages/client</Command>
-                <Command>npm install ethers ./safereceipt-client-0.1.0.tgz</Command>
+                <Command>npm install ethers ./safereceipt-client-0.1.1.tgz</Command>
               </div>
             )}
           </Step>
