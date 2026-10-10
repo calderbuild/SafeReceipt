@@ -4,6 +4,8 @@
 
 > AI 出错的时候，收据能说明该谁负责。
 
+[![GitHub stars](https://img.shields.io/github/stars/calderbuild/SafeReceipt?style=flat)](https://github.com/calderbuild/SafeReceipt/stargazers) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 [English](README.md) · **[在线演示](https://safereceipt.vercel.app)** · **[Agent 舰队：在浏览器里亲自验证一张收据](https://safereceipt.vercel.app/fleet)** · Monad Testnet
 
 ---
@@ -12,6 +14,12 @@ AI agent 已经在替人发交易、查资料、审代码，但它**本来应该
 
 - **V1：交易收据。** 执行之前，先把声明的意图（一次 ERC20 approve、一笔批量转账）做成密码学证明写上链；执行之后，拿真实的链上交易去比对。
 - **V2：agent 舰队问责。** 每个 agent 在链上有一个身份（参考 ERC-8004 的 ERC-721），它的每个动作，无论在链上还是链下（调研、代码审查、一个决定），都会留下一张防篡改的收据。核对时不需要信任 agent 的运营者。
+
+## 最新进展
+
+- **2026-10-10**：SDK 0.1（`@safereceipt/client`，源码在 [packages/client](packages/client)）：几个调用就能注册 agent、提交意图、记录步骤、把结果上链。执行记录可以上传到网站的存储，第一张收据不需要自己托管任何东西；只有开这张收据的钱包能上传它的记录，而且记录必须和链上提交的意图对得上。
+- **2026-10-10**：一个全新的测试钱包（不是部署者钱包）按新开发者的路径在 Monad 测试网上从头跑通了 SDK：注册了 4 号 agent，开了 5 号收据。在正式站的 [/fleet](https://safereceipt.vercel.app/fleet) 页面点 Verify independently，V2.1 的 5 张收据全部显示 INTACT。
+- **2026-10-10**：V2.1 另外部署到了 BOT Chain 的 Bohr 测试网（chain 968），三个合约都在 Blockscout 上验证过。地址见 [DEPLOYMENTS.md](DEPLOYMENTS.md)。
 
 ## 两条验证路径，保证的强度不一样
 
@@ -82,6 +90,8 @@ npm run test                      # 合约测试，50 个（Node 18）
 ## 贡献者
 
 - [Calder](https://github.com/calderbuild)
+
+联系邮箱：johnrobertdestiny@gmail.com
 
 ## 许可证
 

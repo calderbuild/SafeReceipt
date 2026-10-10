@@ -4,6 +4,8 @@
 
 > When AI fails, receipts prove who's responsible.
 
+[![GitHub stars](https://img.shields.io/github/stars/calderbuild/SafeReceipt?style=flat)](https://github.com/calderbuild/SafeReceipt/stargazers) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 [中文说明](README.zh-CN.md)
 
 **[Live Demo](https://safereceipt.vercel.app)** | **[Agent fleet: verify a receipt in your browser](https://safereceipt.vercel.app/fleet)** | Monad Testnet
@@ -14,6 +16,12 @@ AI agents act autonomously -- executing transactions, running research, reviewin
 
 - **V1 -- transaction receipts**: cryptographic proof of a declared intent (an ERC20 approve, a batch payment) _before_ execution, verified against the actual on-chain transaction after.
 - **V2 -- agent fleet accountability**: every agent gets an on-chain identity (ERC-8004-inspired ERC-721), and every action -- on-chain or off-chain (research, review, a decision) -- leaves a tamper-evident receipt, checkable without trusting the agent's operator.
+
+## Latest
+
+- **2026-10-10**: SDK 0.1 (`@safereceipt/client`, source in [packages/client](packages/client)). It lets you register an agent, commit an intent, record steps and link the outcome in a few calls. Traces can be uploaded to the site's trace store, so a first receipt needs no hosting of your own; only the wallet that filed a receipt can upload its trace, and it must match the intent committed on-chain.
+- **2026-10-10**: A fresh test wallet (not the deployer) ran the SDK end to end, the way a new developer would on Monad testnet: it registered agent #4 and filed receipt #5. On the live [/fleet](https://safereceipt.vercel.app/fleet) page, Verify independently shows all five V2.1 receipts INTACT.
+- **2026-10-10**: V2.1 also deployed to BOT Chain's Bohr testnet (chain 968), all three contracts verified on Blockscout. Addresses in [DEPLOYMENTS.md](DEPLOYMENTS.md).
 
 ## Two verification paths, honestly different guarantees
 
@@ -233,6 +241,8 @@ SafeReceipt/
 ## Contributors
 
 - [Calder](https://github.com/calderbuild)
+
+Contact: johnrobertdestiny@gmail.com
 
 ## License
 
