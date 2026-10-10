@@ -10,6 +10,9 @@ import { Home } from './pages/Home'
 const Fleet = lazy(() => import('./pages/Fleet').then((m) => ({ default: m.Fleet })))
 const MyReceipts = lazy(() => import('./pages/MyReceipts').then((m) => ({ default: m.MyReceipts })))
 const ReceiptDetail = lazy(() => import('./pages/ReceiptDetail').then((m) => ({ default: m.ReceiptDetail })))
+const FleetReceipt = lazy(() => import('./pages/FleetReceipt').then((m) => ({ default: m.FleetReceipt })))
+const FleetAgent = lazy(() => import('./pages/FleetAgent').then((m) => ({ default: m.FleetAgent })))
+const Start = lazy(() => import('./pages/Start').then((m) => ({ default: m.Start })))
 
 // Receipt mark: a slip with a torn bottom edge
 const ReceiptMark = ({ className = 'w-7 h-7' }: { className?: string }) => (
@@ -70,12 +73,14 @@ function App() {
 
       {/* Floating Navbar */}
       <nav className="navbar-float">
-        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+        <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label="SafeReceipt home">
           <ReceiptMark />
-          <span className="font-display font-semibold text-lg text-white tracking-tight">SafeReceipt</span>
+          {/* Phones show the mark alone so the four nav items fit at 390px */}
+          <span className="hidden sm:inline font-display font-semibold text-lg text-white tracking-tight">SafeReceipt</span>
         </Link>
 
         <div className="flex items-center gap-1 sm:gap-3">
+          <NavLink to="/start" className={navLinkClass}>Start</NavLink>
           <NavLink to="/fleet" className={navLinkClass}><span className="sm:hidden">Fleet</span><span className="hidden sm:inline">Agent fleet</span></NavLink>
           <NavLink to="/receipts" className={navLinkClass}><span className="sm:hidden">Receipts</span><span className="hidden sm:inline">My receipts</span></NavLink>
           <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 border border-white/10 rounded-md" title="Network used when you create a receipt with your wallet">
@@ -99,6 +104,9 @@ function App() {
           }
         />
         <Route path="/fleet" element={<Fleet />} />
+        <Route path="/fleet/receipt/:id" element={<FleetReceipt />} />
+        <Route path="/fleet/agent/:id" element={<FleetAgent />} />
+        <Route path="/start" element={<Start />} />
         <Route path="/receipts" element={<MyReceipts />} />
         <Route path="/receipt/:id" element={<ReceiptDetail />} />
       </Routes>

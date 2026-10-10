@@ -1,12 +1,14 @@
 // Minimal agent wrapped in a SafeReceipt, start to finish.
 //
-//   node minimal-agent.mjs                                   dry run: prints what it would commit
-//   SAFERECEIPT_SEND=1 PRIVATE_KEY=0x... node minimal-agent.mjs
-//                                                            registers an agent (unless AGENT_ID is set),
-//                                                            files a receipt on Monad testnet, uploads the
-//                                                            trace to SafeReceipt's hosted store, links it
+//   node minimal-agent.mjs                      dry run: prints what it would commit, sends nothing
+//   SAFERECEIPT_SEND=1 node minimal-agent.mjs   registers an agent (unless AGENT_ID is set), files a
+//                                               receipt on Monad testnet, uploads the trace to
+//                                               SafeReceipt's hosted store, links it, and prints the
+//                                               receipt's page
 //
-// The wallet needs a little testnet MON for gas (https://faucet.monad.xyz).
+// PRIVATE_KEY comes from the environment or from a .env file in this directory. The wallet
+// needs a little testnet MON for gas (https://faucet.monad.xyz).
+import { existsSync, readFileSync } from "node:fs";
 import { ethers } from "ethers";
 import {
   AccountabilityClient,
@@ -14,9 +16,18 @@ import {
   evaluatePolicy,
   hashIntent,
   hashTrace,
+  receiptURL,
   registerAgent,
   verifyAgainstChain,
 } from "@safereceipt/client";
+
+// Node 18 has no --env-file; read KEY=value lines ourselves.
+if (existsSync(".env")) {
+  for (const line of readFileSync(".env", "utf8").split("\n")) {
+    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].trim();
+  }
+}
 
 const declaredIntent = {
   agent: "minimal-agent",
@@ -44,8 +55,11 @@ if (process.env.SAFERECEIPT_SEND !== "1") {
   console.log("traces would be hosted at", client.evidenceBaseURL);
   console.log("set SAFERECEIPT_SEND=1 and PRIVATE_KEY to send it");
 } else {
-  if (!process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set");
-  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, new ethers.JsonRpcProvider(DEPLOYMENTS.monad.rpc));
+  if (!process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set (environment or .env)");
+  const provider = new ethers.JsonRpcProvider(DEPLOYMENTS.monad.rpc);
+  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const balance = await provider.getBalance(signer.address);
+  if (balance === 0n) throw new Error(`${signer.address} has no testnet MON; get some at https://faucet.monad.xyz`);
 
   let agentId = Number(process.env.AGENT_ID);
   if (!agentId) {
@@ -63,5 +77,5 @@ if (process.env.SAFERECEIPT_SEND !== "1") {
   console.log(`receipt #${receiptId}: ${result.status}, trace at ${result.evidenceURI}`);
 
   await verifyAgainstChain(client, receiptId, result.evidenceURI);
-  console.log("see it, and verify it yourself, at https://safereceipt.vercel.app/fleet");
+  console.log(`\nopen ${receiptURL(receiptId)} and press Verify independently`);
 }

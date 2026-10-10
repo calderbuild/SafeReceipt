@@ -114,7 +114,10 @@ export declare function verifyAgainstChain(
   evidenceURI: string,
 ): Promise<boolean>;
 
-/** Base URL of SafeReceipt's hosted trace store per network (monad only). `SAFERECEIPT_TRACES_URL` overrides the origin. */
+/** SafeReceipt's site origin. `SAFERECEIPT_SITE_URL` overrides it (a preview or a dev server). */
+export declare const SITE_URL: string;
+
+/** Base URL of SafeReceipt's hosted trace store per network (monad only). */
 export declare const HOSTED_TRACES: { monad: string };
 
 /** The text the filer signs to upload a trace: chain id, receipt id and trace hash. */
@@ -139,3 +142,6 @@ export declare function registerAgent(
   metadata: AgentMetadata | string,
   options?: { network?: NetworkName },
 ): Promise<{ agentId: number; txHash: string }>;
+
+/** The shareable page of a Monad receipt, e.g. https://safereceipt.vercel.app/fleet/receipt/5 */
+export declare function receiptURL(receiptId: number): string;

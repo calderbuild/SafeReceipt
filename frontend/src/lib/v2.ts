@@ -21,7 +21,14 @@ const AGENT_IDENTITY_ABI = [
 const ACTION_REGISTRY_ABI = [
   'function nextReceiptId() view returns (uint256)',
   'function getReceipt(uint256 receiptId) view returns (tuple(address actor, uint256 agentId, uint8 actionType, uint8 riskScore, uint40 timestamp, bytes32 intentHash, bytes32 proofHash, bytes32 outcomeHash, string evidenceURI, uint8 status))',
+  'function getAgentReceipts(uint256 agentId) view returns (uint256[])',
 ];
+
+/** The wallet that deployed the registries and runs the fleet's own agents (doc-researcher, code-reviewer, security-scanner). */
+export const DEPLOYER = '0x636011edE26fCe9cb675Ac42543d69f3b9CcA9Dc';
+
+/** /fleet reads at most this many of the newest agents and receipts; each one also has its own page. */
+export const FLEET_PAGE_LIMIT = 50;
 
 export const V2_STATUS = ['CREATED', 'EXECUTED', 'VERIFIED', 'MISMATCH'] as const;
 export type V2Status = (typeof V2_STATUS)[number];
@@ -40,6 +47,7 @@ export interface AgentProfile {
   id: number;
   tokenURI: string;
   active: boolean;
+  owner: string;
   metadata: AgentMetadata | null;
 }
 
@@ -102,6 +110,8 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
 }
 
 const range = (n: bigint) => Array.from({ length: Number(n) - 1 }, (_, i) => i + 1);
+/** Ids 1..next-1, newest first, capped at FLEET_PAGE_LIMIT. */
+const newest = (next: bigint) => range(next).reverse().slice(0, FLEET_PAGE_LIMIT);
 
 async function fetchMetadata(uri: string): Promise<AgentMetadata | null> {
   try {
@@ -112,45 +122,61 @@ async function fetchMetadata(uri: string): Promise<AgentMetadata | null> {
   }
 }
 
-export async function listAgents(): Promise<AgentProfile[]> {
+export async function readAgent(id: number): Promise<AgentProfile> {
   const { identity } = registries();
-  const ids = range(await identity.nextAgentId());
-  return Promise.all(
-    ids.map(async (id) => {
-      const [tokenURI, active] = await Promise.all([
-        identity.tokenURI(id) as Promise<string>,
-        identity.isActive(id) as Promise<boolean>,
-      ]);
-      return { id, tokenURI, active, metadata: await fetchMetadata(tokenURI) };
-    })
-  );
+  const [tokenURI, active, owner] = await Promise.all([
+    withRetry(() => identity.tokenURI(id) as Promise<string>),
+    withRetry(() => identity.isActive(id) as Promise<boolean>),
+    withRetry(() => identity.ownerOf(id) as Promise<string>),
+  ]);
+  return { id, tokenURI, active, owner, metadata: await fetchMetadata(tokenURI) };
 }
 
-/** Newest first. A receipt whose read fails comes back as `{ id, error }` instead of failing the page. */
-export async function listReceipts(): Promise<(V2Receipt | { id: number; error: string })[]> {
-  const { actions } = registries();
-  const ids = range(await actions.nextReceiptId()).reverse();
-  const settled = await Promise.allSettled(
-    ids.map(async (id): Promise<V2Receipt> => {
-      const r = await withRetry(() => actions.getReceipt(id));
-      return {
-        id,
-        actor: r.actor,
-        agentId: Number(r.agentId),
-        actionType: V2_ACTION_TYPES[Number(r.actionType)] ?? `TYPE_${r.actionType}`,
-        riskScore: Number(r.riskScore),
-        timestamp: Number(r.timestamp),
-        intentHash: r.intentHash,
-        proofHash: r.proofHash,
-        outcomeHash: r.outcomeHash,
-        evidenceURI: r.evidenceURI,
-        status: V2_STATUS[Number(r.status)],
-      };
-    })
-  );
+/** Newest first, at most FLEET_PAGE_LIMIT. */
+export async function listAgents(): Promise<{ agents: AgentProfile[]; total: number }> {
+  const { identity } = registries();
+  const next = await identity.nextAgentId();
+  return { agents: await Promise.all(newest(next).map(readAgent)), total: Number(next) - 1 };
+}
+
+export async function readReceipt(id: number): Promise<V2Receipt> {
+  const r = await withRetry(() => registries().actions.getReceipt(id));
+  if (/^0x0{40}$/i.test(r.actor)) throw new Error(`Receipt #${id} does not exist on ${V2_NETWORK.name}`);
+  return {
+    id,
+    actor: r.actor,
+    agentId: Number(r.agentId),
+    actionType: V2_ACTION_TYPES[Number(r.actionType)] ?? `TYPE_${r.actionType}`,
+    riskScore: Number(r.riskScore),
+    timestamp: Number(r.timestamp),
+    intentHash: r.intentHash,
+    proofHash: r.proofHash,
+    outcomeHash: r.outcomeHash,
+    evidenceURI: r.evidenceURI,
+    status: V2_STATUS[Number(r.status)],
+  };
+}
+
+type ReceiptOrError = V2Receipt | { id: number; error: string };
+
+/** A receipt whose read fails comes back as `{ id, error }` instead of failing the page. */
+async function readMany(ids: number[]): Promise<ReceiptOrError[]> {
+  const settled = await Promise.allSettled(ids.map(readReceipt));
   return settled.map((s, i) =>
     s.status === 'fulfilled' ? s.value : { id: ids[i], error: s.reason instanceof Error ? s.reason.message : String(s.reason) }
   );
+}
+
+/** Newest first, at most FLEET_PAGE_LIMIT. */
+export async function listReceipts(): Promise<{ receipts: ReceiptOrError[]; total: number }> {
+  const next = await registries().actions.nextReceiptId();
+  return { receipts: await readMany(newest(next)), total: Number(next) - 1 };
+}
+
+/** One agent's receipts, newest first, at most FLEET_PAGE_LIMIT. */
+export async function listAgentReceipts(agentId: number): Promise<{ receipts: ReceiptOrError[]; total: number }> {
+  const ids = ((await withRetry(() => registries().actions.getAgentReceipts(agentId))) as bigint[]).map(Number);
+  return { receipts: await readMany(ids.reverse().slice(0, FLEET_PAGE_LIMIT)), total: ids.length };
 }
 
 export async function verifyIndependently(receipt: V2Receipt): Promise<IndependentVerification> {

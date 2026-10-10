@@ -36,7 +36,6 @@ const RULES = [
   { rule: 'OUTLIER_AMOUNT', weight: 5, desc: 'Over 10x your usual amount for that token' },
 ];
 
-const WRAPPER_README = 'https://github.com/calderbuild/SafeReceipt/tree/main/wrapper#readme';
 
 const INTEGRATION_CALLS = [
   {
@@ -53,9 +52,9 @@ const INTEGRATION_CALLS = [
   },
 ];
 
-const INTEGRATION_SNIPPET = `const client = new AccountabilityClient({
-  network: "monad", signer, evidenceBaseURL,
-});
+const INTEGRATION_SNIPPET = `import { AccountabilityClient, evaluatePolicy } from "@safereceipt/client";
+
+const client = new AccountabilityClient({ network: "monad", signer });
 
 // 1. before the agent acts
 const { receiptId } = await client.beginAction({
@@ -73,7 +72,7 @@ client.emit("read", "Read docs/guide.md", 40, {
 
 // 3. after it finishes
 const policy = evaluatePolicy(client.buildTrace(null));
-await client.endAction({ policyResult: policy, publish });`;
+await client.endAction({ policyResult: policy });`;
 
 // V1 receipt #11: the live model followed the poisoned token metadata (DEPLOYMENTS.md).
 const HERO_TX = '0xb6c5c0cb84c350f80906cc925f519e36ea59c960363b4367a1bb9353c1b29809';
@@ -174,7 +173,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
             </div>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <Link to="/fleet" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">See three real agents and their receipts</Link>
+            <Link to="/fleet" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">See the registered agents and their receipts</Link>
             <a className="text-slate-400 hover:text-white underline underline-offset-4" href="https://github.com/calderbuild/SafeReceipt/blob/main/docs/ACCOUNTABILITY.md" target="_blank" rel="noopener noreferrer">
               Read the full trust boundary
             </a>
@@ -215,13 +214,15 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
               ))}
               <li className="flex gap-4 pt-2">
                 <span className="w-4 shrink-0" />
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  Today the client lives in the repo, so wiring it in means cloning it. Packaging it for npm is the next
-                  milestone.{' '}
-                  <a className="text-primary-300 hover:text-primary-200 underline underline-offset-4" href={WRAPPER_README} target="_blank" rel="noopener noreferrer">
-                    Read the client's README
-                  </a>
-                </p>
+                <div className="text-sm text-slate-400 leading-relaxed min-w-0">
+                  <code className="block font-mono text-[13px] text-slate-200 bg-black/40 border border-white/10 rounded-md px-3 py-2 mb-2 overflow-x-auto">
+                    npm install @safereceipt/client ethers
+                  </code>
+                  The record is stored on this site unless you host it yourself.{' '}
+                  <Link to="/start" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
+                    Run the example agent in about 10 minutes
+                  </Link>
+                </div>
               </li>
             </ol>
             <pre className="glass-card p-5 overflow-x-auto text-[13px] leading-relaxed font-mono text-slate-300" aria-label="Example: wrapping one agent action">

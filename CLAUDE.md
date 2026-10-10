@@ -162,7 +162,10 @@ await contract.linkExecution(receiptId, txHashBytes32, verified);
 /              → Home (landing page + agent demo)
 /receipts      → MyReceipts (list user's receipts with status badges)
 /receipt/:id   → ReceiptDetail (detail view + link execution UI)
-/fleet         → Fleet (V2.1: agents + receipts read from Monad; Verify re-hashes the trace, checks ids and agent owner, re-runs lib/tracePolicy.ts)
+/fleet         → Fleet (V2.1: every registered agent + receipts read from Monad, newest FLEET_PAGE_LIMIT=50 of each; Verify re-hashes the trace, checks ids and agent owner, re-runs lib/tracePolicy.ts)
+/fleet/receipt/:id → FleetReceipt (one V2.1 receipt, shareable; the client's receiptURL() points here)
+/fleet/agent/:id   → FleetAgent (one agent and its receipts via getAgentReceipts)
+/start         → Start (the developer path; checks the npm registry to show whether the package is published)
 ```
 
 `App.tsx` manages global state for Create/Verify modals and the floating navbar. Vercel deployment uses SPA rewrites (`vercel.json`).
@@ -219,11 +222,12 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 - **frontend/src/hooks/useWallet.ts**: MetaMask connection and Monad network switching
 - **frontend/src/lib/v2.ts**: V2.1 registry reads (Monad), `hashTrace` (mirrors `wrapper/canonicalize.mjs`), `verifyIndependently` / pure `checkTrace`
 - **packages/client/**: `@safereceipt/client`, the wrapper modules packaged for other agents (`npm pack` copies `wrapper/` into `lib/` plus the root LICENSE; publishable, `publishConfig.access` public)
-- **wrapper/hosted.mjs**: `registerAgent` (inline data: URI metadata), `hostedPublisher`, the default evidence base URL; `SAFERECEIPT_TRACES_URL` points it at a preview or dev server
+- **wrapper/hosted.mjs**: `registerAgent` (inline data: URI metadata), `hostedPublisher`, the default evidence base URL; `receiptURL`; `SAFERECEIPT_SITE_URL` points it at a preview or dev server
 - **frontend/api/traces.ts**: hosted trace store (see Hosted traces)
 - **frontend/src/lib/tracePolicy.ts**: browser port of `wrapper/policy.mjs`; `v2.test.ts` checks parity, keep them identical
 - **wrapper/**: commit-reveal client; `ledger.mjs` publishes traces to `traces/v2.1/` before linking; addresses from `wrapper/deployments.json`
-- **frontend/src/pages/Fleet.tsx**: agent fleet + receipt slips with independent verification
+- **frontend/src/pages/Fleet.tsx**: agent fleet; slips, agent cards and the Verify trace live in `components/FleetSlips.tsx` (shared with the permalink pages); `lib/v2.ts` `DEPLOYER` marks the agents I run
+- **scripts/stranger-acceptance.mjs**: outside-the-repo run of /start (pack, install, register, receipt, hosted trace, headless Chrome Verify), timed; spends testnet MON, not in CI
 - **frontend/src/components/ReceiptSlip.tsx**: thermal-receipt slip + rubber-stamp primitives (styles in `index.css`)
 - **frontend/src/lib/agentRunner.ts**: End-to-end lifecycle orchestrator (parse → risk → receipt → execute → verify)
 - **frontend/src/lib/demoScenarios.ts**: the three demo requests (the agent's metadata per scenario lives in `api/agent.ts`)
