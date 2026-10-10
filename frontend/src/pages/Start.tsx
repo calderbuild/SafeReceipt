@@ -110,7 +110,7 @@ export function Start() {
               <a className="text-primary-300 hover:text-primary-200 underline underline-offset-4" href={FAUCET_URL} target="_blank" rel="noopener noreferrer">
                 Monad testnet faucet
               </a>
-              . A run spends roughly 0.06 MON: one transaction to register the agent and two for the receipt.
+              . A run spends about 0.07 MON: one transaction to register the agent and two for the receipt.
             </p>
           </Step>
 
