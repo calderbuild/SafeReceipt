@@ -1,0 +1,38 @@
+name: Bug report
+description: Something in the client, the site, or a receipt is wrong.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Paste the command and its full output, or the page and what it showed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. npm install @safereceipt/client ethers
+        2. SAFERECEIPT_SEND=1 node minimal-agent.mjs
+        3. ...
+  - type: input
+    id: receipt
+    attributes:
+      label: Receipt or agent link (if any)
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: Node version, OS, browser, @safereceipt/client version
+  - type: markdown
+    attributes:
+      value: Never paste a private key. A testnet key is still a key.

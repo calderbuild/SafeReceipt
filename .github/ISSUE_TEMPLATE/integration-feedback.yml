@@ -1,0 +1,41 @@
+name: Integration feedback
+description: You tried to put receipts on an agent. Tell me how it went, good or bad.
+title: "[feedback] "
+labels: ["feedback"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to do?
+      description: The agent, what it does, and what you wanted a receipt for.
+    validations:
+      required: true
+  - type: textarea
+    id: stuck
+    attributes:
+      label: Where did you get stuck?
+      description: The step on /start or in the README, the command you ran, and what it printed. "Nowhere" is a useful answer too.
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: How long did it take?
+      description: From an empty folder to your first receipt, or until you gave up.
+      placeholder: e.g. 15 minutes, gave up after 30 minutes
+    validations:
+      required: true
+  - type: input
+    id: receipt
+    attributes:
+      label: Receipt link (if you got one)
+      placeholder: https://safereceipt.vercel.app/fleet/receipt/5
+  - type: textarea
+    id: direction
+    attributes:
+      label: Would you use this on a real agent? What would have to change?
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: Node version, OS, @safereceipt/client version

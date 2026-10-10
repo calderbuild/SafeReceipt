@@ -2,10 +2,16 @@ import { ethers } from "ethers";
 import { AGENT_IDENTITY_ABI, DEPLOYMENTS } from "./abi.mjs";
 import { hashTrace } from "./canonicalize.mjs";
 
-// SafeReceipt's hosted trace store (frontend/api/traces.ts). Monad testnet only.
-// SAFERECEIPT_TRACES_URL points the client at another deployment (a preview, or `npm run dev`).
-const TRACES_ENDPOINT = `${process.env.SAFERECEIPT_TRACES_URL || "https://safereceipt.vercel.app"}/api/traces`;
+// SafeReceipt's site: the hosted trace store (frontend/api/traces.ts, Monad testnet only) and
+// the receipt pages. SAFERECEIPT_SITE_URL points the client at another deployment (a preview, or `npm run dev`).
+export const SITE_URL = (process.env.SAFERECEIPT_SITE_URL || "https://safereceipt.vercel.app").replace(/\/$/, "");
+const TRACES_ENDPOINT = `${SITE_URL}/api/traces`;
 export const HOSTED_TRACES = { monad: `${TRACES_ENDPOINT}/monad` };
+
+/** The shareable page of a Monad receipt, where anyone can press Verify. */
+export function receiptURL(receiptId) {
+  return `${SITE_URL}/fleet/receipt/${receiptId}`;
+}
 
 /** The exact text the filer signs. Must match frontend/api/traces.ts traceUploadMessage. */
 export function traceUploadMessage(chainId, receiptId, traceHash) {

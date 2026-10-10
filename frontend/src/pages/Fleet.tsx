@@ -1,33 +1,28 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { ReceiptSlip, SlipRow, SlipRule, Stamp } from '../components/ReceiptSlip';
+import { AgentCard, ReceiptCard } from '../components/FleetSlips';
+import { explorer, receiptNo } from '../lib/fleet';
 import { messageOf } from '../lib/errors';
-import {
-  listAgents,
-  listReceipts,
-  shortHash,
-  verifyIndependently,
-  V2_ADDRESSES,
-  V2_NETWORK,
-  type AgentProfile,
-  type IndependentVerification,
-  type V2Receipt,
-} from '../lib/v2';
+import { ACCOUNTABILITY_URL, FEEDBACK_URL } from '../lib/links';
+import { FLEET_PAGE_LIMIT, listAgents, listReceipts, V2_ADDRESSES, V2_NETWORK, type AgentProfile, type V2Receipt } from '../lib/v2';
 
 type LoadState =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; agents: AgentProfile[]; receipts: (V2Receipt | { id: number; error: string })[] };
-
-const explorer = (address: string) => `${V2_NETWORK.blockExplorer}/address/${address}`;
-const formatTime = (unix: number) => new Date(unix * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+  | {
+      kind: 'ready';
+      agents: AgentProfile[];
+      agentTotal: number;
+      receipts: (V2Receipt | { id: number; error: string })[];
+      receiptTotal: number;
+    };
 
 // The public Monad RPC occasionally returns an empty error for a single eth_call; a short retry clears it.
 async function readFleet(attempts = 3): Promise<LoadState> {
   for (let i = 1; ; i++) {
     try {
       const [agents, receipts] = await Promise.all([listAgents(), listReceipts()]);
-      return { kind: 'ready', agents, receipts };
+      return { kind: 'ready', agents: agents.agents, agentTotal: agents.total, receipts: receipts.receipts, receiptTotal: receipts.total };
     } catch (error) {
       if (i === attempts) return { kind: 'error', message: messageOf(error) };
       await new Promise((resolve) => setTimeout(resolve, 600 * i));
@@ -60,16 +55,21 @@ export function Fleet() {
         <header className="mb-12 max-w-3xl">
           <h1 className="font-display text-4xl md:text-5xl font-semibold text-white mb-4">Agent fleet</h1>
           <p className="text-slate-300 text-lg leading-relaxed mb-5">
-            These are the agents I run, each with an identity on-chain. Every receipt below can be checked from this
-            page: your browser fetches the published evidence, hashes it, and compares the result with the hash stored
-            on Monad. You don't have to trust this site to do it.
+            Every agent registered on SafeReceipt's registry, each with an identity on-chain. The ones marked{' '}
+            <span className="font-mono text-sm text-primary-300">run by SafeReceipt</span> are mine; anyone can register
+            another. Every receipt below can be checked from this page: your browser fetches the published evidence,
+            hashes it, and compares the result with the hash stored on Monad. You don't have to trust this site to do it.
           </p>
           <p className="text-slate-400 text-sm leading-relaxed mb-5">
             The agents run from a command line, not from this page: each run commits its intent, does the work,
             publishes its trace and links it on-chain, and its receipt shows up here.{' '}
-            <Link to="/#integrate" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
-              How to do the same for your agent
+            <Link to="/start" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
+              Put your own agent here
             </Link>
+            {' · '}
+            <a href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-white underline underline-offset-4">
+              Tell us what broke
+            </a>
           </p>
           <p className="font-mono text-xs text-slate-500 leading-relaxed">
             {V2_NETWORK.name} · chain {V2_NETWORK.chainId} ·{' '}
@@ -99,8 +99,9 @@ export function Fleet() {
           <>
             <section className="mb-14" aria-labelledby="agents-heading">
               <h2 id="agents-heading" className="font-display text-xl font-semibold text-white mb-4">
-                Agents <span className="text-slate-500 font-mono text-sm font-normal">({state.agents.length})</span>
+                Agents <span className="text-slate-500 font-mono text-sm font-normal">({state.agentTotal})</span>
               </h2>
+              {state.agentTotal > state.agents.length && <Capped shown={state.agents.length} total={state.agentTotal} what="agents" />}
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {state.agents.map((agent) => (
                   <AgentCard
@@ -114,12 +115,14 @@ export function Fleet() {
 
             <section aria-labelledby="receipts-heading">
               <h2 id="receipts-heading" className="font-display text-xl font-semibold text-white mb-1">
-                Receipts <span className="text-slate-500 font-mono text-sm font-normal">({state.receipts.length})</span>
+                Receipts <span className="text-slate-500 font-mono text-sm font-normal">({state.receiptTotal})</span>
               </h2>
               <p className="text-sm text-slate-400 mb-6">
                 Newest first. The stamp shows the outcome recorded on-chain. Verify re-checks it here: the evidence is
-                untouched, it belongs to this receipt, and the policy rules give the same verdict.
+                untouched, it belongs to this receipt, and the policy rules give the same verdict. Each receipt number
+                opens its own page, which you can share.
               </p>
+              {state.receiptTotal > state.receipts.length && <Capped shown={state.receipts.length} total={state.receiptTotal} what="receipts" />}
               {state.receipts.length === 0 ? (
                 <p className="text-slate-400">No receipts on-chain yet.</p>
               ) : (
@@ -127,14 +130,10 @@ export function Fleet() {
                   {state.receipts.map((receipt) =>
                     'error' in receipt ? (
                       <div key={receipt.id} className="glass-card p-5 font-mono text-sm text-slate-400">
-                        Receipt #{receipt.id} could not be read: {receipt.error}
+                        <Link className="underline" to={`/fleet/receipt/${receipt.id}`}>{receiptNo(receipt.id)}</Link> could not be read: {receipt.error}
                       </div>
                     ) : (
-                      <ReceiptCard
-                        key={receipt.id}
-                        receipt={receipt}
-                        agentName={state.agents.find((a) => a.id === receipt.agentId)?.metadata?.name}
-                      />
+                      <ReceiptCard key={receipt.id} receipt={receipt} agent={state.agents.find((a) => a.id === receipt.agentId)} />
                     )
                   )}
                 </div>
@@ -143,7 +142,7 @@ export function Fleet() {
                 What this check proves: the declared intent was committed before the agent ran, and the published trace
                 has not changed since. What it does not prove: that the trace is a complete account of what the agent
                 did. Details in{' '}
-                <a className="underline underline-offset-2 hover:text-slate-300" href="https://github.com/calderbuild/SafeReceipt/blob/main/docs/ACCOUNTABILITY.md" target="_blank" rel="noopener noreferrer">
+                <a className="underline underline-offset-2 hover:text-slate-300" href={ACCOUNTABILITY_URL} target="_blank" rel="noopener noreferrer">
                   ACCOUNTABILITY.md
                 </a>
                 .
@@ -156,161 +155,10 @@ export function Fleet() {
   );
 }
 
-function AgentCard({ agent, count }: { agent: AgentProfile; count: number }) {
-  const name = agent.metadata?.name ?? `Agent #${agent.id}`;
+function Capped({ shown, total, what }: { shown: number; total: number; what: string }) {
   return (
-    <article className="glass-card p-5">
-      <div className="flex items-baseline justify-between mb-2">
-        <h3 className="font-display text-lg font-semibold text-white">{name}</h3>
-        <span className="font-mono text-xs text-slate-500">#{agent.id}</span>
-      </div>
-      {agent.metadata?.role && <p className="text-sm text-slate-400 mb-4 leading-relaxed">{agent.metadata.role}</p>}
-      <div className="flex flex-wrap gap-2 text-xs font-mono">
-        {agent.metadata?.model && (
-          <span className="badge-info" title="The model named in the on-chain registration. Each receipt's Run line says what actually ran.">
-            registered as {agent.metadata.model}
-          </span>
-        )}
-        <span className={agent.active ? 'badge-success' : 'badge-danger'}>{agent.active ? 'active' : 'revoked'}</span>
-        <span className="text-slate-500 self-center">{count === 0 ? 'no receipts yet' : `${count} receipt${count > 1 ? 's' : ''}`}</span>
-      </div>
-      {!agent.metadata && (
-        <p className="text-xs text-slate-500 mt-3">
-          Metadata unavailable.{' '}
-          <a className="underline" href={agent.tokenURI} target="_blank" rel="noopener noreferrer">Open token URI</a>
-        </p>
-      )}
-    </article>
-  );
-}
-
-type VerifyState =
-  | { kind: 'idle' }
-  | { kind: 'running' }
-  | { kind: 'error'; message: string }
-  | { kind: 'done'; result: IndependentVerification };
-
-function ReceiptCard({ receipt, agentName }: { receipt: V2Receipt; agentName?: string }) {
-  const [verify, setVerify] = useState<VerifyState>({ kind: 'idle' });
-
-  const run = async () => {
-    setVerify({ kind: 'running' });
-    try {
-      setVerify({ kind: 'done', result: await verifyIndependently(receipt) });
-    } catch (error) {
-      setVerify({ kind: 'error', message: messageOf(error) });
-    }
-  };
-
-  const recorded = receipt.status === 'VERIFIED' ? 'verified' : receipt.status === 'MISMATCH' ? 'mismatch' : 'pending';
-
-  return (
-    <ReceiptSlip>
-      <div className="slip-row font-semibold">
-        <span>SAFERECEIPT</span>
-        <span>No. {String(receipt.id).padStart(4, '0')}</span>
-      </div>
-      <div className="text-[var(--color-paper-faint)]">{formatTime(receipt.timestamp)}</div>
-      <SlipRule />
-      <SlipRow label="Agent">{agentName ? `${agentName} (#${receipt.agentId})` : `#${receipt.agentId}`}</SlipRow>
-      <SlipRow label="Action">{receipt.actionType}</SlipRow>
-      {RUN_NOTES[receipt.id] && <SlipRow label="Run">{RUN_NOTES[receipt.id]}</SlipRow>}
-      <SlipRow label="Intent hash">{shortHash(receipt.intentHash)}</SlipRow>
-      <SlipRow label="Outcome hash">{shortHash(receipt.outcomeHash)}</SlipRow>
-      <SlipRow label="Evidence">
-        {receipt.evidenceURI ? (
-          <a href={receipt.evidenceURI} target="_blank" rel="noopener noreferrer">{receipt.evidenceURI.split('/').slice(-2).join('/')}</a>
-        ) : (
-          'not linked yet'
-        )}
-      </SlipRow>
-      <SlipRule />
-      <div className="flex items-center justify-between gap-4 py-1">
-        <span className="slip-label">Recorded outcome</span>
-        <Stamp kind={recorded} label={receipt.status} />
-      </div>
-      <SlipRule />
-
-      {verify.kind === 'idle' || verify.kind === 'running' ? (
-        <button
-          onClick={run}
-          disabled={verify.kind === 'running' || !receipt.evidenceURI}
-          className="w-full bg-paper-ink text-paper font-mono text-sm py-2.5 rounded-md hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          {verify.kind === 'running' ? 'Verifying…' : 'Verify independently'}
-        </button>
-      ) : verify.kind === 'error' ? (
-        <div>
-          <p className="mb-3">Couldn't verify: {verify.message}</p>
-          <button onClick={run} className="underline">Try again</button>
-        </div>
-      ) : (
-        <VerificationTrace receipt={receipt} result={verify.result} />
-      )}
-    </ReceiptSlip>
-  );
-}
-
-// How each receipt was produced. Not recoverable from chain data, so stated here.
-const RUN_NOTES: Record<number, string> = {
-  1: 'the wrapper ran npm run test itself (a script, not an LLM): 50 passing',
-  2: 'staged: run-mismatch-demo.mjs makes the scanner read test/ as well as docs/. The reads really happen; the overstep is scripted',
-  3: 'a real DeepSeek (deepseek-flash) call reviewed contracts/DemoUSD.sol; the full model answer is in the trace',
-  4: 'a real DeepSeek (deepseek-flash) call summarized docs/ACCOUNTABILITY.md for a new reader; the full model answer is in the trace',
-};
-
-function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: IndependentVerification }) {
-  const intact = result.outcomeMatches && result.intentMatches && result.idsMatch;
-  const intent = result.trace.declaredIntent as { goal?: string; declaredScope?: string[] } | undefined;
-  const rules = result.policy.rulesTriggered;
-  return (
-    <div>
-      <ol className="space-y-2 mb-4">
-        <li>1. Fetched the published trace ({receipt.evidenceURI.split('/').pop()}).</li>
-        <li>
-          2. Hashed it in this browser:
-          <br />
-          <span className="text-[var(--color-paper-faint)]">{shortHash(result.recomputedOutcomeHash)}</span>
-        </li>
-        <li>
-          3. Read the hash stored on {V2_NETWORK.name}:
-          <br />
-          <span className="text-[var(--color-paper-faint)]">{shortHash(receipt.outcomeHash)}</span>
-        </li>
-        <li>
-          4. Compared them: outcome {result.outcomeMatches ? 'matches' : 'differs'}, declared intent{' '}
-          {result.intentMatches ? 'matches' : 'differs'}, receipt and agent ids {result.idsMatch ? 'match' : 'differ'}.
-        </li>
-        <li>
-          5. Re-ran the policy rules here: {rules.length ? rules.join(', ') : 'none fired'}
-          {result.policy.outOfScope.length > 0 && ` (outside scope: ${result.policy.outOfScope.join(', ')})`}, so{' '}
-          {result.policy.verified ? 'VERIFIED' : 'MISMATCH'}, which {result.policyAgrees ? 'agrees with' : 'contradicts'} the
-          recorded status.
-        </li>
-        <li>
-          6. Filer {result.actorOwnsAgent ? 'still owns' : 'no longer owns'} agent #{receipt.agentId}.
-        </li>
-      </ol>
-      {intent?.goal && (
-        <>
-          <SlipRule />
-          <SlipRow label="Declared goal">{intent.goal}</SlipRow>
-          {intent.declaredScope && <SlipRow label="Declared scope">{intent.declaredScope.join(', ')}</SlipRow>}
-        </>
-      )}
-      <SlipRule />
-      <div className="flex items-center justify-between gap-4 py-1">
-        <p className="max-w-[60%]">
-          {!intact
-            ? 'The published trace no longer matches what was committed on-chain.'
-            : !result.policyAgrees
-              ? 'The evidence is untouched, but the recorded status disagrees with the policy rules.'
-              : receipt.status === 'MISMATCH'
-                ? 'The trace shows the agent going outside what it declared, and it has not changed since it was committed.'
-                : 'The evidence is exactly what was committed on-chain.'}
-        </p>
-        <Stamp kind={intact ? 'verified' : 'mismatch'} label={intact ? 'INTACT' : 'ALTERED'} press />
-      </div>
-    </div>
+    <p className="font-mono text-xs text-slate-500 mb-4">
+      Showing the newest {shown} of {total} {what}; this page reads at most {FLEET_PAGE_LIMIT}. Older ones keep their own pages.
+    </p>
   );
 }

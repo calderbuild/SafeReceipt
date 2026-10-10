@@ -79,3 +79,4 @@ docs/gcc/
 packages/client/lib/
 packages/client/*.tgz
 packages/client/LICENSE
+__pycache__/
