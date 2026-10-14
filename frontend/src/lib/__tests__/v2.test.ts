@@ -9,6 +9,7 @@ import trace2 from './fixtures/trace-2.json';
 
 // Real receipts from ActionRegistry V2.1 on Monad Testnet (0x975bD215...), read 2026-09-25.
 const ACTOR = '0x636011edE26fCe9cb675Ac42543d69f3b9CcA9Dc';
+const ACTIVE = { owner: ACTOR, revoked: false };
 const ONCHAIN = {
   1: {
     agentId: 2,
@@ -60,30 +61,40 @@ describe('hashTrace', () => {
 describe('checkTrace', () => {
   it('passes every check for the untouched traces', () => {
     for (const [id, trace] of [[1, trace1], [2, trace2]] as const) {
-      const v = checkTrace(receipt(id), trace, ACTOR);
-      expect(v).toMatchObject({ outcomeMatches: true, intentMatches: true, idsMatch: true, actorOwnsAgent: true, policyAgrees: true });
+      const v = checkTrace(receipt(id), trace, ACTIVE);
+      expect(v).toMatchObject({ outcomeMatches: true, intentMatches: true, idsMatch: true, agent: { anonymous: false, filerOwnsAgent: true, revoked: false }, policyAgrees: true });
     }
   });
 
   it('recomputes SCOPE_CREEP on receipt #2 from the real file paths it read', () => {
-    const v = checkTrace(receipt(2), trace2, ACTOR);
+    const v = checkTrace(receipt(2), trace2, ACTIVE);
     expect(v.policy.rulesTriggered).toEqual(['SCOPE_CREEP']);
     expect(v.policy.outOfScope.every((p) => p.startsWith('test/'))).toBe(true);
   });
 
   it('flags a valid trace copied onto a different receipt', () => {
-    expect(checkTrace({ ...receipt(2), id: 9 }, trace2, ACTOR).idsMatch).toBe(false);
+    expect(checkTrace({ ...receipt(2), id: 9 }, trace2, ACTIVE).idsMatch).toBe(false);
   });
 
   it('flags a trace edited after it was committed', () => {
     const tampered = structuredClone(trace2);
     tampered.declaredIntent.declaredScope = ['docs/', 'test/'];
-    const v = checkTrace(receipt(2), tampered, ACTOR);
+    const v = checkTrace(receipt(2), tampered, ACTIVE);
     expect(v).toMatchObject({ outcomeMatches: false, intentMatches: false, policyAgrees: false });
   });
 
-  it('flags a filer who does not own the agent', () => {
-    expect(checkTrace(receipt(1), trace1, '0x1234567890123456789012345678901234567890').actorOwnsAgent).toBe(false);
+  it('flags a filer who does not own the agent, and a revoked agent', () => {
+    expect(checkTrace(receipt(1), trace1, { owner: '0x1234567890123456789012345678901234567890', revoked: true }).agent).toEqual({
+      anonymous: false,
+      filerOwnsAgent: false,
+      revoked: true,
+    });
+  });
+
+  it('marks an agent id 0 receipt as anonymous', () => {
+    const anon = { ...trace1, agentId: 0 };
+    const v = checkTrace({ ...receipt(1), agentId: 0, outcomeHash: hashTrace(anon) }, anon, null);
+    expect(v).toMatchObject({ outcomeMatches: true, idsMatch: true, agent: { anonymous: true } });
   });
 });
 

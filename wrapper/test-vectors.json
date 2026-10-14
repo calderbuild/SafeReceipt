@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "description": "SafeReceipt hashing test vectors. Rules: docs/HASHING.md. Hash = keccak256 over the UTF-8 bytes of the canonical string.",
+  "traces": [
+    {
+      "name": "key-order",
+      "note": "Object keys are sorted, so input key order does not matter.",
+      "input": {
+        "schema": "safereceipt-offchain-trace/1.0",
+        "agentId": 7,
+        "receiptId": 3,
+        "chainId": 10143,
+        "events": []
+      },
+      "canonical": "{\"agentId\":7,\"chainId\":10143,\"events\":[],\"receiptId\":3,\"schema\":\"safereceipt-offchain-trace/1.0\"}",
+      "hash": "0x39e635d2d1e50c2617646a87910f601efe1ecef4d99aa082106d7ea77c212124"
+    },
+    {
+      "name": "nested-and-arrays",
+      "note": "Keys are sorted at every depth; array order is kept as is.",
+      "input": {
+        "receiptId": 1,
+        "declaredIntent": {
+          "goal": "summarize",
+          "declaredScope": [
+            "docs/",
+            "README.md"
+          ]
+        },
+        "events": [
+          {
+            "stage": "run",
+            "data": {
+              "z": 1,
+              "a": 2
+            }
+          },
+          {
+            "stage": "commit",
+            "data": null
+          }
+        ]
+      },
+      "canonical": "{\"declaredIntent\":{\"declaredScope\":[\"docs/\",\"README.md\"],\"goal\":\"summarize\"},\"events\":[{\"data\":{\"a\":2,\"z\":1},\"stage\":\"run\"},{\"data\":null,\"stage\":\"commit\"}],\"receiptId\":1}",
+      "hash": "0x1d36ecc99f907059fad0a5dc4bb07683bd96af10894c715d451a0b6099863d26"
+    },
+    {
+      "name": "runtime-fields-stripped",
+      "note": "Top-level status, linkedTxHash and outcomeHash are removed before hashing. A nested key with the same name is kept.",
+      "input": {
+        "receiptId": 2,
+        "status": "VERIFIED",
+        "linkedTxHash": "0xabc",
+        "outcomeHash": "0xdef",
+        "events": [
+          {
+            "stage": "done",
+            "data": {
+              "status": "ok"
+            }
+          }
+        ]
+      },
+      "canonical": "{\"events\":[{\"data\":{\"status\":\"ok\"},\"stage\":\"done\"}],\"receiptId\":2}",
+      "hash": "0x561b1ab68fb84e0aceccb1076a06e7c38c1693dd3fe651e1052cc1213e4cf5b8"
+    },
+    {
+      "name": "unicode",
+      "note": "Strings are hashed as UTF-8; JSON.stringify leaves non-ASCII characters unescaped.",
+      "input": {
+        "receiptId": 4,
+        "declaredIntent": {
+          "goal": "总结文档 / résumé"
+        },
+        "events": []
+      },
+      "canonical": "{\"declaredIntent\":{\"goal\":\"总结文档 / résumé\"},\"events\":[],\"receiptId\":4}",
+      "hash": "0xf0579425208493a98f9965491bcb968af72b73b1f2dec16f2f5b9bac8f22d960"
+    },
+    {
+      "name": "scalars",
+      "note": "true, false, null and integers as JSON.stringify writes them. Avoid floats and undefined values: other JSON encoders may write them differently or drop them.",
+      "input": {
+        "receiptId": 5,
+        "ok": true,
+        "failed": false,
+        "error": null,
+        "progress": 100,
+        "events": []
+      },
+      "canonical": "{\"error\":null,\"events\":[],\"failed\":false,\"ok\":true,\"progress\":100,\"receiptId\":5}",
+      "hash": "0x2602b7f318c4a8641fd240a1d4d6dce6e5a1c309d121495ac79a53b94cf7a002"
+    }
+  ],
+  "intents": [
+    {
+      "name": "key-order",
+      "note": "The declared intent is hashed with sorted keys and nothing stripped.",
+      "input": {
+        "goal": "Run the test suite",
+        "budgetMs": 60000,
+        "declaredScope": [
+          "test/"
+        ],
+        "agent": "code-reviewer"
+      },
+      "canonical": "{\"agent\":\"code-reviewer\",\"budgetMs\":60000,\"declaredScope\":[\"test/\"],\"goal\":\"Run the test suite\"}",
+      "hash": "0x24286f06ed3d99fd7d3cfc49ef433e41b5c15fa8370e5c5e835a5f7544e55755"
+    }
+  ],
+  "onChain": [
+    {
+      "name": "monad-receipt-1",
+      "note": "A real receipt. Hashing the trace file must give outcomeHash, and hashing its declaredIntent must give intentHash, both read from ActionRegistry on Monad testnet.",
+      "chainId": 10143,
+      "actionRegistry": "0x975bD215C549F315A066306B161119cec480c927",
+      "receiptId": 1,
+      "traceURL": "https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1/1.json",
+      "traceFixture": "frontend/src/lib/__tests__/fixtures/trace-1.json",
+      "outcomeHash": "0x0e7da537652c2e618907030dabe14a85caf066d4474a8701b7d3364e1cffed8f",
+      "intentHash": "0x360741739a7bb864265472cbdfbc7d033d9dc3667e5dbf19a4c8e3a078bbb2c1"
+    }
+  ]
+}

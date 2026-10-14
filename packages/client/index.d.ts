@@ -1,4 +1,4 @@
-import type { ContractRunner, Signer } from "ethers";
+import type { ContractRunner, Provider, Signer } from "ethers";
 
 export type NetworkName = "monad" | "baseSepolia" | "bohr" | "localhost";
 
@@ -145,3 +145,51 @@ export declare function registerAgent(
 
 /** The shareable page of a Monad receipt, e.g. https://safereceipt.vercel.app/fleet/receipt/5 */
 export declare function receiptURL(receiptId: number): string;
+
+export interface ReceiptCheck {
+  id: "OUTCOME_HASH" | "INTENT_HASH" | "IDS" | "POLICY";
+  ok: boolean;
+  label: string;
+  detail: Record<string, unknown>;
+}
+
+/** Facts that limit what a receipt says. They never fail a check. */
+export interface ReceiptNote {
+  id: "STATUS_IS_A_CLAIM" | "ANONYMOUS" | "AGENT_REVOKED" | "OWNER_CHANGED";
+  text: string;
+}
+
+export interface CheckedReceipt {
+  id: number;
+  actor: string;
+  agentId: number;
+  chainId: number;
+  status: "CREATED" | "EXECUTED" | "VERIFIED" | "MISMATCH";
+  intentHash: string;
+  outcomeHash: string;
+}
+
+export interface ReceiptVerification {
+  /** Every check passed: the published trace is the one committed on-chain and the policy agrees with the status. */
+  intact: boolean;
+  checks: ReceiptCheck[];
+  notes: ReceiptNote[];
+  trace: Record<string, unknown>;
+}
+
+/** Pure checks on a receipt and its trace. `agent` is null for agent id 0, else its owner and revoked flag read now. */
+export declare function checkReceipt(
+  receipt: CheckedReceipt,
+  trace: Record<string, unknown>,
+  agent: { owner: string; revoked: boolean } | null,
+): ReceiptVerification;
+
+type ReadReceipt = CheckedReceipt & { evidenceURI: string; timestamp: number };
+
+/** Read an off-chain receipt over a public RPC, fetch its trace and run checkReceipt. `linked` is false until an outcome is linked. */
+export declare function verifyReceipt(options: {
+  network?: NetworkName;
+  receiptId: number;
+  provider?: Provider;
+  fetchTrace?: (url: string) => Promise<Record<string, unknown>>;
+}): Promise<{ receipt: ReadReceipt; linked: false } | ({ receipt: ReadReceipt; linked: true } & ReceiptVerification)>;

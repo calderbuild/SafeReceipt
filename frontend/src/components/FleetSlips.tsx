@@ -86,9 +86,13 @@ export function ReceiptCard({ receipt, agent, standalone = false }: { receipt: V
       <div className="text-[var(--color-paper-faint)]">{formatTime(receipt.timestamp)}</div>
       <SlipRule />
       <SlipRow label="Agent">
-        <Link to={`/fleet/agent/${receipt.agentId}`}>
-          {agent?.metadata?.name ? `${agent.metadata.name} (#${receipt.agentId})` : `#${receipt.agentId}`}
-        </Link>
+        {receipt.agentId === 0 ? (
+          'anonymous (no registered agent)'
+        ) : (
+          <Link to={`/fleet/agent/${receipt.agentId}`}>
+            {agent?.metadata?.name ? `${agent.metadata.name} (#${receipt.agentId})` : `#${receipt.agentId}`}
+          </Link>
+        )}
       </SlipRow>
       <SlipRow label="Filed by">
         <a href={explorer(receipt.actor)} target="_blank" rel="noopener noreferrer">{shortHash(receipt.actor)}</a>
@@ -139,6 +143,13 @@ const RUN_NOTES: Record<number, string> = {
   4: 'a real DeepSeek (deepseek-flash) call summarized docs/ACCOUNTABILITY.md for a new reader; the full model answer is in the trace',
 };
 
+function agentLine(receipt: V2Receipt, agent: IndependentVerification['agent']): string {
+  if (agent.anonymous) return 'Agent id 0: no registered agent stands behind this receipt; any wallet can file one.';
+  const owner = `Filer ${agent.filerOwnsAgent ? 'still owns' : 'no longer owns'} agent #${receipt.agentId}`;
+  if (!agent.revoked) return `${owner}, which is active.`;
+  return `${owner}, which is now revoked. It was active when this receipt was opened; the outcome may have been linked after the revocation.`;
+}
+
 function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: IndependentVerification }) {
   const intact = result.outcomeMatches && result.intentMatches && result.idsMatch;
   const intent = result.trace.declaredIntent as { goal?: string; declaredScope?: string[] } | undefined;
@@ -167,9 +178,7 @@ function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: In
           {result.policy.verified ? 'VERIFIED' : 'MISMATCH'}, which {result.policyAgrees ? 'agrees with' : 'contradicts'} the
           recorded status.
         </li>
-        <li>
-          6. Filer {result.actorOwnsAgent ? 'still owns' : 'no longer owns'} agent #{receipt.agentId}.
-        </li>
+        <li>6. {agentLine(receipt, result.agent)}</li>
       </ol>
       {intent?.goal && (
         <>
