@@ -100,7 +100,7 @@ authorised agent:
   agent is revoked (or after its NFT changes hands); the filer still controls
   the link.
 
-The verifier (`npx safereceipt-verify`, and the Verify button on /fleet) labels
+The verifier (`npx --package=@safereceipt/client safereceipt-verify`, and the Verify button on /fleet) labels
 both: an anonymous receipt as such, and an agent that is revoked now or no
 longer owned by the filer. These labels are notes, not failures: the published
 trace can still be exactly the one committed on-chain.

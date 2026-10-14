@@ -222,7 +222,7 @@ PostCSS config is in `frontend/postcss.config.cjs` (CommonJS) using `@tailwindcs
 - **frontend/src/hooks/useWallet.ts**: MetaMask connection and Monad network switching
 - **frontend/src/lib/v2.ts**: V2.1 registry reads (Monad), `hashTrace` (mirrors `wrapper/canonicalize.mjs`), `verifyIndependently` / pure `checkTrace`
 - **packages/client/**: `@safereceipt/client`, the wrapper modules packaged for other agents (`npm pack` copies `wrapper/` into `lib/` plus the root LICENSE; publishable, `publishConfig.access` public)
-- **wrapper/verify.mjs** / **verify-cli.mjs**: `checkReceipt` (pure) and `verifyReceipt`, shipped as `npx safereceipt-verify <id> --network monad|bohr`; notes anonymous (agent 0), revoked and transferred agents. `wrapper/test-vectors.json` + `docs/HASHING.md` are the hashing spec; `verify.test.ts` checks wrapper and browser against them
+- **wrapper/verify.mjs** / **verify-cli.mjs**: `checkReceipt` (pure) and `verifyReceipt`, shipped as `npx --package=@safereceipt/client safereceipt-verify <id> --network monad|bohr`; notes anonymous (agent 0), revoked and transferred agents. `wrapper/test-vectors.json` + `docs/HASHING.md` are the hashing spec; `verify.test.ts` checks wrapper and browser against them
 - **wrapper/hosted.mjs**: `registerAgent` (inline data: URI metadata), `hostedPublisher`, the default evidence base URL; `receiptURL`; `SAFERECEIPT_SITE_URL` points it at a preview or dev server
 - **frontend/api/traces.ts**: hosted trace store (see Hosted traces)
 - **frontend/src/lib/tracePolicy.ts**: browser port of `wrapper/policy.mjs`; `v2.test.ts` checks parity, keep them identical
