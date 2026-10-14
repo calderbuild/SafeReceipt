@@ -16,6 +16,7 @@ const AGENT_IDENTITY_ABI = [
   'function tokenURI(uint256 agentId) view returns (string)',
   'function isActive(uint256 agentId) view returns (bool)',
   'function ownerOf(uint256 agentId) view returns (address)',
+  'function revoked(uint256 agentId) view returns (bool)',
 ];
 
 const ACTION_REGISTRY_ABI = [
@@ -73,8 +74,11 @@ export interface IndependentVerification {
   intentMatches: boolean;
   /** The trace names this receipt and agent (a valid trace copied from another receipt fails here). */
   idsMatch: boolean;
-  /** The address that filed the receipt still owns the agent NFT. */
-  actorOwnsAgent: boolean;
+  /**
+   * Who stands behind the receipt, read now. Anonymous (agent id 0) receipts can be filed by any wallet.
+   * The contract checks ownership and revocation only when a receipt is opened, not when its outcome is linked.
+   */
+  agent: { anonymous: true } | { anonymous: false; filerOwnsAgent: boolean; revoked: boolean };
   /** Policy rules re-run on the trace in this browser, and whether they agree with the recorded status. */
   policy: PolicyVerdict;
   policyAgrees: boolean;
@@ -183,12 +187,27 @@ export async function verifyIndependently(receipt: V2Receipt): Promise<Independe
   const res = await fetch(receipt.evidenceURI, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Could not fetch the published trace (HTTP ${res.status})`);
   const trace = (await res.json()) as Record<string, unknown>;
-  const owner = (await registries().identity.ownerOf(receipt.agentId)) as string;
-  return checkTrace(receipt, trace, owner);
+  return checkTrace(receipt, trace, await readAgentState(receipt.agentId));
 }
 
-/** Every comparison the Verify button makes, given the fetched trace and the agent's current owner. */
-export function checkTrace(receipt: V2Receipt, trace: Record<string, unknown>, agentOwner: string): IndependentVerification {
+/** null for agent id 0, which has no identity token to read. */
+async function readAgentState(agentId: number): Promise<AgentState | null> {
+  if (agentId === 0) return null;
+  const { identity } = registries();
+  const [owner, revoked] = await Promise.all([
+    withRetry(() => identity.ownerOf(agentId) as Promise<string>),
+    withRetry(() => identity.revoked(agentId) as Promise<boolean>),
+  ]);
+  return { owner, revoked };
+}
+
+export interface AgentState {
+  owner: string;
+  revoked: boolean;
+}
+
+/** Every comparison the Verify button makes, given the fetched trace and the agent's current state (null when anonymous). */
+export function checkTrace(receipt: V2Receipt, trace: Record<string, unknown>, agentState: AgentState | null): IndependentVerification {
   const recomputedOutcomeHash = hashTrace(trace);
   const recomputedIntentHash = computeIntentHash((trace.declaredIntent ?? {}) as object);
   const policy = evaluateTrace(trace as OffChainTrace);
@@ -199,7 +218,9 @@ export function checkTrace(receipt: V2Receipt, trace: Record<string, unknown>, a
     recomputedIntentHash,
     intentMatches: recomputedIntentHash.toLowerCase() === receipt.intentHash.toLowerCase(),
     idsMatch: trace.receiptId === receipt.id && trace.agentId === receipt.agentId,
-    actorOwnsAgent: agentOwner.toLowerCase() === receipt.actor.toLowerCase(),
+    agent: agentState
+      ? { anonymous: false, filerOwnsAgent: agentState.owner.toLowerCase() === receipt.actor.toLowerCase(), revoked: agentState.revoked }
+      : { anonymous: true },
     policy,
     policyAgrees: (policy.verified ? 'VERIFIED' : 'MISMATCH') === receipt.status,
   };

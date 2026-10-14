@@ -86,6 +86,37 @@ resets on a cold start.
 and the agent not to be revoked. In V2.0 this was not checked, so anyone could
 file receipts under any agent; V2.0 is kept only for its historical receipts.
 
+Two paths are allowed on purpose, and neither is an endorsement by a currently
+authorised agent:
+
+- **Anonymous receipts (agent id 0).** Any wallet can file one. No ownership or
+  revocation check runs, and the receipt is not added to any agent's list. It
+  shows that the filing wallet committed an intent before acting; it says
+  nothing about which agent did the work.
+- **Outcomes linked after revocation.** `linkOffChainOutcome` and
+  `linkExecution` check only that the caller filed the receipt and that no
+  outcome is linked yet. They do not recheck agent ownership or revocation. So
+  a receipt opened while the agent was active can get its outcome after the
+  agent is revoked (or after its NFT changes hands); the filer still controls
+  the link.
+
+The verifier (`npx safereceipt-verify`, and the Verify button on /fleet) labels
+both: an anonymous receipt as such, and an agent that is revoked now or no
+longer owned by the filer. These labels are notes, not failures: the published
+trace can still be exactly the one committed on-chain.
+
+## Status labels
+
+| Label                    | Who sets it                 | What it means                                                                                   |
+| ------------------------ | --------------------------- | ----------------------------------------------------------------------------------------------- |
+| CREATED                  | the contract                | intent committed, no outcome linked yet                                                         |
+| VERIFIED / MISMATCH      | the filer, in the link call | the filer's own verdict; re-run the policy (`POLICY` check) instead of trusting it              |
+| INTACT (verifier output) | your copy of the verifier   | the published trace is byte for byte the one committed on-chain; nothing about its completeness |
+| STATUS DISPUTED          | your copy of the verifier   | the trace is the committed one, but the policy rules disagree with the filer's verdict          |
+| BROKEN                   | your copy of the verifier   | the published trace, its intent or its ids do not match the chain                               |
+
+Hashing rules and test vectors for writing your own verifier: [HASHING.md](./HASHING.md).
+
 ## Why ship the honest version
 
 The on-chain approve check is reproducible by anyone today. The off-chain path is a real,

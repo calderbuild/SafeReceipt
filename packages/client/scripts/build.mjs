@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WRAPPER = join(PKG, "..", "..", "wrapper");
-const FILES = ["accountability.mjs", "canonicalize.mjs", "policy.mjs", "abi.mjs", "ledger.mjs", "hosted.mjs", "deployments.json"];
+const FILES = ["accountability.mjs", "canonicalize.mjs", "policy.mjs", "abi.mjs", "ledger.mjs", "hosted.mjs", "verify.mjs", "verify-cli.mjs", "deployments.json", "test-vectors.json"];
 
 const LIB = join(PKG, "lib");
 rmSync(LIB, { recursive: true, force: true });

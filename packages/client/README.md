@@ -77,6 +77,14 @@ By default the record is stored on SafeReceipt's site and served at `https://saf
 
 To host records yourself, pass `evidenceBaseURL` and a `publish(trace, receiptId)` hook that makes the record readable at `${evidenceBaseURL}/${receiptId}.json` before it returns.
 
+## Check a receipt yourself
+
+```bash
+npx safereceipt-verify 3 --network monad
+```
+
+It reads the receipt over a public RPC, fetches the published record, re-hashes it and re-runs the policy rules on your machine; nothing goes through SafeReceipt's site. Exit code 0 means every check passed. It also notes receipts filed without an agent (agent id 0) and agents that were revoked or changed hands after the receipt was opened. In code: `verifyReceipt({ network, receiptId })`, or `checkReceipt(receipt, trace, agent)` when you already have the data. To write a verifier in another language, follow [docs/HASHING.md](https://github.com/calderbuild/SafeReceipt/blob/main/docs/HASHING.md) and check it against `lib/test-vectors.json`.
+
 ## What a receipt proves, and what it doesn't
 
 - It proves the intent was committed before the work, and that the published record is the one linked on-chain (it can't be changed afterwards).
@@ -85,6 +93,6 @@ To host records yourself, pass `evidenceBaseURL` and a `publish(trace, receiptId
 
 ## Other exports
 
-`hostedPublisher(signer)`, `metadataURI(metadata)`, `verifyAgainstChain(client, receiptId, evidenceURI)`, `hashTrace`, `hashIntent`, `DEPLOYMENTS`, the ABIs. Types are in `index.d.ts`.
+`hostedPublisher(signer)`, `metadataURI(metadata)`, `verifyReceipt`, `checkReceipt`, `verifyAgainstChain(client, receiptId, evidenceURI)`, `hashTrace`, `hashIntent`, `DEPLOYMENTS`, the ABIs. Types are in `index.d.ts`.
 
 The source lives in [`wrapper/`](https://github.com/calderbuild/SafeReceipt/tree/main/wrapper); `npm run build` (run by `npm pack`) copies it into `lib/`. MIT.

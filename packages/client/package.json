@@ -24,6 +24,9 @@
   "license": "MIT",
   "main": "./index.mjs",
   "types": "./index.d.ts",
+  "bin": {
+    "safereceipt-verify": "./lib/verify-cli.mjs"
+  },
   "exports": {
     ".": {
       "types": "./index.d.ts",
