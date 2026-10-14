@@ -80,7 +80,7 @@ To host records yourself, pass `evidenceBaseURL` and a `publish(trace, receiptId
 ## Check a receipt yourself
 
 ```bash
-npx safereceipt-verify 3 --network monad
+npx --package=@safereceipt/client safereceipt-verify 3 --network monad
 ```
 
 It reads the receipt over a public RPC, fetches the published record, re-hashes it and re-runs the policy rules on your machine; nothing goes through SafeReceipt's site. Exit code 0 means every check passed. It also notes receipts filed without an agent (agent id 0) and agents that were revoked or changed hands after the receipt was opened. In code: `verifyReceipt({ network, receiptId })`, or `checkReceipt(receipt, trace, agent)` when you already have the data. To write a verifier in another language, follow [docs/HASHING.md](https://github.com/calderbuild/SafeReceipt/blob/main/docs/HASHING.md) and check it against `lib/test-vectors.json`.

@@ -5,7 +5,7 @@ import { computeIntentHash } from '../canonicalize';
 // @ts-expect-error plain JS module shared with @safereceipt/client
 import { canonicalize, hashTrace, hashIntent } from '../../../../wrapper/canonicalize.mjs';
 // @ts-expect-error plain JS module shared with @safereceipt/client
-import { checkReceipt } from '../../../../wrapper/verify.mjs';
+import { checkReceipt, v21Networks, verifyReceipt } from '../../../../wrapper/verify.mjs';
 import vectors from '../../../../wrapper/test-vectors.json';
 import trace1 from './fixtures/trace-1.json';
 
@@ -86,5 +86,15 @@ describe('checkReceipt', () => {
     const r = checkReceipt(receiptFor(trace1), trace1, { owner: '0x000000000000000000000000000000000000dEaD', revoked: true });
     expect(r.intact).toBe(true);
     expect(noteIds(r)).toEqual(expect.arrayContaining(['AGENT_REVOKED', 'OWNER_CHANGED']));
+  });
+});
+
+describe('verifyReceipt network guard', () => {
+  it('lists only V2.1 deployments', () => {
+    expect(v21Networks()).toEqual(['monad', 'bohr']);
+  });
+
+  it.each(['baseSepolia', 'localhost', 'nowhere'])('refuses %s before touching the network', async (network) => {
+    await expect(verifyReceipt({ network, receiptId: 1 })).rejects.toThrow(/not a V2\.1 deployment/);
   });
 });

@@ -80,7 +80,7 @@ console.log(receiptId, status, evidenceURI);
 ## 自己核验一张收据
 
 ```bash
-npx safereceipt-verify 3 --network monad
+npx --package=@safereceipt/client safereceipt-verify 3 --network monad
 ```
 
 它通过公开 RPC 读取收据，下载公开的记录，在你自己的机器上重新计算哈希、重跑规则，不经过 SafeReceipt 的网站。退出码为 0 表示全部检查通过。它还会标出没有挂靠 agent 的收据（agent id 0），以及收据开出之后被吊销或换了主人的 agent。在代码里用 `verifyReceipt({ network, receiptId })`；已经有数据时用 `checkReceipt(receipt, trace, agent)`。想用别的语言写验证器，按 [docs/HASHING.md](https://github.com/calderbuild/SafeReceipt/blob/main/docs/HASHING.md) 实现，再用 `lib/test-vectors.json` 核对。

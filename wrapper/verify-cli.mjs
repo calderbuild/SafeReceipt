@@ -2,11 +2,10 @@
 // Verify one off-chain receipt yourself: reads the chain over a public RPC, fetches
 // the published trace, re-hashes it and re-runs the policy rules locally.
 //
-//   npx safereceipt-verify <receiptId> [--network monad|bohr] [--json]
+//   npx --package=@safereceipt/client safereceipt-verify <receiptId> [--network monad|bohr] [--json]
 //
 // Exit 0: every check passed. 1: a check failed. 2: no outcome linked yet, or an error.
-import { DEPLOYMENTS } from "./abi.mjs";
-import { verifyReceipt } from "./verify.mjs";
+import { v21Networks, verifyReceipt } from "./verify.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name) => {
@@ -18,8 +17,7 @@ const network = flag("--network") ?? "monad";
 const [receiptId] = args;
 
 if (!/^\d+$/.test(receiptId ?? "")) {
-  const networks = Object.keys(DEPLOYMENTS).filter((n) => DEPLOYMENTS[n].actionRegistry && DEPLOYMENTS[n].version === "2.1");
-  console.error(`Usage: safereceipt-verify <receiptId> [--network ${networks.join("|")}] [--json]`);
+  console.error(`Usage: safereceipt-verify <receiptId> [--network ${v21Networks().join("|")}] [--json]`);
   process.exit(2);
 }
 

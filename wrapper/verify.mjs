@@ -78,10 +78,17 @@ export function checkReceipt(receipt, trace, agent) {
   return { intact: checks.every((c) => c.ok), checks, notes, trace };
 }
 
+const isV21 = (cfg) => cfg?.version === "2.1" && Boolean(cfg.actionRegistry) && Boolean(cfg.agentIdentityRegistry);
+
+/** Networks this verifier can read: those with a V2.1 deployment. */
+export const v21Networks = () => Object.keys(DEPLOYMENTS).filter((n) => isV21(DEPLOYMENTS[n]));
+
 /** Read a receipt and its agent from the chain, fetch the published trace, run checkReceipt. */
 export async function verifyReceipt({ network = "monad", receiptId, provider, fetchTrace = fetchJSON }) {
   const cfg = DEPLOYMENTS[network];
-  if (!cfg?.actionRegistry) throw new Error(`No V2.1 deployment on network: ${network}`);
+  if (!isV21(cfg)) {
+    throw new Error(`${network} is not a V2.1 deployment. Supported: ${v21Networks().join(", ")}. V2.0 let anyone file under any agent, so its receipts cannot be read with these checks.`);
+  }
   provider ??= new ethers.JsonRpcProvider(cfg.rpc);
 
   const registry = new ethers.Contract(cfg.actionRegistry, ACTION_REGISTRY_ABI, provider);
