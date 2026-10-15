@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { AgentCard, ReceiptCard } from '../components/FleetSlips';
-import { explorer, receiptNo } from '../lib/fleet';
+import { explorer, fleetPath, receiptNo } from '../lib/fleet';
 import { messageOf } from '../lib/errors';
 import { ACCOUNTABILITY_URL, FEEDBACK_URL } from '../lib/links';
-import { FLEET_PAGE_LIMIT, listAgents, listReceipts, V2_ADDRESSES, V2_NETWORK, type AgentProfile, type V2Receipt } from '../lib/v2';
+import { FLEET_NETS, FLEET_PAGE_LIMIT, listAgents, listReceipts, type AgentProfile, type FleetNet, type V2Receipt } from '../lib/v2';
 
 type LoadState =
   | { kind: 'loading' }
@@ -17,11 +17,11 @@ type LoadState =
       receiptTotal: number;
     };
 
-// The public Monad RPC occasionally returns an empty error for a single eth_call; a short retry clears it.
-async function readFleet(attempts = 3): Promise<LoadState> {
+// A public RPC occasionally returns an empty error for a single eth_call; a short retry clears it.
+async function readFleet(net: FleetNet, attempts = 3): Promise<LoadState> {
   for (let i = 1; ; i++) {
     try {
-      const [agents, receipts] = await Promise.all([listAgents(), listReceipts()]);
+      const [agents, receipts] = await Promise.all([listAgents(net), listReceipts(net)]);
       return { kind: 'ready', agents: agents.agents, agentTotal: agents.total, receipts: receipts.receipts, receiptTotal: receipts.total };
     } catch (error) {
       if (i === attempts) return { kind: 'error', message: messageOf(error) };
@@ -30,19 +30,20 @@ async function readFleet(attempts = 3): Promise<LoadState> {
   }
 }
 
-export function Fleet() {
+export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
+  const { network, addresses } = FLEET_NETS[net];
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    readFleet().then((next) => {
+    readFleet(net).then((next) => {
       if (!cancelled) setState(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [attempt, net]);
 
   const retry = () => {
     setState({ kind: 'loading' });
@@ -53,43 +54,45 @@ export function Fleet() {
     <main className="pt-24 pb-20 px-4">
       <div className="max-w-6xl mx-auto">
         <header className="mb-12 max-w-3xl">
-          <h1 className="font-display text-4xl md:text-5xl font-semibold text-white mb-4">Agent fleet</h1>
-          <p className="text-slate-300 text-lg leading-relaxed mb-5">
-            Every agent registered on SafeReceipt's registry, each with an identity on-chain. The ones marked{' '}
-            <span className="font-mono text-sm text-primary-300">run by SafeReceipt</span> are mine; anyone can register
-            another. Every receipt below can be checked from this page: your browser fetches the published evidence,
-            hashes it, and compares the result with the hash stored on Monad. You don't have to trust this site to do it.
-          </p>
-          <p className="text-slate-400 text-sm leading-relaxed mb-5">
-            The agents run from a command line, not from this page: each run commits its intent, does the work,
-            publishes its trace and links it on-chain, and its receipt shows up here.{' '}
-            <Link to="/start" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
-              Put your own agent here
-            </Link>
-            {' · '}
-            <a href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-white underline underline-offset-4">
-              Tell us what broke
-            </a>
+          <h1 className="font-display text-4xl md:text-5xl font-semibold text-white mb-4">
+            {net === 'bot' ? 'Agent fleet on BOT Chain' : 'Agent fleet'}
+          </h1>
+          {net === 'bot' ? <BotIntro /> : <MonadIntro />}
+          <p className="font-mono text-xs text-slate-400 mb-3">
+            {(['monad', 'bot'] as const).map((n, i) => (
+              <span key={n}>
+                {i > 0 && ' · '}
+                {n === net ? (
+                  <span className="text-slate-200" aria-current="page">{FLEET_NETS[n].network.name}</span>
+                ) : (
+                  <Link to={fleetPath(n)} className="underline underline-offset-2 hover:text-slate-200">{FLEET_NETS[n].network.name}</Link>
+                )}
+              </span>
+            ))}
           </p>
           <p className="font-mono text-xs text-slate-500 leading-relaxed">
-            {V2_NETWORK.name} · chain {V2_NETWORK.chainId} ·{' '}
-            <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(V2_ADDRESSES.agentIdentityRegistry)} target="_blank" rel="noopener noreferrer">
+            {network.name} · chain {network.chainId} ·{' '}
+            <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(addresses.agentIdentityRegistry, net)} target="_blank" rel="noopener noreferrer">
               AgentIdentityRegistry
             </a>{' '}
             ·{' '}
-            <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(V2_ADDRESSES.actionRegistry)} target="_blank" rel="noopener noreferrer">
+            <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(addresses.actionRegistry, net)} target="_blank" rel="noopener noreferrer">
               ActionRegistry
             </a>
-            <br />
-            This page reads V2.1. The earlier V2.0 registries (Monad and Base Sepolia) are listed in DEPLOYMENTS.md.
+            {net === 'monad' && (
+              <>
+                <br />
+                This page reads V2.1. The earlier V2.0 registries (Monad and Base Sepolia) are listed in DEPLOYMENTS.md.
+              </>
+            )}
           </p>
         </header>
 
-        {state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">Reading the registries on {V2_NETWORK.name}…</p>}
+        {state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">Reading the registries on {network.name}…</p>}
 
         {state.kind === 'error' && (
           <div className="glass-card p-6 max-w-xl">
-            <p className="text-white font-medium mb-1">Couldn't read the registries on {V2_NETWORK.name}.</p>
+            <p className="text-white font-medium mb-1">Couldn't read the registries on {network.name}.</p>
             <p className="text-sm text-slate-400 mb-4 font-mono break-words">{state.message}</p>
             <button onClick={retry} className="btn-secondary text-sm">Try again</button>
           </div>
@@ -107,6 +110,7 @@ export function Fleet() {
                   <AgentCard
                     key={agent.id}
                     agent={agent}
+                    net={net}
                     count={state.receipts.filter((r) => 'agentId' in r && r.agentId === agent.id).length}
                   />
                 ))}
@@ -130,10 +134,10 @@ export function Fleet() {
                   {state.receipts.map((receipt) =>
                     'error' in receipt ? (
                       <div key={receipt.id} className="glass-card p-5 font-mono text-sm text-slate-400">
-                        <Link className="underline" to={`/fleet/receipt/${receipt.id}`}>{receiptNo(receipt.id)}</Link> could not be read: {receipt.error}
+                        <Link className="underline" to={fleetPath(net, `/receipt/${receipt.id}`)}>{receiptNo(receipt.id)}</Link> could not be read: {receipt.error}
                       </div>
                     ) : (
-                      <ReceiptCard key={receipt.id} receipt={receipt} agent={state.agents.find((a) => a.id === receipt.agentId)} />
+                      <ReceiptCard key={receipt.id} receipt={receipt} agent={state.agents.find((a) => a.id === receipt.agentId)} net={net} />
                     )
                   )}
                 </div>
@@ -152,6 +156,48 @@ export function Fleet() {
         )}
       </div>
     </main>
+  );
+}
+
+function MonadIntro() {
+  return (
+    <>
+              <p className="text-slate-300 text-lg leading-relaxed mb-5">
+                Every agent registered on SafeReceipt's registry, each with an identity on-chain. The ones marked{' '}
+                <span className="font-mono text-sm text-primary-300">run by SafeReceipt</span> are mine; anyone can register
+                another. Every receipt below can be checked from this page: your browser fetches the published evidence,
+                hashes it, and compares the result with the hash stored on Monad. You don't have to trust this site to do it.
+              </p>
+              <p className="text-slate-400 text-sm leading-relaxed mb-5">
+                The agents run from a command line, not from this page: each run commits its intent, does the work,
+                publishes its trace and links it on-chain, and its receipt shows up here.{' '}
+                <Link to="/start" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
+                  Put your own agent here
+                </Link>
+                {' · '}
+                <a href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-white underline underline-offset-4">
+                  Tell us what broke
+                </a>
+              </p>
+    </>
+  );
+}
+
+/** The BOT Chain pilot: scope stated up front, since a record on-chain says less than it can seem to. */
+function BotIntro() {
+  return (
+    <>
+      <p className="text-slate-300 text-lg leading-relaxed mb-5">
+        A controlled pilot of SafeReceipt's two V2.1 registries on BOT Chain mainnet, deployed on 2026-10-15. The receipts
+        below are a validation set I filed myself: a normal one, an anonymous one (agent 0), and one whose outcome was
+        linked after its agent was revoked. Verify fetches the published trace, hashes it in your browser, and compares
+        the result with the hash stored on BOT Chain. You don't have to trust this site to do it.
+      </p>
+      <p className="text-slate-400 text-sm leading-relaxed mb-5">
+        This is a pilot, not an audit, certification or endorsement of SafeReceipt by BOT Chain. A record on-chain proves
+        what was recorded, not that the agent's actions happened as the trace says.
+      </p>
+    </>
   );
 }
 

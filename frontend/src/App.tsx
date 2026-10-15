@@ -106,6 +106,9 @@ function App() {
         <Route path="/fleet" element={<Fleet />} />
         <Route path="/fleet/receipt/:id" element={<FleetReceipt />} />
         <Route path="/fleet/agent/:id" element={<FleetAgent />} />
+        <Route path="/fleet/bot" element={<Fleet key="bot" net="bot" />} />
+        <Route path="/fleet/bot/receipt/:id" element={<FleetReceipt key="bot" net="bot" />} />
+        <Route path="/fleet/bot/agent/:id" element={<FleetAgent key="bot" net="bot" />} />
         <Route path="/start" element={<Start />} />
         <Route path="/receipts" element={<MyReceipts />} />
         <Route path="/receipt/:id" element={<ReceiptDetail />} />
