@@ -70,6 +70,27 @@ All three are verified on Blockscout with `node scripts/verify-blockscout.mjs ht
 
 Agents 1 to 3 are registered with the same names and metadata as on Monad. Receipt 1: `wrapper/run-example.mjs`, code-reviewer runs `npm run test`, 50 passing, VERIFIED. Commit tx `0xf94c87917c91bf8fe1c0474f05fc612ff375752639b190c9221e9bf36a4c4850`, link tx `0xe11c680752bd897aeacf5ad3d6d3a4b12c9ef8b9b1cd686e08a1501f518ffd0e`, trace [traces/v2.1-bohr/1.json](https://raw.githubusercontent.com/calderbuild/accountability-ledger/master/traces/v2.1-bohr/1.json).
 
+### V2.1 on BOT Chain mainnet (chain 677, 2026-10-15)
+
+A controlled pilot at BOT Chain's invitation. BOT Chain paid the deployment gas; there is no funding. The two registries only, no DemoUSD. The app does not read it; the wrapper does with `NETWORK=bot`. Explorer: https://scan.botchain.ai (Blockscout). Deployer `0x6967207295F0C76cc2428b852f720188EF2d63Fc`, a wallet used only for this chain.
+
+| Contract              | BOT Chain mainnet                            | Deployment tx                                                        |
+| --------------------- | -------------------------------------------- | -------------------------------------------------------------------- |
+| AgentIdentityRegistry | `0xcAC9644e5772d590f36BB5bF9172451E2Ad96a25` | `0x85a00af4c60961944f9724306c494b8b14ed4e9d09ced9af2a5c9be913f1bc6b` |
+| ActionRegistry        | `0x32A607C5E24182e3E504DECea60a692265E6E319` | `0x4da786f756f8fd280a2739a500abb6a0952694a9f8d7cb5b105b4a59a42f5659` |
+
+Both show as verified on Blockscout (0.8.24, optimizer 200 runs, EVM cancun). I did not complete the verification form: my submission was blocked by Cloudflare (403) and the explorer then marked them verified by matching the bytecode in its own database. The source it shows is the same as `contracts/`.
+
+Validation set (`wrapper/run-validation.mjs`), each receipt checks out with `node wrapper/verify-cli.mjs <id> --network bot`:
+
+| Receipt | What it covers | Open tx | Link tx |
+| ------- | -------------- | ------- | ------- |
+| 1 | normal receipt, agent #1 | `0xc6412430bb1f4d166449fed436ccbc9c9b0acb9c9e67303b8f62d26f3779c572` | `0x9ff08d8aee37880e143dfa9d1df75a093611a41a887d3d923d016bcc903c6b53` |
+| 2 | anonymous receipt (agent 0) | `0x150aada218665a9c50ccde4f773379a8d3c9c609daa0024e01bbd9a90cd012c4` | `0xf3159b9fa6d2ed82189c5b05f2e2f2fe16f9b42b2e42b4dde2c741896c6b48d6` |
+| 3 | outcome linked after revoking agent #2 (revoke tx `0x43bf8a5c5ad78ff35e503b3543a6f6476a47d1ab0e5b87f12715a57c1a849db2`) | `0xe2e14d3d88f380ff23ed7c19cff9a99cb8c434a163cb7f294362cb4afbb367fd` | `0xf5a28aa1171dff4fc8d69b7e90a05c7b085579063c53042379c260089224ae25` |
+
+Traces are in the ledger under `traces/v2.1-bot/`. A recorded VERIFIED was written by the filer; the check proves the published trace is the one committed on-chain, not that the agent did what the trace says.
+
 ## Historical (not read by the app)
 
 | Contract                     | Monad Testnet                                | Base Sepolia                                 |
