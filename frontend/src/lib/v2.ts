@@ -11,6 +11,23 @@ export const V2_ADDRESSES = {
   actionRegistry: '0x975bD215C549F315A066306B161119cec480c927',
 } as const;
 
+/** The chains the fleet pages can read. `monad` is the default everywhere; `bot` is the BOT Chain mainnet pilot (2026-10-15). */
+export type FleetNet = 'monad' | 'bot';
+
+export const FLEET_NETS: Record<
+  FleetNet,
+  { network: { chainId: number; name: string; rpcUrl: string; blockExplorer: string }; addresses: { agentIdentityRegistry: string; actionRegistry: string } }
+> = {
+  monad: { network: V2_NETWORK, addresses: V2_ADDRESSES },
+  bot: {
+    network: { chainId: 677, name: 'BOT Chain Mainnet', rpcUrl: 'https://rpc.botchain.ai', blockExplorer: 'https://scan.botchain.ai' },
+    addresses: {
+      agentIdentityRegistry: '0xcAC9644e5772d590f36BB5bF9172451E2Ad96a25',
+      actionRegistry: '0x32A607C5E24182e3E504DECea60a692265E6E319',
+    },
+  },
+};
+
 const AGENT_IDENTITY_ABI = [
   'function nextAgentId() view returns (uint256)',
   'function tokenURI(uint256 agentId) view returns (string)',
@@ -93,11 +110,12 @@ export function hashTrace(trace: Record<string, unknown>): string {
   return ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(sortObjectKeys(stripped))));
 }
 
-function registries() {
-  const provider = new ethers.JsonRpcProvider(V2_NETWORK.rpcUrl, V2_NETWORK.chainId, { staticNetwork: true });
+function registries(net: FleetNet) {
+  const { network, addresses } = FLEET_NETS[net];
+  const provider = new ethers.JsonRpcProvider(network.rpcUrl, network.chainId, { staticNetwork: true });
   return {
-    identity: new ethers.Contract(V2_ADDRESSES.agentIdentityRegistry, AGENT_IDENTITY_ABI, provider),
-    actions: new ethers.Contract(V2_ADDRESSES.actionRegistry, ACTION_REGISTRY_ABI, provider),
+    identity: new ethers.Contract(addresses.agentIdentityRegistry, AGENT_IDENTITY_ABI, provider),
+    actions: new ethers.Contract(addresses.actionRegistry, ACTION_REGISTRY_ABI, provider),
   };
 }
 
@@ -126,8 +144,8 @@ async function fetchMetadata(uri: string): Promise<AgentMetadata | null> {
   }
 }
 
-export async function readAgent(id: number): Promise<AgentProfile> {
-  const { identity } = registries();
+export async function readAgent(id: number, net: FleetNet = 'monad'): Promise<AgentProfile> {
+  const { identity } = registries(net);
   const [tokenURI, active, owner] = await Promise.all([
     withRetry(() => identity.tokenURI(id) as Promise<string>),
     withRetry(() => identity.isActive(id) as Promise<boolean>),
@@ -137,15 +155,15 @@ export async function readAgent(id: number): Promise<AgentProfile> {
 }
 
 /** Newest first, at most FLEET_PAGE_LIMIT. */
-export async function listAgents(): Promise<{ agents: AgentProfile[]; total: number }> {
-  const { identity } = registries();
+export async function listAgents(net: FleetNet = 'monad'): Promise<{ agents: AgentProfile[]; total: number }> {
+  const { identity } = registries(net);
   const next = await identity.nextAgentId();
-  return { agents: await Promise.all(newest(next).map(readAgent)), total: Number(next) - 1 };
+  return { agents: await Promise.all(newest(next).map((id) => readAgent(id, net))), total: Number(next) - 1 };
 }
 
-export async function readReceipt(id: number): Promise<V2Receipt> {
-  const r = await withRetry(() => registries().actions.getReceipt(id));
-  if (/^0x0{40}$/i.test(r.actor)) throw new Error(`Receipt #${id} does not exist on ${V2_NETWORK.name}`);
+export async function readReceipt(id: number, net: FleetNet = 'monad'): Promise<V2Receipt> {
+  const r = await withRetry(() => registries(net).actions.getReceipt(id));
+  if (/^0x0{40}$/i.test(r.actor)) throw new Error(`Receipt #${id} does not exist on ${FLEET_NETS[net].network.name}`);
   return {
     id,
     actor: r.actor,
@@ -164,36 +182,36 @@ export async function readReceipt(id: number): Promise<V2Receipt> {
 type ReceiptOrError = V2Receipt | { id: number; error: string };
 
 /** A receipt whose read fails comes back as `{ id, error }` instead of failing the page. */
-async function readMany(ids: number[]): Promise<ReceiptOrError[]> {
-  const settled = await Promise.allSettled(ids.map(readReceipt));
+async function readMany(ids: number[], net: FleetNet): Promise<ReceiptOrError[]> {
+  const settled = await Promise.allSettled(ids.map((id) => readReceipt(id, net)));
   return settled.map((s, i) =>
     s.status === 'fulfilled' ? s.value : { id: ids[i], error: s.reason instanceof Error ? s.reason.message : String(s.reason) }
   );
 }
 
 /** Newest first, at most FLEET_PAGE_LIMIT. */
-export async function listReceipts(): Promise<{ receipts: ReceiptOrError[]; total: number }> {
-  const next = await registries().actions.nextReceiptId();
-  return { receipts: await readMany(newest(next)), total: Number(next) - 1 };
+export async function listReceipts(net: FleetNet = 'monad'): Promise<{ receipts: ReceiptOrError[]; total: number }> {
+  const next = await registries(net).actions.nextReceiptId();
+  return { receipts: await readMany(newest(next), net), total: Number(next) - 1 };
 }
 
 /** One agent's receipts, newest first, at most FLEET_PAGE_LIMIT. */
-export async function listAgentReceipts(agentId: number): Promise<{ receipts: ReceiptOrError[]; total: number }> {
-  const ids = ((await withRetry(() => registries().actions.getAgentReceipts(agentId))) as bigint[]).map(Number);
-  return { receipts: await readMany(ids.reverse().slice(0, FLEET_PAGE_LIMIT)), total: ids.length };
+export async function listAgentReceipts(agentId: number, net: FleetNet = 'monad'): Promise<{ receipts: ReceiptOrError[]; total: number }> {
+  const ids = ((await withRetry(() => registries(net).actions.getAgentReceipts(agentId))) as bigint[]).map(Number);
+  return { receipts: await readMany(ids.reverse().slice(0, FLEET_PAGE_LIMIT), net), total: ids.length };
 }
 
-export async function verifyIndependently(receipt: V2Receipt): Promise<IndependentVerification> {
+export async function verifyIndependently(receipt: V2Receipt, net: FleetNet = 'monad'): Promise<IndependentVerification> {
   const res = await fetch(receipt.evidenceURI, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Could not fetch the published trace (HTTP ${res.status})`);
   const trace = (await res.json()) as Record<string, unknown>;
-  return checkTrace(receipt, trace, await readAgentState(receipt.agentId));
+  return checkTrace(receipt, trace, await readAgentState(receipt.agentId, net));
 }
 
 /** null for agent id 0, which has no identity token to read. */
-async function readAgentState(agentId: number): Promise<AgentState | null> {
+async function readAgentState(agentId: number, net: FleetNet): Promise<AgentState | null> {
   if (agentId === 0) return null;
-  const { identity } = registries();
+  const { identity } = registries(net);
   const [owner, revoked] = await Promise.all([
     withRetry(() => identity.ownerOf(agentId) as Promise<string>),
     withRetry(() => identity.revoked(agentId) as Promise<boolean>),

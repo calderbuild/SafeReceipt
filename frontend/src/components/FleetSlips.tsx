@@ -2,17 +2,17 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { ReceiptSlip, SlipRow, SlipRule, Stamp } from './ReceiptSlip';
 import { messageOf } from '../lib/errors';
-import { agentName, explorer, formatTime, isDeployers, receiptNo } from '../lib/fleet';
-import { DEPLOYER, shortHash, verifyIndependently, V2_NETWORK, type AgentProfile, type IndependentVerification, type V2Receipt } from '../lib/v2';
+import { agentName, explorer, fleetPath, formatTime, isDeployers, receiptNo } from '../lib/fleet';
+import { DEPLOYER, FLEET_NETS, shortHash, verifyIndependently, type AgentProfile, type FleetNet, type IndependentVerification, type V2Receipt } from '../lib/v2';
 
-export function AgentCard({ agent, count, linked = true }: { agent: AgentProfile; count?: number; linked?: boolean }) {
+export function AgentCard({ agent, count, linked = true, net = 'monad' }: { agent: AgentProfile; count?: number; linked?: boolean; net?: FleetNet }) {
   const name = agentName(agent, agent.id);
   return (
     <article className="glass-card p-5">
       <div className="flex items-baseline justify-between gap-3 mb-2">
         <h3 className="font-display text-lg font-semibold text-white break-words min-w-0">
           {linked ? (
-            <Link to={`/fleet/agent/${agent.id}`} className="hover:text-primary-200 underline-offset-4 hover:underline">
+            <Link to={fleetPath(net, `/agent/${agent.id}`)} className="hover:text-primary-200 underline-offset-4 hover:underline">
               {name}
             </Link>
           ) : (
@@ -40,7 +40,7 @@ export function AgentCard({ agent, count, linked = true }: { agent: AgentProfile
       </div>
       <p className="font-mono text-xs text-slate-500 mt-3 break-all">
         owner{' '}
-        <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(agent.owner)} target="_blank" rel="noopener noreferrer">
+        <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(agent.owner, net)} target="_blank" rel="noopener noreferrer">
           {shortHash(agent.owner)}
         </a>
       </p>
@@ -61,13 +61,13 @@ type VerifyState =
   | { kind: 'done'; result: IndependentVerification };
 
 /** One receipt as a thermal slip. On its own page (`standalone`) the number is not a link to itself. */
-export function ReceiptCard({ receipt, agent, standalone = false }: { receipt: V2Receipt; agent?: AgentProfile; standalone?: boolean }) {
+export function ReceiptCard({ receipt, agent, standalone = false, net = 'monad' }: { receipt: V2Receipt; agent?: AgentProfile; standalone?: boolean; net?: FleetNet }) {
   const [verify, setVerify] = useState<VerifyState>({ kind: 'idle' });
 
   const run = async () => {
     setVerify({ kind: 'running' });
     try {
-      setVerify({ kind: 'done', result: await verifyIndependently(receipt) });
+      setVerify({ kind: 'done', result: await verifyIndependently(receipt, net) });
     } catch (error) {
       setVerify({ kind: 'error', message: messageOf(error) });
     }
@@ -75,13 +75,13 @@ export function ReceiptCard({ receipt, agent, standalone = false }: { receipt: V
 
   const recorded = receipt.status === 'VERIFIED' ? 'verified' : receipt.status === 'MISMATCH' ? 'mismatch' : 'pending';
   // RUN_NOTES describe the deployer's own runs; another wallet's receipt with the same id is a different run
-  const note = receipt.actor.toLowerCase() === DEPLOYER.toLowerCase() ? RUN_NOTES[receipt.id] : undefined;
+  const note = net === 'monad' && receipt.actor.toLowerCase() === DEPLOYER.toLowerCase() ? RUN_NOTES[receipt.id] : undefined;
 
   return (
     <ReceiptSlip>
       <div className="slip-row font-semibold">
         <span>SAFERECEIPT</span>
-        {standalone ? <span>{receiptNo(receipt.id)}</span> : <Link to={`/fleet/receipt/${receipt.id}`}>{receiptNo(receipt.id)}</Link>}
+        {standalone ? <span>{receiptNo(receipt.id)}</span> : <Link to={fleetPath(net, `/receipt/${receipt.id}`)}>{receiptNo(receipt.id)}</Link>}
       </div>
       <div className="text-[var(--color-paper-faint)]">{formatTime(receipt.timestamp)}</div>
       <SlipRule />
@@ -89,13 +89,13 @@ export function ReceiptCard({ receipt, agent, standalone = false }: { receipt: V
         {receipt.agentId === 0 ? (
           'anonymous (no registered agent)'
         ) : (
-          <Link to={`/fleet/agent/${receipt.agentId}`}>
+          <Link to={fleetPath(net, `/agent/${receipt.agentId}`)}>
             {agent?.metadata?.name ? `${agent.metadata.name} (#${receipt.agentId})` : `#${receipt.agentId}`}
           </Link>
         )}
       </SlipRow>
       <SlipRow label="Filed by">
-        <a href={explorer(receipt.actor)} target="_blank" rel="noopener noreferrer">{shortHash(receipt.actor)}</a>
+        <a href={explorer(receipt.actor, net)} target="_blank" rel="noopener noreferrer">{shortHash(receipt.actor)}</a>
       </SlipRow>
       <SlipRow label="Action">{receipt.actionType}</SlipRow>
       {note && <SlipRow label="Run">{note}</SlipRow>}
@@ -129,7 +129,7 @@ export function ReceiptCard({ receipt, agent, standalone = false }: { receipt: V
           <button onClick={run} className="underline">Try again</button>
         </div>
       ) : (
-        <VerificationTrace receipt={receipt} result={verify.result} />
+        <VerificationTrace receipt={receipt} result={verify.result} net={net} />
       )}
     </ReceiptSlip>
   );
@@ -150,7 +150,7 @@ function agentLine(receipt: V2Receipt, agent: IndependentVerification['agent']):
   return `${owner}, which is now revoked. It was active when this receipt was opened; the outcome may have been linked after the revocation.`;
 }
 
-function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: IndependentVerification }) {
+function VerificationTrace({ receipt, result, net }: { receipt: V2Receipt; result: IndependentVerification; net: FleetNet }) {
   const intact = result.outcomeMatches && result.intentMatches && result.idsMatch;
   const intent = result.trace.declaredIntent as { goal?: string; declaredScope?: string[] } | undefined;
   const rules = result.policy.rulesTriggered;
@@ -164,7 +164,7 @@ function VerificationTrace({ receipt, result }: { receipt: V2Receipt; result: In
           <span className="text-[var(--color-paper-faint)]">{shortHash(result.recomputedOutcomeHash)}</span>
         </li>
         <li>
-          3. Read the hash stored on {V2_NETWORK.name}:
+          3. Read the hash stored on {FLEET_NETS[net].network.name}:
           <br />
           <span className="text-[var(--color-paper-faint)]">{shortHash(receipt.outcomeHash)}</span>
         </li>

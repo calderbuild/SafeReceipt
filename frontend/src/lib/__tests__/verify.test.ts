@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { hashTrace as browserHashTrace, DEPLOYER } from '../v2';
+import { hashTrace as browserHashTrace, DEPLOYER, FLEET_NETS } from '../v2';
 import { computeIntentHash } from '../canonicalize';
 // @ts-expect-error plain JS module shared with @safereceipt/client
 import { canonicalize, hashTrace, hashIntent } from '../../../../wrapper/canonicalize.mjs';
@@ -8,6 +8,7 @@ import { canonicalize, hashTrace, hashIntent } from '../../../../wrapper/canonic
 import { checkReceipt, v21Networks, verifyReceipt } from '../../../../wrapper/verify.mjs';
 import vectors from '../../../../wrapper/test-vectors.json';
 import trace1 from './fixtures/trace-1.json';
+import deployments from '../../../../wrapper/deployments.json';
 
 type Trace = Record<string, unknown> & { receiptId: number; agentId: number; chainId: number; declaredIntent: object };
 type Check = { id: string; ok: boolean };
@@ -96,5 +97,13 @@ describe('verifyReceipt network guard', () => {
 
   it.each(['baseSepolia', 'localhost', 'nowhere'])('refuses %s before touching the network', async (network) => {
     await expect(verifyReceipt({ network, receiptId: 1 })).rejects.toThrow(/not a V2\.1 deployment/);
+  });
+});
+
+describe('fleet networks', () => {
+  it.each(['monad', 'bot'] as const)('%s: the registries the pages read are the ones in wrapper/deployments.json', (net) => {
+    expect(FLEET_NETS[net].addresses.agentIdentityRegistry).toBe(deployments[net].agentIdentityRegistry);
+    expect(FLEET_NETS[net].addresses.actionRegistry).toBe(deployments[net].actionRegistry);
+    expect(FLEET_NETS[net].network.chainId).toBe(deployments[net].chainId);
   });
 });

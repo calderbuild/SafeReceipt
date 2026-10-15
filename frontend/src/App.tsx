@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { Routes, Route, Link, NavLink, useSearchParams } from 'react-router-dom'
+import { Routes, Route, Link, NavLink, useLocation, useSearchParams } from 'react-router-dom'
 import { Toaster, toast } from 'react-hot-toast'
 import { WalletConnect } from './components/WalletConnect'
 import { CreateReceiptModal } from './components/CreateReceiptModal'
@@ -34,6 +34,8 @@ const MonadLogo = () => (
 )
 
 function App() {
+  // The pill names the chain the wallet flow writes to; the BOT fleet pages are read-only and use no wallet
+  const onBotFleet = useLocation().pathname.startsWith('/fleet/bot')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false)
   // Other pages open the create modal by linking to /?create=1
@@ -83,10 +85,12 @@ function App() {
           <NavLink to="/start" className={navLinkClass}>Start</NavLink>
           <NavLink to="/fleet" className={navLinkClass}><span className="sm:hidden">Fleet</span><span className="hidden sm:inline">Agent fleet</span></NavLink>
           <NavLink to="/receipts" className={navLinkClass}><span className="sm:hidden">Receipts</span><span className="hidden sm:inline">My receipts</span></NavLink>
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 border border-white/10 rounded-md" title="Network used when you create a receipt with your wallet">
-            <MonadLogo />
-            <span>Monad Testnet</span>
-          </div>
+          {!onBotFleet && (
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 border border-white/10 rounded-md" title="Network used when you create a receipt with your wallet">
+              <MonadLogo />
+              <span>Monad Testnet</span>
+            </div>
+          )}
           <WalletConnect className="!py-1.5 !px-3" />
         </div>
       </nav>
@@ -106,6 +110,9 @@ function App() {
         <Route path="/fleet" element={<Fleet />} />
         <Route path="/fleet/receipt/:id" element={<FleetReceipt />} />
         <Route path="/fleet/agent/:id" element={<FleetAgent />} />
+        <Route path="/fleet/bot" element={<Fleet key="bot" net="bot" />} />
+        <Route path="/fleet/bot/receipt/:id" element={<FleetReceipt key="bot" net="bot" />} />
+        <Route path="/fleet/bot/agent/:id" element={<FleetAgent key="bot" net="bot" />} />
         <Route path="/start" element={<Start />} />
         <Route path="/receipts" element={<MyReceipts />} />
         <Route path="/receipt/:id" element={<ReceiptDetail />} />
