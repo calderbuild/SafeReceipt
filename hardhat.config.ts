@@ -3,6 +3,16 @@ import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-verify";
 import "dotenv/config";
+import { parse } from "dotenv";
+import { existsSync, readFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
+
+// The BOT mainnet deployer key lives in its own file and is read only for the `bot`
+// network, so the Monad key in the root .env can never sign a mainnet transaction.
+const botKeyFile = join(homedir(), ".secrets", "botchain-mainnet.env");
+const rawBotKey = existsSync(botKeyFile) ? parse(readFileSync(botKeyFile)).PRIVATE_KEY?.trim() : undefined;
+const botKey = rawBotKey && (rawBotKey.startsWith("0x") ? rawBotKey : `0x${rawBotKey}`);
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -51,6 +61,12 @@ const config: HardhatUserConfig = {
       url: process.env.BOHR_RPC_URL || "https://rpc.bohr.life",
       chainId: 968,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
+    // BOT Chain mainnet (chain 677). Blockscout explorer: verify with scripts/verify-blockscout.mjs.
+    bot: {
+      url: process.env.BOT_RPC_URL || "https://rpc.botchain.ai",
+      chainId: 677,
+      accounts: botKey ? [botKey] : [],
     },
   },
   // `npx hardhat verify --network monad <address> [constructor args]` publishes source to

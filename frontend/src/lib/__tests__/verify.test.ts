@@ -91,7 +91,7 @@ describe('checkReceipt', () => {
 
 describe('verifyReceipt network guard', () => {
   it('lists only V2.1 deployments', () => {
-    expect(v21Networks()).toEqual(['monad', 'bohr']);
+    expect(v21Networks()).toEqual(['monad', 'bohr', 'bot']);
   });
 
   it.each(['baseSepolia', 'localhost', 'nowhere'])('refuses %s before touching the network', async (network) => {

@@ -20,5 +20,12 @@
     "demoUSD": "0x0351F0Fe812f87e0fd83aBc51B981F9A30b00dAb",
     "version": "2.1",
     "deployedAt": "2026-10-09T15:58:05.280Z"
+  },
+  "bot": {
+    "chainId": 677,
+    "agentIdentityRegistry": "0xcAC9644e5772d590f36BB5bF9172451E2Ad96a25",
+    "actionRegistry": "0x32A607C5E24182e3E504DECea60a692265E6E319",
+    "version": "2.1",
+    "deployedAt": "2026-10-15T10:46:36.242Z"
   }
 }

@@ -10,6 +10,7 @@ async function main() {
     10143: { key: "monad", name: "Monad Testnet", explorer: "https://testnet.monadscan.com" },
     84532: { key: "baseSepolia", name: "Base Sepolia", explorer: "https://sepolia.basescan.org" },
     968: { key: "bohr", name: "BOT Chain Bohr Testnet", explorer: "https://scan.bohr.life" },
+    677: { key: "bot", name: "BOT Chain Mainnet", explorer: "https://scan.botchain.ai" },
     31337: { key: "localhost", name: "Hardhat local", explorer: "(local)" },
   };
   const known = KNOWN[chainId] ?? { key: `chain${chainId}`, name: `Chain ${chainId}`, explorer: "(unknown)" };
@@ -22,7 +23,7 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
 
   const balance = await ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", ethers.formatEther(balance), "ETH");
+  console.log("Account balance:", ethers.formatEther(balance), chainId === 677 ? "BOT" : "ETH");
 
   const AgentIdentityRegistry = await ethers.getContractFactory("AgentIdentityRegistry");
   const agentIdentityRegistry = await AgentIdentityRegistry.deploy();
@@ -36,11 +37,15 @@ async function main() {
   const actionAddress = await actionRegistry.getAddress();
   console.log("ActionRegistry deployed to:", actionAddress);
 
-  const DemoUSD = await ethers.getContractFactory("DemoUSD");
-  const demoUSD = await DemoUSD.deploy();
-  await demoUSD.waitForDeployment();
-  const demoUSDAddress = await demoUSD.getAddress();
-  console.log("DemoUSD deployed to:", demoUSDAddress);
+  // DemoUSD is a demo token: never deployed to a mainnet.
+  let demoUSDAddress: string | undefined;
+  if (chainId !== 677) {
+    const DemoUSD = await ethers.getContractFactory("DemoUSD");
+    const demoUSD = await DemoUSD.deploy();
+    await demoUSD.waitForDeployment();
+    demoUSDAddress = await demoUSD.getAddress();
+    console.log("DemoUSD deployed to:", demoUSDAddress);
+  }
 
   // One file the wrapper reads, keyed by network name.
   const key = known.key;
