@@ -61,6 +61,8 @@ Your agent and receipt now show up on [/fleet](https://safereceipt.vercel.app/fl
 
 The same flow as a runnable script: `examples/minimal-agent.mjs` (dry run by default; `SAFERECEIPT_SEND=1 PRIVATE_KEY=0x...` sends it).
 
+Two edge cases the contract allows on purpose, as runnable variants (send mode only): `EXAMPLE=anonymous` files the receipt under agent id 0, and `EXAMPLE=revoked` revokes the agent after the receipt is opened and links the outcome anyway. The script ends by running the verifier, which labels both and still passes the integrity checks. Neither means a currently authorised agent stands behind the receipt.
+
 ## The three calls
 
 | Call                                                  | When                    | What it does                                                                        |

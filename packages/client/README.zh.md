@@ -61,6 +61,8 @@ console.log(receiptId, status, evidenceURI);
 
 可以直接运行的完整版本：`examples/minimal-agent.mjs`（默认只演练不发送；加 `SAFERECEIPT_SEND=1 PRIVATE_KEY=0x...` 才真的发）。
 
+合约有意允许的两种边界情况，也有可运行的版本（只在发送模式下）：`EXAMPLE=anonymous` 用 agent id 0 开收据；`EXAMPLE=revoked` 在收据开出后吊销 agent，再照常写入结果。脚本最后会运行验证器，它会标出这两种情况，完整性检查仍然通过。这两种都不代表有一个当前被授权的 agent 在背书。
+
 ## 三个调用
 
 | 调用                                                  | 什么时候     | 做什么                                                           |
