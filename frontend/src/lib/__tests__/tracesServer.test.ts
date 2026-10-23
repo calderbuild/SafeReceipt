@@ -364,7 +364,8 @@ describe('client package against the server: BOT Chain', () => {
 
   // The real hostedPublisher talks to the real handler; only the network and the chain are faked.
   // vercel.json rewrites /api/traces/<chain>/<file> to /api/traces?chain=&file=, so the stub does too.
-  async function publishThroughHandler(network: 'monad' | 'bot', signer: Wallet, filedBy: Wallet = signer) {
+  type TestSigner = { address: string; signMessage(message: string): Promise<string> };
+  async function publishThroughHandler(network: 'monad' | 'bot', signer: TestSigner, filedBy: TestSigner = signer) {
     const chainId = HOSTED_CHAINS[network].chainId;
     const trace = { ...trace1, receiptId: 7, chainId } as Record<string, unknown>;
     const { deps, blobs } = fakeDeps({ actor: filedBy.address });
