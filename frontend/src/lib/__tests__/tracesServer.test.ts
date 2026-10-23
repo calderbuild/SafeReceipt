@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Wallet, ZeroHash } from 'ethers';
 import {
   ACTION_REGISTRY,
@@ -356,5 +356,39 @@ describe('client package: BOT Chain hosted store', () => {
     expect(receiptURL(3, 'bot').endsWith('/fleet/bot/receipt/3')).toBe(true);
     expect(receiptURL(3).endsWith('/fleet/receipt/3')).toBe(true);
     expect(typeof hostedPublisher(filer, { network: 'bot' })).toBe('function');
+  });
+});
+
+describe('client package against the server: BOT Chain', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // The real hostedPublisher talks to the real handler; only the network and the chain are faked.
+  // vercel.json rewrites /api/traces/<chain>/<file> to /api/traces?chain=&file=, so the stub does too.
+  async function publishThroughHandler(network: 'monad' | 'bot', signer: Wallet, filedBy: Wallet = signer) {
+    const chainId = HOSTED_CHAINS[network].chainId;
+    const trace = { ...trace1, receiptId: 7, chainId } as Record<string, unknown>;
+    const { deps, blobs } = fakeDeps({ actor: filedBy.address });
+    vi.stubGlobal('fetch', (url: string, init?: RequestInit) => {
+      const m = new URL(url).pathname.match(/^\/api\/traces\/([a-z]+)\/(.+)$/);
+      return handle(new Request(m ? `https://x.test/api/traces?chain=${m[1]}&file=${m[2]}` : url, init), deps);
+    });
+    await hostedPublisher(signer, { network })(trace, 7);
+    return blobs;
+  }
+
+  it('uploads and reads back a BOT Chain trace signed for chain 677', async () => {
+    const blobs = await publishThroughHandler('bot', filer);
+    expect([...blobs.keys()].every((p) => p.startsWith('traces/bot/'))).toBe(true);
+    expect(blobs.size).toBe(1);
+  });
+
+  it('still uploads a Monad trace the same way', async () => {
+    const blobs = await publishThroughHandler('monad', filer);
+    expect([...blobs.keys()].every((p) => p.startsWith('traces/monad/'))).toBe(true);
+    expect(blobs.size).toBe(1);
+  });
+
+  it('is refused when the signer is not the wallet that filed the receipt', async () => {
+    await expect(publishThroughHandler('bot', stranger, filer)).rejects.toThrow(/403/);
   });
 });
