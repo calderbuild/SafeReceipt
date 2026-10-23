@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { AgentCard, ReceiptCard } from '../components/FleetSlips';
 import { explorer, fleetPath, receiptNo } from '../lib/fleet';
 import { messageOf } from '../lib/errors';
-import { ACCOUNTABILITY_URL, FEEDBACK_URL } from '../lib/links';
+import { ACCOUNTABILITY_URL, BOT_CHAIN_URL, FEEDBACK_URL } from '../lib/links';
 import { FLEET_NETS, FLEET_PAGE_LIMIT, listAgents, listReceipts, type AgentProfile, type FleetNet, type V2Receipt } from '../lib/v2';
 
 type LoadState =
@@ -79,6 +79,18 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
             <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(addresses.actionRegistry, net)} target="_blank" rel="noopener noreferrer">
               ActionRegistry
             </a>
+            {net === 'bot' && (
+              <>
+                {' · '}
+                <a className="underline underline-offset-2 hover:text-slate-300" href={BOT_CHAIN_URL} target="_blank" rel="noopener noreferrer">
+                  botchain.ai
+                </a>
+                {' · '}
+                <a className="underline underline-offset-2 hover:text-slate-300" href={network.blockExplorer} target="_blank" rel="noopener noreferrer">
+                  scan.botchain.ai
+                </a>
+              </>
+            )}
             {net === 'monad' && (
               <>
                 <br />
