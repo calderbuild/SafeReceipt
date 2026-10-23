@@ -4,10 +4,11 @@
  * place of their own to publish traces.
  *
  *   POST /api/traces                      store the trace of an open receipt
- *   GET  /api/traces/monad/<id>.json      read it back (vercel.json rewrites to ?chain=&file=)
+ *   GET  /api/traces/<chain>/<id>.json    read it back (vercel.json rewrites to ?chain=&file=)
  *
- * A POST is accepted only from the wallet that filed the receipt on Monad's
- * ActionRegistry, only for a receipt filed in the last 24 hours with no
+ * <chain> is monad (Monad testnet) or bot (BOT Chain mainnet, the pilot). A POST
+ * names its chain by chainId and is accepted only from the wallet that filed the
+ * receipt on that chain's ActionRegistry, only for a receipt filed in the last 24 hours with no
  * outcome linked, only for the trace whose declared intent hashes to the
  * receipt's on-chain intent hash, and only once: a stored trace is referenced
  * by an on-chain hash, so it is never overwritten. Re-sending the same trace
@@ -20,10 +21,43 @@
 import { Contract, JsonRpcProvider, ZeroHash, keccak256, toUtf8Bytes, verifyMessage } from 'ethers';
 import { BlobNotFoundError, get, head, list, put } from '@vercel/blob';
 
-export const CHAIN_ID = 10143;
-const RPC_URL = 'https://testnet-rpc.monad.xyz';
-// Mirrors wrapper/deployments.json (monad); tracesServer.test.ts fails if they drift
-export const ACTION_REGISTRY = '0x975bD215C549F315A066306B161119cec480c927';
+export type HostedChainName = 'monad' | 'bot';
+
+export interface HostedChain {
+  name: HostedChainName;
+  chainId: number;
+  rpcUrl: string;
+  actionRegistry: string;
+  /** Uploads per month for this chain; see the budget note below. */
+  monthlyCap: number;
+}
+
+// actionRegistry mirrors wrapper/deployments.json; tracesServer.test.ts fails if they drift
+export const HOSTED_CHAINS: Record<HostedChainName, HostedChain> = {
+  monad: {
+    name: 'monad',
+    chainId: 10143,
+    rpcUrl: 'https://testnet-rpc.monad.xyz',
+    actionRegistry: '0x975bD215C549F315A066306B161119cec480c927',
+    monthlyCap: 900,
+  },
+  bot: {
+    name: 'bot',
+    chainId: 677,
+    rpcUrl: 'https://rpc.botchain.ai',
+    actionRegistry: '0x32A607C5E24182e3E504DECea60a692265E6E319',
+    monthlyCap: 50,
+  },
+};
+
+const hostedByName = (name: string | null): HostedChain | undefined =>
+  name === 'monad' || name === 'bot' ? HOSTED_CHAINS[name] : undefined;
+const hostedByChainId = (chainId: unknown): HostedChain | undefined =>
+  Object.values(HOSTED_CHAINS).find((c) => c.chainId === chainId);
+
+// The Monad names, kept for callers that predate the second chain
+export const CHAIN_ID = HOSTED_CHAINS.monad.chainId;
+export const ACTION_REGISTRY = HOSTED_CHAINS.monad.actionRegistry;
 export const MAX_BODY_BYTES = 256 * 1024;
 const STATUS_CREATED = 0;
 /** Traces are uploaded right after the run; older open receipts are not accepted. */
@@ -31,8 +65,9 @@ export const MAX_RECEIPT_AGE_S = 24 * 60 * 60;
 
 // Durable quota, counted from the store itself so it survives cold starts.
 // Hobby Blob allows 2,000 advanced operations a month; each upload costs two
-// (one list to count, one put), so the monthly cap leaves headroom under 1,000.
-export const MONTHLY_UPLOAD_CAP = 900;
+// (one list to count, one put). Each chain counts its own month, so the caps
+// add up: (900 + 50) * 2 = 1,900, which leaves headroom under 2,000.
+export const MONTHLY_UPLOAD_CAP = HOSTED_CHAINS.monad.monthlyCap;
 export const DAILY_UPLOADS_PER_FILER = 20;
 
 // ---------------------------------------------------------------------------
@@ -79,9 +114,9 @@ export interface OnChainReceipt {
 }
 
 export const monthOf = (unix: number) => new Date(unix * 1000).toISOString().slice(0, 7);
-export const monthPrefix = (unix: number) => `traces/monad/${monthOf(unix)}/`;
-export const tracePath = (receiptId: number, r: Pick<OnChainReceipt, 'actor' | 'timestamp'>) =>
-  `${monthPrefix(r.timestamp)}${r.actor.toLowerCase()}/${receiptId}.json`;
+export const monthPrefix = (unix: number, chain: HostedChainName = 'monad') => `traces/${chain}/${monthOf(unix)}/`;
+export const tracePath = (receiptId: number, r: Pick<OnChainReceipt, 'actor' | 'timestamp'>, chain: HostedChainName = 'monad') =>
+  `${monthPrefix(r.timestamp, chain)}${r.actor.toLowerCase()}/${receiptId}.json`;
 
 // ---------------------------------------------------------------------------
 // Dependencies (injected in tests)
@@ -92,7 +127,7 @@ export interface StoredBlob {
 }
 
 export interface TraceDeps {
-  readReceipt(receiptId: number): Promise<OnChainReceipt>;
+  readReceipt(receiptId: number, chain: HostedChain): Promise<OnChainReceipt>;
   listMonth(prefix: string): Promise<StoredBlob[]>;
   exists(path: string): Promise<boolean>;
   /** Throws AlreadyStoredError when the path is taken. */
@@ -108,9 +143,9 @@ const RECEIPT_ABI = [
 ];
 
 export const liveDeps: TraceDeps = {
-  async readReceipt(receiptId) {
-    const provider = new JsonRpcProvider(RPC_URL, CHAIN_ID, { staticNetwork: true });
-    const r = await new Contract(ACTION_REGISTRY, RECEIPT_ABI, provider).getReceipt(receiptId);
+  async readReceipt(receiptId, chain) {
+    const provider = new JsonRpcProvider(chain.rpcUrl, chain.chainId, { staticNetwork: true });
+    const r = await new Contract(chain.actionRegistry, RECEIPT_ABI, provider).getReceipt(receiptId);
     return {
       actor: r.actor,
       agentId: Number(r.agentId),
@@ -190,12 +225,13 @@ function receiptIdOf(value: unknown): number {
 }
 
 async function readTrace(url: URL, deps: TraceDeps): Promise<Response> {
-  if (url.searchParams.get('chain') !== 'monad') throw new HttpError(404, 'Only monad traces are hosted');
+  const chain = hostedByName(url.searchParams.get('chain'));
+  if (!chain) throw new HttpError(404, 'Only monad and bot traces are hosted');
   const file = url.searchParams.get('file')?.match(/^([0-9]{1,9})\.json$/);
-  if (!file) throw new HttpError(404, 'Expected /api/traces/monad/<receiptId>.json');
+  if (!file) throw new HttpError(404, `Expected /api/traces/${chain.name}/<receiptId>.json`);
   const id = receiptIdOf(file[1]);
-  const receipt = await deps.readReceipt(id);
-  const body = ZERO_ADDRESS.test(receipt.actor) ? null : await deps.load(tracePath(id, receipt));
+  const receipt = await deps.readReceipt(id, chain);
+  const body = ZERO_ADDRESS.test(receipt.actor) ? null : await deps.load(tracePath(id, receipt, chain.name));
   if (body === null) throw new HttpError(404, `No hosted trace for receipt #${id}`);
   // Stored once, never overwritten, so the CDN may keep it forever
   return new Response(body, {
@@ -227,29 +263,30 @@ async function storeTrace(request: Request, deps: TraceDeps): Promise<Response> 
   } catch {
     throw new HttpError(400, 'Body must be JSON');
   }
-  if (body.chainId !== CHAIN_ID) throw new HttpError(400, `Only chain ${CHAIN_ID} (Monad testnet) is hosted`);
+  const chain = hostedByChainId(body.chainId);
+  if (!chain) throw new HttpError(400, 'Only chains 10143 (Monad testnet) and 677 (BOT Chain mainnet) are hosted');
   const receiptId = receiptIdOf(body.receiptId);
   const trace = body.trace;
   if (!trace || typeof trace !== 'object' || Array.isArray(trace)) throw new HttpError(400, 'trace must be an object');
   const t = stripRuntimeFields(trace as Record<string, unknown>);
-  if (t.receiptId !== receiptId || t.chainId !== CHAIN_ID) throw new HttpError(400, 'trace.receiptId and trace.chainId must match the upload');
+  if (t.receiptId !== receiptId || t.chainId !== chain.chainId) throw new HttpError(400, 'trace.receiptId and trace.chainId must match the upload');
   if (typeof body.signature !== 'string') throw new HttpError(401, 'signature is required');
 
   const traceHash = hashTrace(t);
   let signer: string;
   try {
-    signer = verifyMessage(traceUploadMessage(CHAIN_ID, receiptId, traceHash), body.signature);
+    signer = verifyMessage(traceUploadMessage(chain.chainId, receiptId, traceHash), body.signature);
   } catch {
     throw new HttpError(401, 'Invalid signature');
   }
 
-  const onChain = await deps.readReceipt(receiptId);
+  const onChain = await deps.readReceipt(receiptId, chain);
   if (ZERO_ADDRESS.test(onChain.actor)) throw new HttpError(404, `Receipt #${receiptId} does not exist`);
   if (onChain.actor.toLowerCase() !== signer.toLowerCase()) throw new HttpError(403, 'Only the wallet that filed the receipt can upload its trace');
   // Counted only for signed uploads from a real filer, so junk requests can't use it up
   rateLimit('all', 200, 60 * 60_000, deps.now());
 
-  const path = tracePath(receiptId, onChain);
+  const path = tracePath(receiptId, onChain, chain.name);
   if (await deps.exists(path)) {
     if (await sameTraceStored(deps, path, traceHash)) return Response.json({ receiptId, traceHash, stored: 'already' }, { status: 200, headers: CORS });
     throw new HttpError(409, 'A different trace is already stored for this receipt');
@@ -260,8 +297,8 @@ async function storeTrace(request: Request, deps: TraceDeps): Promise<Response> 
     throw new HttpError(422, "trace.declaredIntent and trace.agentId must match the receipt's on-chain commitment");
   }
 
-  const month = await deps.listMonth(monthPrefix(onChain.timestamp));
-  if (month.length >= MONTHLY_UPLOAD_CAP) throw new HttpError(429, 'The hosted store is full for this month; publish the trace yourself with a publish() hook');
+  const month = await deps.listMonth(monthPrefix(onChain.timestamp, chain.name));
+  if (month.length >= chain.monthlyCap) throw new HttpError(429, 'The hosted store is full for this month; publish the trace yourself with a publish() hook');
   const dayAgo = deps.now() - 24 * 60 * 60 * 1000;
   const mine = month.filter((b) => b.pathname.includes(`/${signer.toLowerCase()}/`) && b.uploadedAt.getTime() > dayAgo);
   if (mine.length >= DAILY_UPLOADS_PER_FILER) throw new HttpError(429, `At most ${DAILY_UPLOADS_PER_FILER} hosted traces per wallet per day`);

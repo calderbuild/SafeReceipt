@@ -25,7 +25,8 @@ export class AccountabilityClient {
   constructor({ network = "monad", signer, evidenceBaseURL }) {
     this.cfg = DEPLOYMENTS[network];
     if (!this.cfg) throw new Error(`Unknown network: ${network}`);
-    // Without a base URL of its own, the trace goes to SafeReceipt's hosted store (Monad only).
+    this.network = network;
+    // Without a base URL of its own, the trace goes to SafeReceipt's hosted store (Monad and BOT Chain).
     this.hosted = !evidenceBaseURL;
     evidenceBaseURL ??= HOSTED_TRACES[network];
     if (!evidenceBaseURL) throw new Error(`evidenceBaseURL is required on ${network} (it is written on-chain)`);
@@ -124,7 +125,7 @@ export class AccountabilityClient {
    */
   async endAction({ policyResult, publish }) {
     if (this.receiptId == null) throw new Error("beginAction() not called");
-    if (publish == null && this.hosted) publish = hostedPublisher(this.signer);
+    if (publish == null && this.hosted) publish = hostedPublisher(this.signer, { network: this.network });
     if (typeof publish !== "function") throw new Error("endAction() needs a publish(trace, receiptId) hook");
 
     const trace = this.buildTrace(policyResult);

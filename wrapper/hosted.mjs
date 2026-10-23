@@ -2,15 +2,15 @@ import { ethers } from "ethers";
 import { AGENT_IDENTITY_ABI, DEPLOYMENTS } from "./abi.mjs";
 import { hashTrace } from "./canonicalize.mjs";
 
-// SafeReceipt's site: the hosted trace store (frontend/api/traces.ts, Monad testnet only) and
+// SafeReceipt's site: the hosted trace store (frontend/api/traces.ts, Monad testnet and BOT Chain mainnet) and
 // the receipt pages. SAFERECEIPT_SITE_URL points the client at another deployment (a preview, or `npm run dev`).
 export const SITE_URL = (process.env.SAFERECEIPT_SITE_URL || "https://safereceipt.vercel.app").replace(/\/$/, "");
 const TRACES_ENDPOINT = `${SITE_URL}/api/traces`;
-export const HOSTED_TRACES = { monad: `${TRACES_ENDPOINT}/monad` };
+export const HOSTED_TRACES = { monad: `${TRACES_ENDPOINT}/monad`, bot: `${TRACES_ENDPOINT}/bot` };
 
-/** The shareable page of a Monad receipt, where anyone can press Verify. */
-export function receiptURL(receiptId) {
-  return `${SITE_URL}/fleet/receipt/${receiptId}`;
+/** The shareable page of a receipt, where anyone can press Verify. BOT Chain receipts live under /fleet/bot. */
+export function receiptURL(receiptId, network = "monad") {
+  return network === "bot" ? `${SITE_URL}/fleet/bot/receipt/${receiptId}` : `${SITE_URL}/fleet/receipt/${receiptId}`;
 }
 
 /** The exact text the filer signs. Must match frontend/api/traces.ts traceUploadMessage. */
@@ -21,7 +21,7 @@ export function traceUploadMessage(chainId, receiptId, traceHash) {
 /**
  * publish() hook that stores the trace on SafeReceipt's site. The signer must be
  * the wallet that filed the receipt; the site checks that on-chain, stores the
- * trace once, and serves it at `${HOSTED_TRACES.monad}/${receiptId}.json`.
+ * trace once, and serves it at `${HOSTED_TRACES[network]}/${receiptId}.json`.
  */
 export function hostedPublisher(signer, { network = "monad" } = {}) {
   const base = HOSTED_TRACES[network];
