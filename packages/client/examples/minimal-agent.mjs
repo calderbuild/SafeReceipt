@@ -2,12 +2,13 @@
 //
 //   node minimal-agent.mjs                      dry run: prints what it would commit, sends nothing
 //   SAFERECEIPT_SEND=1 node minimal-agent.mjs   registers an agent (unless AGENT_ID is set), files a
-//                                               receipt on Monad testnet, uploads the trace to
-//                                               SafeReceipt's hosted store, links it, and prints the
-//                                               receipt's page
+//                                               receipt, uploads the trace to SafeReceipt's hosted
+//                                               store, links it, and prints the receipt's page
 //
+// NETWORK=monad (default, testnet) or NETWORK=bot (BOT Chain mainnet pilot; gas is real BOT).
 // PRIVATE_KEY comes from the environment or from a .env file in this directory. The wallet
-// needs a little testnet MON for gas (https://faucet.monad.xyz).
+// needs a little gas: testnet MON from https://faucet.monad.xyz, or BOT on BOT Chain. Registering
+// an agent is one transaction, opening the receipt another, linking its outcome a third.
 import { existsSync, readFileSync } from "node:fs";
 import { ethers } from "ethers";
 import {
@@ -29,6 +30,10 @@ if (existsSync(".env")) {
   }
 }
 
+const NETWORK = process.env.NETWORK ?? "monad";
+if (!DEPLOYMENTS[NETWORK]) throw new Error(`Unknown NETWORK ${NETWORK}; use monad or bot`);
+const GAS_HINT = NETWORK === "bot" ? "BOT (real gas on BOT Chain mainnet)" : "testnet MON; get some at https://faucet.monad.xyz";
+
 const declaredIntent = {
   agent: "minimal-agent",
   goal: "Summarize docs/ for a new reader",
@@ -43,11 +48,11 @@ function work(client) {
 }
 
 if (process.env.SAFERECEIPT_SEND !== "1") {
-  console.log(`dry run: monad ActionRegistry ${DEPLOYMENTS.monad.actionRegistry}`);
+  console.log(`dry run: ${NETWORK} ActionRegistry ${DEPLOYMENTS[NETWORK].actionRegistry}`);
   console.log("would commit intentHash", hashIntent(declaredIntent));
 
   // A client without a signer records events; nothing is sent.
-  const client = new AccountabilityClient({ network: "monad", signer: null });
+  const client = new AccountabilityClient({ network: NETWORK, signer: null });
   work(client);
   const policy = evaluatePolicy({ declaredIntent, events: client.events, durationMs: 0 });
   console.log("policy", JSON.stringify(policy));
@@ -56,19 +61,19 @@ if (process.env.SAFERECEIPT_SEND !== "1") {
   console.log("set SAFERECEIPT_SEND=1 and PRIVATE_KEY to send it");
 } else {
   if (!process.env.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set (environment or .env)");
-  const provider = new ethers.JsonRpcProvider(DEPLOYMENTS.monad.rpc);
+  const provider = new ethers.JsonRpcProvider(DEPLOYMENTS[NETWORK].rpc);
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   const balance = await provider.getBalance(signer.address);
-  if (balance === 0n) throw new Error(`${signer.address} has no testnet MON; get some at https://faucet.monad.xyz`);
+  if (balance === 0n) throw new Error(`${signer.address} has no gas on ${NETWORK}; it needs ${GAS_HINT}`);
 
   let agentId = Number(process.env.AGENT_ID);
   if (!agentId) {
-    ({ agentId } = await registerAgent(signer, { name: "minimal-agent", role: "Summarizes docs", model: "none" }));
+    ({ agentId } = await registerAgent(signer, { name: "minimal-agent", role: "Summarizes docs", model: "none" }, { network: NETWORK }));
     console.log(`registered agent #${agentId} (set AGENT_ID=${agentId} to reuse it)`);
   }
 
   // No evidenceBaseURL: the trace goes to SafeReceipt's hosted store.
-  const client = new AccountabilityClient({ network: "monad", signer });
+  const client = new AccountabilityClient({ network: NETWORK, signer });
   const { receiptId } = await client.beginAction({ agentId, declaredIntent, riskScore: 10 });
   console.log(`receipt #${receiptId} opened`);
   work(client);
@@ -77,5 +82,5 @@ if (process.env.SAFERECEIPT_SEND !== "1") {
   console.log(`receipt #${receiptId}: ${result.status}, trace at ${result.evidenceURI}`);
 
   await verifyAgainstChain(client, receiptId, result.evidenceURI);
-  console.log(`\nopen ${receiptURL(receiptId)} and press Verify independently`);
+  console.log(`\nopen ${receiptURL(receiptId, NETWORK)} and press Verify independently`);
 }

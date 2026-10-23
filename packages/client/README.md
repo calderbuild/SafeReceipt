@@ -71,7 +71,7 @@ const client = new AccountabilityClient({ network: "bot", signer });
 // registerAgent(signer, metadata, { network: "bot" }) is optional: beginAction({ agentId: 0, ... }) files an anonymous receipt.
 ```
 
-`beginAction` and `endAction` are one transaction each. Your receipt shows up on [/fleet/bot](https://safereceipt.vercel.app/fleet/bot), and `receiptURL(receiptId, "bot")` gives its shareable page.
+`beginAction` and `endAction` are one transaction each. The runnable version is `examples/minimal-agent.mjs`: `NETWORK=bot SAFERECEIPT_SEND=1 PRIVATE_KEY=0x... node minimal-agent.mjs` (without `SAFERECEIPT_SEND` it is a dry run that sends nothing). Your receipt shows up on [/fleet/bot](https://safereceipt.vercel.app/fleet/bot), and `receiptURL(receiptId, "bot")` gives its shareable page.
 
 ## The three calls
 
