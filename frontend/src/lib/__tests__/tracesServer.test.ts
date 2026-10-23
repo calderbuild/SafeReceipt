@@ -6,6 +6,7 @@ import {
   AlreadyStoredError,
   CHAIN_ID,
   DAILY_UPLOADS_PER_FILER,
+  HOSTED_CHAINS,
   MAX_BODY_BYTES,
   MONTHLY_UPLOAD_CAP,
   handle,
@@ -22,7 +23,7 @@ import {
 // @ts-expect-error plain JS modules shared with the client package; parity is the point of importing them
 import { hashTrace as wrapperHashTrace, hashIntent as wrapperHashIntent } from '../../../../wrapper/canonicalize.mjs';
 // @ts-expect-error see above
-import { traceUploadMessage as clientMessage } from '../../../../wrapper/hosted.mjs';
+import { HOSTED_TRACES, hostedPublisher, receiptURL, traceUploadMessage as clientMessage } from '../../../../wrapper/hosted.mjs';
 import deployments from '../../../../wrapper/deployments.json';
 import trace1 from './fixtures/trace-1.json';
 
@@ -260,5 +261,100 @@ describe('traces api: GET', () => {
     const got = await getTrace(deps);
     expect(got.headers.get('x-content-type-options')).toBe('nosniff');
     expect(got.headers.get('content-security-policy')).toBe("default-src 'none'");
+  });
+});
+
+describe('traces api: BOT Chain mainnet', () => {
+  const BOT = HOSTED_CHAINS.bot;
+  const botTrace = (receiptId: number) => ({ ...trace1, receiptId, chainId: BOT.chainId }) as Record<string, unknown>;
+
+  function botDeps(receipt: Partial<OnChainReceipt> = {}, existing: StoredBlob[] = []) {
+    const made = fakeDeps(receipt);
+    const asked: { chain: string; receiptId: number }[] = [];
+    made.deps.readReceipt = async (receiptId, chain) => {
+      asked.push({ chain: chain?.name ?? 'monad', receiptId });
+      return made.onChain;
+    };
+    // A real listMonth only returns what sits under the prefix; the fake must too
+    const stored = made.deps.listMonth;
+    made.deps.listMonth = async (prefix) => [...(await stored(prefix)), ...existing].filter((b) => b.pathname.startsWith(prefix));
+    return { ...made, asked };
+  }
+
+  async function uploadBot(
+    deps: TraceDeps,
+    { receiptId = 7, signer = filer, trace = botTrace(7), bodyChainId = BOT.chainId, signedChainId = BOT.chainId }: {
+      receiptId?: number;
+      signer?: Wallet | ReturnType<typeof Wallet.createRandom>;
+      trace?: Record<string, unknown>;
+      bodyChainId?: number;
+      signedChainId?: number;
+    } = {}
+  ) {
+    const signature = await signer.signMessage(traceUploadMessage(signedChainId, receiptId, hashTrace(trace)));
+    return handle(new Request('https://x.test/api/traces', { method: 'POST', body: JSON.stringify({ chainId: bodyChainId, receiptId, trace, signature }) }), deps);
+  }
+
+  it('mirrors the BOT Chain entry of wrapper/deployments.json', () => {
+    expect(BOT.chainId).toBe(deployments.bot.chainId);
+    expect(BOT.actionRegistry).toBe(deployments.bot.actionRegistry);
+    expect(BOT.rpcUrl).toBe('https://rpc.botchain.ai');
+  });
+
+  it('stores the filer\'s trace under traces/bot, reads the receipt from BOT Chain, and serves it back', async () => {
+    const { deps, blobs, onChain, asked } = botDeps();
+    const res = await uploadBot(deps);
+    expect(res.status).toBe(201);
+    expect(asked).toEqual([{ chain: 'bot', receiptId: 7 }]);
+    const path = tracePath(7, onChain, 'bot');
+    expect(path.startsWith('traces/bot/2026-10/')).toBe(true);
+    expect(blobs.has(path)).toBe(true);
+    const got = await getTrace(deps, '7.json', 'bot');
+    expect(got.status).toBe(200);
+    expect(hashTrace(await got.json())).toBe(hashTrace(botTrace(7)));
+  });
+
+  it('keeps the same receipt id and filer on the two chains in different places', () => {
+    const r = { actor: filer.address, timestamp: FILED };
+    expect(tracePath(7, r, 'bot')).not.toBe(tracePath(7, r, 'monad'));
+    expect(tracePath(7, r)).toBe(tracePath(7, r, 'monad'));
+  });
+
+  it('refuses a signature made for the Monad upload when it is sent as a BOT upload', async () => {
+    const { deps, blobs } = botDeps();
+    expect((await uploadBot(deps, { signedChainId: CHAIN_ID })).status).toBe(403);
+    expect(blobs.size).toBe(0);
+  });
+
+  it('rejects a trace whose chainId is not the chain it is uploaded to', async () => {
+    const { deps, blobs } = botDeps();
+    expect((await uploadBot(deps, { trace: makeTrace(7) })).status).toBe(400);
+    expect(blobs.size).toBe(0);
+  });
+
+  it('rejects a chain that is not hosted', async () => {
+    const { deps } = botDeps();
+    expect((await uploadBot(deps, { bodyChainId: 1, signedChainId: 1 })).status).toBe(400);
+    expect((await getTrace(deps, '7.json', 'base')).status).toBe(404);
+  });
+
+  it('applies the BOT monthly cap to BOT uploads only', async () => {
+    const at = (chain: 'monad' | 'bot', n: number) =>
+      Array.from({ length: n }, (_, i) => ({ pathname: `${monthPrefix(FILED, chain)}0x${i}/${i}.json`, uploadedAt: new Date(NOW - 7 * 24 * 3_600_000) }));
+    expect((await uploadBot(botDeps({}, at('bot', BOT.monthlyCap)).deps)).status).toBe(429);
+    expect((await uploadBot(botDeps({}, at('monad', MONTHLY_UPLOAD_CAP)).deps)).status).toBe(201);
+  });
+
+  it('keeps the two caps inside the Hobby Blob budget of 2,000 operations (two per upload)', () => {
+    expect((MONTHLY_UPLOAD_CAP + BOT.monthlyCap) * 2).toBeLessThanOrEqual(2000);
+  });
+});
+
+describe('client package: BOT Chain hosted store', () => {
+  it('has a hosted base URL for bot and builds the BOT receipt page', () => {
+    expect(HOSTED_TRACES.bot.endsWith('/api/traces/bot')).toBe(true);
+    expect(receiptURL(3, 'bot').endsWith('/fleet/bot/receipt/3')).toBe(true);
+    expect(receiptURL(3).endsWith('/fleet/receipt/3')).toBe(true);
+    expect(typeof hostedPublisher(filer, { network: 'bot' })).toBe('function');
   });
 });

@@ -4,7 +4,7 @@
 
 Puts a receipt on a unit of agent work. Before the agent acts, what it says it will do is hashed and written on-chain. While it works, each step is recorded. When it finishes, the record is checked against what it said, published, and its hash linked on-chain. Anyone can then re-fetch the record and compare, in their own browser, on [safereceipt.vercel.app/fleet](https://safereceipt.vercel.app/fleet).
 
-Runs on Monad testnet. Version 0.1: an early release, and I'd like to hear where it gets in your way ([issues](https://github.com/calderbuild/SafeReceipt/issues)).
+Runs on Monad testnet, and on BOT Chain mainnet as a pilot (see below). Version 0.1: an early release, and I'd like to hear where it gets in your way ([issues](https://github.com/calderbuild/SafeReceipt/issues)).
 
 ## Quickstart (about 10 minutes)
 
@@ -61,6 +61,18 @@ Your agent and receipt now show up on [/fleet](https://safereceipt.vercel.app/fl
 
 The same flow as a runnable script: `examples/minimal-agent.mjs` (dry run by default; `SAFERECEIPT_SEND=1 PRIVATE_KEY=0x...` sends it).
 
+## On BOT Chain mainnet (pilot)
+
+The same registries run on BOT Chain mainnet (chain 677) as a controlled pilot. Gas there is real BOT, so use a wallet that holds only what you are willing to spend on a few transactions. Pass `network: "bot"` everywhere the quickstart uses Monad; nothing else changes, and the trace is hosted for you:
+
+```js
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY, new ethers.JsonRpcProvider(DEPLOYMENTS.bot.rpc));
+const client = new AccountabilityClient({ network: "bot", signer });
+// registerAgent(signer, metadata, { network: "bot" }) is optional: beginAction({ agentId: 0, ... }) files an anonymous receipt.
+```
+
+`beginAction` and `endAction` are one transaction each. Your receipt shows up on [/fleet/bot](https://safereceipt.vercel.app/fleet/bot), and `receiptURL(receiptId, "bot")` gives its shareable page.
+
 ## The three calls
 
 | Call                                                  | When                    | What it does                                                                        |
@@ -73,7 +85,7 @@ The same flow as a runnable script: `examples/minimal-agent.mjs` (dry run by def
 
 ## Where the record is published
 
-By default the record is stored on SafeReceipt's site and served at `https://safereceipt.vercel.app/api/traces/monad/<receiptId>.json`. The site accepts it only when it is signed by the wallet that filed the receipt, within 24 hours of filing and before the outcome is linked, and only once; a stored record is never overwritten (sending the same record again is fine, so a failed link can be retried). The hosted store takes up to 20 records per wallet per day and 900 a month in total; past that, publish with your own hook. Records are public, so don't put secrets or personal data in `emit()`.
+By default the record is stored on SafeReceipt's site and served at `https://safereceipt.vercel.app/api/traces/<network>/<receiptId>.json` (`monad` or `bot`). The site accepts it only when it is signed by the wallet that filed the receipt, within 24 hours of filing and before the outcome is linked, and only once; a stored record is never overwritten (sending the same record again is fine, so a failed link can be retried). The hosted store takes up to 20 records per wallet per day, and 900 a month in total on Monad and 50 a month on BOT Chain; past that, publish with your own hook. Records are public, so don't put secrets or personal data in `emit()`.
 
 To host records yourself, pass `evidenceBaseURL` and a `publish(trace, receiptId)` hook that makes the record readable at `${evidenceBaseURL}/${receiptId}.json` before it returns.
 

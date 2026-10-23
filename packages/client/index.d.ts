@@ -117,14 +117,14 @@ export declare function verifyAgainstChain(
 /** SafeReceipt's site origin. `SAFERECEIPT_SITE_URL` overrides it (a preview or a dev server). */
 export declare const SITE_URL: string;
 
-/** Base URL of SafeReceipt's hosted trace store per network (monad only). */
-export declare const HOSTED_TRACES: { monad: string };
+/** Base URL of SafeReceipt's hosted trace store per network (monad and bot). */
+export declare const HOSTED_TRACES: { monad: string; bot: string };
 
 /** The text the filer signs to upload a trace: chain id, receipt id and trace hash. */
 export declare function traceUploadMessage(chainId: number, receiptId: number, traceHash: string): string;
 
 /** publish() hook that uploads the trace to the hosted store, signed by the wallet that filed the receipt. */
-export declare function hostedPublisher(signer: Signer, options?: { network?: "monad" }): PublishHook;
+export declare function hostedPublisher(signer: Signer, options?: { network?: "monad" | "bot" }): PublishHook;
 
 export interface AgentMetadata {
   name: string;
@@ -143,8 +143,8 @@ export declare function registerAgent(
   options?: { network?: NetworkName },
 ): Promise<{ agentId: number; txHash: string }>;
 
-/** The shareable page of a Monad receipt, e.g. https://safereceipt.vercel.app/fleet/receipt/5 */
-export declare function receiptURL(receiptId: number): string;
+/** The shareable page of a receipt, e.g. https://safereceipt.vercel.app/fleet/receipt/5, or /fleet/bot/receipt/5 for BOT Chain */
+export declare function receiptURL(receiptId: number, network?: "monad" | "bot"): string;
 
 export interface ReceiptCheck {
   id: "OUTCOME_HASH" | "INTENT_HASH" | "IDS" | "POLICY";
