@@ -32,7 +32,7 @@ A new implementation is correct when it reproduces every `canonical` string byte
 ## Checking a live receipt
 
 ```bash
-npx --package=@safereceipt/client safereceipt-verify 1 --network monad # or --network bohr; --json for machine output
+npx --package=@safereceipt/client safereceipt-verify 1 --network monad # or --network bohr, --network bot; --json for machine output
 ```
 
 It reads the receipt over a public RPC, fetches the trace from the receipt's `evidenceURI`, and runs four checks, all locally:
