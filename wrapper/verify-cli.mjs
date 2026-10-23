@@ -2,7 +2,7 @@
 // Verify one off-chain receipt yourself: reads the chain over a public RPC, fetches
 // the published trace, re-hashes it and re-runs the policy rules locally.
 //
-//   npx --package=@safereceipt/client safereceipt-verify <receiptId> [--network monad|bohr] [--json]
+//   npx --package=@safereceipt/client safereceipt-verify <receiptId> [--network monad|bohr|bot] [--json]
 //
 // Exit 0: every check passed. 1: a check failed. 2: no outcome linked yet, or an error.
 import { v21Networks, verifyReceipt } from "./verify.mjs";
