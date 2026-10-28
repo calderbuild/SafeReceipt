@@ -16,6 +16,7 @@ verifiable record of what it declared and what it produced."
 | `register-agents.mjs`   | Registers three agent identities (doc-researcher, code-reviewer, security-scanner) on `AgentIdentityRegistry`.                                                                                                                          |
 | `run-example.mjs`       | VERIFIED path. The wrapper itself runs `npm run test` under the code-reviewer identity; a failed run fires ERROR_STAGE and lands MISMATCH.                                                                                              |
 | `run-mismatch-demo.mjs` | Staged MISMATCH path. Declared scope is `docs/`; the script also reads the files in `test/` and records their real paths, so SCOPE_CREEP fires. The overstep is scripted; the reads and the detection are real.                         |
+| `run-participant-review.mjs` | One real DeepSeek review from any wallet, hosted trace, default `NETWORK=bot`. Registers an agent unless `AGENT_ID` is set; `REVIEW_FILE` and `AGENT_NAME` pick the task. `PRIVATE_KEY` and `DEEPSEEK_API_KEY` from the environment. Used for BOT Chain receipt 10. |
 
 PipelineEvent shape (`{stage, message, progress, data, timestamp}`) is ported
 from `agentcut/backend/pipeline.py`.
