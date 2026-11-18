@@ -145,8 +145,8 @@ const RECEIPT_ABI = [
 export const liveDeps: TraceDeps = {
   async readReceipt(receiptId, chain) {
     const request = new FetchRequest(chain.rpcUrl);
-    request.timeout = 10_000;
-    request.retryFunc = async () => false;
+    request.timeout = 25_000;
+    request.retryFunc = async (_request, response, attempt) => attempt === 0 && !response.headers['retry-after'];
     const provider = new JsonRpcProvider(request, chain.chainId, { staticNetwork: true });
     const r = await new Contract(chain.actionRegistry, RECEIPT_ABI, provider).getReceipt(receiptId);
     return {
@@ -222,7 +222,7 @@ const CORS = { 'Access-Control-Allow-Origin': '*' };
 const ZERO_ADDRESS = /^0x0{40}$/i;
 
 function receiptIdOf(value: unknown): number {
-  const n = typeof value === 'string' && /^[0-9]{1,9}$/.test(value) ? Number(value) : value;
+  const n = typeof value === 'string' && /^[0-9]{1,16}$/.test(value) ? Number(value) : value;
   if (typeof n !== 'number' || !Number.isSafeInteger(n) || n < 1) throw new HttpError(400, 'receiptId must be a positive integer');
   return n;
 }
@@ -230,7 +230,7 @@ function receiptIdOf(value: unknown): number {
 async function readTrace(url: URL, deps: TraceDeps): Promise<Response> {
   const chain = hostedByName(url.searchParams.get('chain'));
   if (!chain) throw new HttpError(404, 'Only monad and bot traces are hosted');
-  const file = url.searchParams.get('file')?.match(/^([0-9]{1,9})\.json$/);
+  const file = url.searchParams.get('file')?.match(/^([0-9]{1,16})\.json$/);
   if (!file) throw new HttpError(404, `Expected /api/traces/${chain.name}/<receiptId>.json`);
   const id = receiptIdOf(file[1]);
   const receipt = await deps.readReceipt(id, chain);
@@ -266,6 +266,7 @@ async function storeTrace(request: Request, deps: TraceDeps): Promise<Response> 
   } catch {
     throw new HttpError(400, 'Body must be JSON');
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new HttpError(400, 'Body must be an object');
   const chain = hostedByChainId(body.chainId);
   if (!chain) throw new HttpError(400, 'Only chains 10143 (Monad testnet) and 677 (BOT Chain mainnet) are hosted');
   const receiptId = receiptIdOf(body.receiptId);
@@ -307,7 +308,7 @@ async function storeTrace(request: Request, deps: TraceDeps): Promise<Response> 
   if (mine.length >= DAILY_UPLOADS_PER_FILER) throw new HttpError(429, `At most ${DAILY_UPLOADS_PER_FILER} hosted traces per wallet per day`);
 
   try {
-    await deps.store(path, JSON.stringify(t, null, 2) + '\n');
+    await deps.store(path, JSON.stringify(t));
   } catch (error) {
     if (!(error instanceof AlreadyStoredError)) throw error;
     // Lost a race with a concurrent upload

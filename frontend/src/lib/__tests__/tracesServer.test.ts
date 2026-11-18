@@ -192,6 +192,7 @@ describe('traces api: POST', () => {
     const withRuntime = { ...makeTrace(7), status: 'VERIFIED', linkedTxHash: '0xdead', outcomeHash: '0xbeef' };
     expect((await upload(deps, { trace: withRuntime })).status).toBe(201);
     const stored = JSON.parse(blobs.get(tracePath(7, onChain))!);
+    expect(blobs.get(tracePath(7, onChain))).toBe(JSON.stringify(stored));
     expect(stored).not.toHaveProperty('status');
     expect(stored).not.toHaveProperty('linkedTxHash');
     expect(stored).not.toHaveProperty('outcomeHash');
@@ -200,6 +201,14 @@ describe('traces api: POST', () => {
   it('rejects a trace naming another receipt', async () => {
     const { deps } = fakeDeps();
     expect((await upload(deps, { trace: makeTrace(8) })).status).toBe(400);
+  });
+
+  it('rejects JSON that is not an upload object before reading the chain', async () => {
+    const { deps } = fakeDeps();
+    deps.readReceipt = vi.fn();
+    const result = await handle(new Request('https://x.test/api/traces', { method: 'POST', body: 'null' }), deps);
+    expect(result.status).toBe(400);
+    expect(deps.readReceipt).not.toHaveBeenCalled();
   });
 
   it('rejects a body over 256 KB', async () => {
@@ -246,6 +255,13 @@ describe('traces api: quotas', () => {
 });
 
 describe('traces api: GET', () => {
+  it('can read a hosted receipt above nine digits', async () => {
+    const { deps } = fakeDeps();
+    const receiptId = 1_000_000_000;
+    expect((await upload(deps, { receiptId, trace: makeTrace(receiptId) })).status).toBe(201);
+    expect((await getTrace(deps, `${receiptId}.json`)).status).toBe(200);
+  });
+
   it('404s for a receipt with no hosted trace', async () => {
     const { deps } = fakeDeps();
     expect((await getTrace(deps, '9.json')).status).toBe(404);
@@ -333,6 +349,17 @@ describe('traces api: RPC timeout', () => {
     await response;
   });
 
+  it('retries a throttled RPC once when it does not prescribe a delay', async () => {
+    const busy = { statusCode: 429, statusMessage: 'Too Many Requests', headers: {}, body: null };
+    transport.mockResolvedValueOnce(busy).mockResolvedValueOnce(busy);
+    const { deps } = fakeDeps();
+    deps.readReceipt = liveDeps.readReceipt;
+    const response = getTrace(deps);
+    await vi.advanceTimersByTimeAsync(20);
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect((await response).status).toBe(500);
+  });
+
   it.each(['monad', 'bot'] as const)('bounds a stalled %s RPC read and returns the existing GET error with CORS', async (chain) => {
     const { deps } = fakeDeps();
     deps.readReceipt = liveDeps.readReceipt;
@@ -341,8 +368,8 @@ describe('traces api: RPC timeout', () => {
     await vi.advanceTimersByTimeAsync(10);
     expect(transport).toHaveBeenCalledOnce();
     expect(transport.mock.calls[0][0].url).toBe(HOSTED_CHAINS[chain].rpcUrl);
-    expect(transport.mock.calls[0][0].timeout).toBe(10_000);
-    await vi.advanceTimersByTimeAsync(10_000);
+    expect(transport.mock.calls[0][0].timeout).toBe(25_000);
+    await vi.advanceTimersByTimeAsync(25_000);
     const res = await response;
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Trace request failed' });
@@ -359,8 +386,8 @@ describe('traces api: RPC timeout', () => {
     const response = upload(deps);
     await vi.advanceTimersByTimeAsync(10);
     expect(transport).toHaveBeenCalledOnce();
-    expect(transport.mock.calls[0][0].timeout).toBe(10_000);
-    await vi.advanceTimersByTimeAsync(10_000);
+    expect(transport.mock.calls[0][0].timeout).toBe(25_000);
+    await vi.advanceTimersByTimeAsync(25_000);
     const res = await response;
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Trace request failed' });
