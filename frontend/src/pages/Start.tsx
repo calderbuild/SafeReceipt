@@ -123,6 +123,7 @@ export function Start() {
             <Output>{`dry run: monad ActionRegistry 0x975bD215C549F315A066306B161119cec480c927
 would commit intentHash 0x2762fea7…`}</Output>
             <p>{t('start.step4.then')}</p>
+            <p className="text-slate-200">{t('start.step4.publicTrace')}</p>
             <Command>SAFERECEIPT_SEND=1 node minimal-agent.mjs</Command>
             <Output>{`registered agent #4 (set AGENT_ID=4 to reuse it)
 receipt #5 opened
