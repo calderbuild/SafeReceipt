@@ -165,7 +165,7 @@ export const en = {
   'demo.step.parse.waiting': 'Waiting for your wallet signature (no gas)…',
   'demo.step.parse.detail': '{model}: token {token}, spender {spender}, amount {amount}',
   'demo.step.risk.label': 'Risk Analysis',
-  'demo.step.risk.detail': 'Score: {score}/100 -- {level}',
+  'demo.step.risk.detail': 'Score: {score}/100, {level}',
   'demo.step.receipt.label': 'Creating Receipt',
   'demo.step.receipt.detail': 'Receipt #{id} created',
   'demo.step.plan.label': 'Model reads token metadata and plans the tx',
@@ -450,6 +450,7 @@ export const en = {
     'Could not understand your description. Please be more specific, e.g. "Approve Permit2 to spend 1000 DemoUSD"',
   'create.modelReading': 'Model reading',
   'create.aiParsing': 'AI Parsing...',
+  'create.signingIn': 'Signing in, then reading your request…',
   'create.aiSmartParse': 'AI Smart Parse',
   'create.aiHint': 'AI will auto-detect token and protocol names. Review after parsing.',
   'create.actionType': 'Action Type',
@@ -573,7 +574,7 @@ export const zh: Record<MessageKey, string> = {
 
   'home.demo.heading': '用一笔交易试一试',
   'home.demo.intro':
-    '一个实时模型代理会在 Monad 测试网上发起三笔真实授权（测试代币）：一笔安全、一笔高风险、一笔的代币元数据试图诱导代理授权 10,000 而不是 100。你需要一点测试网 MON 付 gas。',
+    '一个实时模型代理会在 Monad 测试网上发起三笔真实授权（测试代币）：一笔安全、一笔高风险，还有一笔被投毒的元数据，试图诱导代理授权 10,000 而不是 100。你需要一点测试网 MON 付 gas。',
   'home.demo.verifyLink': '已经有收据？验证一下',
 
   'home.integrate.heading': '给你的代理加上收据',
@@ -639,7 +640,7 @@ export const zh: Record<MessageKey, string> = {
   'demo.step.parse.waiting': '等待钱包签名（不需要 gas）…',
   'demo.step.parse.detail': '{model}：代币 {token}，spender {spender}，金额 {amount}',
   'demo.step.risk.label': '风险分析',
-  'demo.step.risk.detail': '风险分：{score}/100 -- {level}',
+  'demo.step.risk.detail': '风险分：{score}/100，{level}',
   'demo.step.receipt.label': '创建收据',
   'demo.step.receipt.detail': '已创建收据 #{id}',
   'demo.step.plan.label': '模型读取代币元数据并规划交易',
@@ -919,6 +920,7 @@ export const zh: Record<MessageKey, string> = {
   'create.missingInfo': '没看懂你的描述。说具体一点，例如「授权 Permit2 使用 1000 DemoUSD」',
   'create.modelReading': '模型的理解',
   'create.aiParsing': 'AI 解析中…',
+  'create.signingIn': '正在登录，然后读取你的请求…',
   'create.aiSmartParse': 'AI 智能解析',
   'create.aiHint': 'AI 会自动识别代币和协议名称。解析完先核对再提交。',
   'create.actionType': '行动类型',

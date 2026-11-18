@@ -67,6 +67,7 @@ export function isSignedIn(address: string | null): boolean {
 }
 
 async function call<T>(signer: ethers.Signer, body: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
+  if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
   const authBody = await auth(signer);
   const controller = new AbortController();
   const timer = setTimeout(

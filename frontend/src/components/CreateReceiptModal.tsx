@@ -47,6 +47,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
   const [inputMode, setInputMode] = useState<InputMode>('manual');
   const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
   const [isParsingAI, setIsParsingAI] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const [aiParseError, setAiParseError] = useState<string | null>(null);
   const [aiReasoning, setAiReasoning] = useState<string | null>(null);
   const [aiRiskExplanation, setAiRiskExplanation] = useState<string | null>(null);
@@ -108,6 +109,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
     }
 
     setIsParsingAI(true);
+    setSigningIn(!isSignedIn(address));
     setAiParseError(null);
     setAiReasoning(null);
 
@@ -134,9 +136,11 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
       // Switch to manual mode to show parsed results
       setInputMode('manual');
       setIsParsingAI(false);
+      setSigningIn(false);
     } catch (error) {
       setAiParseError(messageOf(error) || t('create.parseFailed'));
       setIsParsingAI(false);
+      setSigningIn(false);
     }
   };
 
@@ -414,7 +418,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 {isParsingAI ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>{t('create.aiParsing')}</span>
+                    <span>{signingIn ? t('create.signingIn') : t('create.aiParsing')}</span>
                   </>
                 ) : (
                   <>
