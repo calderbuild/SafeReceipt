@@ -118,10 +118,13 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
             <p className="text-lg text-slate-300 max-w-xl mb-8 leading-relaxed">
               {t('home.hero.body')}
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 mb-3">
               <Link to="/fleet" className="btn-primary text-center">{t('home.hero.fleetCta')}</Link>
               <button onClick={onCreateClick} className="btn-secondary">{t('home.hero.createCta')}</button>
             </div>
+            <Link to="/fleet/bot" className="inline-block text-sm text-primary-300 hover:text-primary-200 underline underline-offset-4 mb-5">
+              {t('home.hero.botPilot')}
+            </Link>
             <p className="font-mono text-xs text-slate-500">{t('home.hero.footnote')}</p>
           </div>
           <HeroSlip />

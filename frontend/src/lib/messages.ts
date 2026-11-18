@@ -59,7 +59,8 @@ export const en = {
     'SafeReceipt commits what an AI agent says it will do on-chain, before it acts, then checks what it actually did. When they differ, the receipt says so, and anyone can re-check it.',
   'home.hero.fleetCta': 'Inspect the agent fleet',
   'home.hero.createCta': 'Create a receipt',
-  'home.hero.footnote': 'Running on Monad testnet · MIT licensed',
+  'home.hero.footnote': 'Running on Monad testnet and BOT Chain mainnet (pilot) · MIT licensed',
+  'home.hero.botPilot': 'BOT Chain mainnet pilot: six receipts, every one re-checkable →',
 
   'home.slip.aria': 'Receipt No. 0011, open its transaction on MonadScan',
   'home.slip.no': 'No. 0011',
@@ -542,7 +543,8 @@ export const zh: Record<MessageKey, string> = {
     'SafeReceipt 在 AI 代理行动之前，把它声称要做的事提交到链上；行动之后再检查它实际做了什么。两者不一致时，收据会写明，而且任何人都能重新核对。',
   'home.hero.fleetCta': '查看代理舰队',
   'home.hero.createCta': '创建一张收据',
-  'home.hero.footnote': '运行在 Monad 测试网 · MIT 许可',
+  'home.hero.footnote': '运行在 Monad 测试网和 BOT Chain 主网（试点）· MIT 许可',
+  'home.hero.botPilot': 'BOT Chain 主网试点：6 张收据，每一张都能重新核对 →',
 
   'home.slip.aria': '收据 0011，在 MonadScan 打开这笔交易',
   'home.slip.no': '编号 0011',
