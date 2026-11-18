@@ -194,7 +194,7 @@ export function AgentDemo() {
                 <button
                   key={scenario.id}
                   onClick={() => handleRun(scenario)}
-                  className={`w-full text-left p-4 rounded-lg bg-white/5 border transition-all group cursor-pointer ${
+                  className={`w-full text-left p-4 rounded-lg bg-white/5 border transition-colors group cursor-pointer ${
                     scenario.injected
                       ? 'border-red-500/30 hover:bg-red-500/5 hover:border-red-500/50'
                       : 'border-white/10 hover:bg-white/10 hover:border-white/20'
@@ -234,7 +234,7 @@ export function AgentDemo() {
 
       {/* Step Progress */}
       {steps.length > 0 && (
-        <div className="space-y-1 mb-6">
+        <div className="space-y-1 mb-6" aria-live="polite" aria-busy={isRunning}>
           {selectedScenario && (
             <div className="mb-4 px-3 py-2 bg-white/5 rounded-lg">
               <span className="text-slate-400 text-xs">{t('demo.scenario')}: </span>

@@ -37,7 +37,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       onClick={(e) => {
         if (e.target === ref.current) onClose(); // click on the backdrop
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto glass-card p-6 [color:inherit] backdrop:bg-black/60"
+      className="m-auto w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto overscroll-contain glass-card p-6 [color:inherit] backdrop:bg-black/60"
     >
       {isOpen && (
         <>

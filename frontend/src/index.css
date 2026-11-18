@@ -65,6 +65,7 @@
 
 html {
   font-family: var(--font-body);
+  color-scheme: dark;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -73,6 +74,11 @@ body {
   background-color: var(--color-dark);
   color: #e8eaed;
   min-height: 100vh;
+}
+
+button,
+a {
+  touch-action: manipulation;
 }
 
 h1,
@@ -324,6 +330,7 @@ pre {
 .input-field:focus {
   outline: none;
   border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgba(51, 178, 140, 0.22);
 }
 
 .text-glow,

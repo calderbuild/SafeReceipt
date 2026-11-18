@@ -63,7 +63,7 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
 
       {/* Notice Content */}
       <div className="p-4">
-        <div className={`transition-all duration-300 ${isExpanded ? '' : 'max-h-20 overflow-hidden'}`}>
+        <div className={`transition-[max-height] duration-300 ${isExpanded ? '' : 'max-h-20 overflow-hidden'}`}>
           <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
             {notice}
           </p>

@@ -68,7 +68,10 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
           <div className="flex space-x-3">
             <input
               id="vp-receipt-id"
+              name="receiptId"
               type="text"
+              autoComplete="off"
+              spellCheck={false}
               value={receiptId}
               onChange={(e) => setReceiptId(e.target.value)}
               placeholder={t('verify.placeholder')}
