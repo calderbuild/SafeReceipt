@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ReceiptCard } from '../components/FleetSlips';
 import { fleetPath, receiptNo } from '../lib/fleet';
 import { messageOf } from '../lib/errors';
-import { ACCOUNTABILITY_URL, FEEDBACK_URL } from '../lib/links';
+import { ACCOUNTABILITY_URL, FEEDBACK_URL, SOURCE_LINKS } from '../lib/links';
 import { useT } from '../lib/i18n';
 import { FLEET_NETS, readAgent, readReceipt, type AgentProfile, type FleetNet, type V2Receipt } from '../lib/v2';
 
@@ -83,6 +83,9 @@ export function FleetReceipt({ net = 'monad' }: { net?: FleetNet }) {
               {t('fleet.receiptNoteEnd')}
             </p>
             <p className="text-sm mt-4 flex flex-wrap gap-x-5 gap-y-2">
+              <a href={SOURCE_LINKS.verifyInBrowser} target="_blank" rel="noopener noreferrer" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
+                {t('source.browserVerifier')}
+              </a>
               {state.receipt.agentId > 0 && (
                 <Link to={fleetPath(net, `/agent/${state.receipt.agentId}`)} className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
                   {t('fleet.allFromAgent', { id: state.receipt.agentId })}

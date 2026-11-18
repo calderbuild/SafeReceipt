@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { AgentCard, ReceiptCard } from '../components/FleetSlips';
 import { explorer, fleetPath, receiptNo } from '../lib/fleet';
 import { messageOf } from '../lib/errors';
-import { ACCOUNTABILITY_URL, BOT_CHAIN_URL, FEEDBACK_URL } from '../lib/links';
+import { ACCOUNTABILITY_URL, BOT_CHAIN_URL, FEEDBACK_URL, SOURCE_LINKS } from '../lib/links';
 import { useT } from '../lib/i18n';
 import { FLEET_NETS, FLEET_PAGE_LIMIT, listAgents, listReceipts, type AgentProfile, type FleetNet, type V2Receipt } from '../lib/v2';
 
@@ -73,13 +73,16 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
           </p>
           <p className="font-mono text-xs text-slate-500 leading-relaxed">
             {network.name} · chain {network.chainId} ·{' '}
-            <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(addresses.agentIdentityRegistry, net)} target="_blank" rel="noopener noreferrer">
-              AgentIdentityRegistry
-            </a>{' '}
-            ·{' '}
-            <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(addresses.actionRegistry, net)} target="_blank" rel="noopener noreferrer">
-              ActionRegistry
-            </a>
+            {[
+              { name: 'AgentIdentityRegistry', address: addresses.agentIdentityRegistry, source: SOURCE_LINKS.agentIdentityRegistry },
+              { name: 'ActionRegistry', address: addresses.actionRegistry, source: SOURCE_LINKS.actionRegistry },
+            ].map(({ name, address, source }, index) => (
+              <span key={name}>
+                {index > 0 && ' · '}
+                <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(address, net)} target="_blank" rel="noopener noreferrer">{name}</a>{' '}
+                <a className="text-primary-300 underline underline-offset-2 hover:text-primary-200" href={source} target="_blank" rel="noopener noreferrer" aria-label={t('source.named', { name })}>{t('source.code')}</a>
+              </span>
+            ))}
             {net === 'bot' && (
               <>
                 {' · '}

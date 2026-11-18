@@ -5,6 +5,7 @@ import { ReceiptSlip, SlipRow, SlipRule, Stamp } from '../components/ReceiptSlip
 import { V2_ADDRESSES, V2_NETWORK } from '../lib/v2';
 import { CONTRACT_CONFIG, explorerAddress, explorerTx } from '../lib/contract';
 import { useT } from '../lib/i18n';
+import { ACCOUNTABILITY_URL, SOURCE_LINKS } from '../lib/links';
 import type { MessageKey } from '../lib/messages';
 
 interface HomeProps {
@@ -36,11 +37,11 @@ const RULES: { rule: string; weight: number; desc: MessageKey }[] = [
 ];
 
 
-const INTEGRATION_CALLS: { call: string; body: MessageKey }[] = [
-  { call: 'beginAction()', body: 'home.integrate.call1' },
-  { call: 'emit()', body: 'home.integrate.call2' },
-  { call: 'endAction()', body: 'home.integrate.call3' },
-];
+const INTEGRATION_CALLS = [
+  { call: 'beginAction()', body: 'home.integrate.call1', source: SOURCE_LINKS.beginAction },
+  { call: 'emit()', body: 'home.integrate.call2', source: SOURCE_LINKS.emit },
+  { call: 'endAction()', body: 'home.integrate.call3', source: SOURCE_LINKS.endAction },
+] as const;
 
 const INTEGRATION_SNIPPET = `import { AccountabilityClient, evaluatePolicy } from "@safereceipt/client";
 
@@ -191,7 +192,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
             <Link to="/fleet" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('home.paths.fleetLink')}</Link>
-            <a className="text-slate-400 hover:text-white underline underline-offset-4" href="https://github.com/calderbuild/SafeReceipt/blob/main/docs/ACCOUNTABILITY.md" target="_blank" rel="noopener noreferrer">
+            <a className="text-slate-400 hover:text-white underline underline-offset-4" href={ACCOUNTABILITY_URL} target="_blank" rel="noopener noreferrer">
               {t('home.paths.boundaryLink')}
             </a>
           </div>
@@ -221,7 +222,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                 <li key={c.call} className="flex gap-4">
                   <span className="font-mono text-xs text-slate-500 pt-1 w-4 shrink-0">{i + 1}</span>
                   <div>
-                    <code className="text-primary-300 text-sm">{c.call}</code>
+                    <a href={c.source} target="_blank" rel="noopener noreferrer" className="text-primary-300 hover:text-primary-200 underline underline-offset-4"><code className="text-sm">{c.call}</code></a>
                     <p className="text-slate-300 text-sm leading-relaxed mt-1">{t(c.body)}</p>
                   </div>
                 </li>
@@ -282,14 +283,15 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
 
         <section className="border-t border-dark-100 pt-8 grid sm:grid-cols-3 gap-4 text-sm">
           {[
-            { label: 'ReceiptRegistry (V1)', href: V1_REGISTRY },
-            { label: 'AgentIdentityRegistry (V2.1)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.agentIdentityRegistry}` },
-            { label: 'ActionRegistry (V2.1)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.actionRegistry}` },
+            { label: 'ReceiptRegistry (V1)', href: V1_REGISTRY, source: SOURCE_LINKS.receiptRegistry },
+            { label: 'AgentIdentityRegistry (V2.1)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.agentIdentityRegistry}`, source: SOURCE_LINKS.agentIdentityRegistry },
+            { label: 'ActionRegistry (V2.1)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.actionRegistry}`, source: SOURCE_LINKS.actionRegistry },
           ].map((c) => (
-            <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white">
+            <div key={c.label}>
               <span className="block font-mono text-xs text-slate-500 mb-1">{t('home.contracts.label')}</span>
-              {c.label} ↗
-            </a>
+              <a href={c.href} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white">{c.label} ↗</a>
+              <a href={c.source} target="_blank" rel="noopener noreferrer" aria-label={t('source.named', { name: c.label })} className="block mt-2 text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('source.code')}</a>
+            </div>
           ))}
         </section>
       </div>

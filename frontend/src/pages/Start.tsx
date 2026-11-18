@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, type ReactNode } from 'react';
-import { FEEDBACK_URL, REPO_URL } from '../lib/links';
+import { FEEDBACK_URL, REPO_URL, SOURCE_LINKS } from '../lib/links';
 import { useT } from '../lib/i18n';
 
 const FAUCET_URL = 'https://faucet.monad.xyz';
@@ -12,7 +12,13 @@ const CREATE_SAMPLE = `cat > orders.json <<'JSON'
   { "id": "demo-2", "amount": 24 }
 ]
 JSON`;
-const FLOW = ['register', 'open', 'execute', 'link', 'verify'] as const;
+const FLOW = [
+  { stage: 'register', source: SOURCE_LINKS.registerAgent },
+  { stage: 'open', source: SOURCE_LINKS.beginAction },
+  { stage: 'execute', source: SOURCE_LINKS.quickStartAgent },
+  { stage: 'link', source: SOURCE_LINKS.endAction },
+  { stage: 'verify', source: SOURCE_LINKS.verifyInBrowser },
+] as const;
 
 function Command({ children }: { children: string }) {
   const [copied, setCopied] = useState(false);
@@ -73,11 +79,11 @@ export function Start() {
         <section aria-labelledby="start-flow-heading" className="mb-10">
           <h2 id="start-flow-heading" className="font-display text-2xl font-semibold text-white mb-4">{t('start.flow.heading')}</h2>
           <ol className="grid gap-px overflow-hidden rounded-xl bg-dark-100 sm:grid-cols-5">
-            {FLOW.map((stage, index) => (
+            {FLOW.map(({ stage, source }, index) => (
               <li key={stage} className="bg-dark-50 p-4">
                 <p className="text-white font-semibold mb-1">
                   <span className="text-primary-300 mr-2" aria-hidden="true">{index + 1}.</span>
-                  {t(`start.flow.${stage}.title`)}
+                  <a href={source} target="_blank" rel="noopener noreferrer" className="underline decoration-primary-300/60 underline-offset-4 hover:text-primary-300">{t(`start.flow.${stage}.title`)}</a>
                 </p>
                 <p className="text-sm leading-relaxed text-slate-300">{t(`start.flow.${stage}.body`)}</p>
               </li>
@@ -100,7 +106,10 @@ npm install @safereceipt/client@0.1.3 ethers@6.17.0`}</Command>
               <p>{t('start.step2.body')}</p>
               <Command>{CREATE_SAMPLE}</Command>
               <Command>{`curl -fL "${exampleURL}" -o quick-start-agent.mjs`}</Command>
-              <a href="/examples/quick-start-agent.mjs" download className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step2.download')}</a>
+              <p className="flex flex-wrap gap-x-5 gap-y-2">
+                <a href="/examples/quick-start-agent.mjs" download className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step2.download')}</a>
+                <a href={SOURCE_LINKS.quickStartAgent} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-white underline underline-offset-4">{t('source.example')}</a>
+              </p>
             </Step>
 
             <Step n={3} title={t('start.step3.title')}>
@@ -135,7 +144,7 @@ npm install @safereceipt/client@0.1.3 ethers@6.17.0`}</Command>
               <p>{t('start.step6.body')}</p>
               <p className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
                 <a href={`${REPO_URL}/blob/main/docs/HASHING.md`} className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step5.format')}</a>
-                <a href={`${REPO_URL}/blob/main/wrapper/verify.mjs`} className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step5.verifier')}</a>
+                <a href={SOURCE_LINKS.verifyInCLI} target="_blank" rel="noopener noreferrer" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step5.verifier')}</a>
               </p>
             </Step>
           </ol>

@@ -25,6 +25,10 @@ export const en = {
   'nav.homeAria': 'SafeReceipt home',
   'nav.networkTitle': 'Network used when you create a receipt with your wallet',
   'nav.breadcrumb': 'Breadcrumb',
+  'source.code': 'Source code',
+  'source.named': 'Source code for {name}',
+  'source.example': 'View the example on GitHub',
+  'source.browserVerifier': 'Browser verifier code',
   'nav.main': 'Main navigation',
   'nav.skip': 'Skip to content',
 
@@ -531,6 +535,10 @@ export const zh: Record<MessageKey, string> = {
   'nav.homeAria': 'SafeReceipt 首页',
   'nav.networkTitle': '用钱包创建收据时使用的网络',
   'nav.breadcrumb': '面包屑',
+  'source.code': '源码',
+  'source.named': '查看 {name} 源码',
+  'source.example': '在 GitHub 查看示例源码',
+  'source.browserVerifier': '查看浏览器验证源码',
   'nav.main': '主导航',
   'nav.skip': '跳到正文',
 
