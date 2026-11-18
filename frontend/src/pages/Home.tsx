@@ -14,6 +14,12 @@ interface HomeProps {
 
 const V1_REGISTRY = `${explorerAddress(CONTRACT_CONFIG.address)}#code`;
 
+const EVIDENCE_CASES = [
+  { name: 'PocketOS', body: 'home.evidence.pocketos', source: 'home.evidence.railway', url: 'https://blog.railway.com/p/your-ai-wants-to-nuke-your-database' },
+  { name: 'Amazon Q Developer', body: 'home.evidence.amazon', source: 'home.evidence.aws', url: 'https://aws.amazon.com/security/security-bulletins/2026-047-aws/' },
+  { name: 'Freysa', body: 'home.evidence.freysa', source: 'home.evidence.freysaSource', url: 'https://github.com/0xfreysa/agent' },
+] as const;
+
 const STEPS: { title: MessageKey; body: MessageKey }[] = [
   { title: 'home.steps.1.title', body: 'home.steps.1.body' },
   { title: 'home.steps.2.title', body: 'home.steps.2.body' },
@@ -122,12 +128,40 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
               <Link to="/fleet" className="btn-primary text-center">{t('home.hero.fleetCta')}</Link>
               <button onClick={onCreateClick} className="btn-secondary">{t('home.hero.createCta')}</button>
             </div>
-            <Link to="/fleet/bot" className="inline-block text-sm text-primary-300 hover:text-primary-200 underline underline-offset-4 mb-5">
-              {t('home.hero.botPilot')}
-            </Link>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm mb-5">
+              <Link to="/fleet/bot" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
+                {t('home.hero.botPilot')}
+              </Link>
+              <a href="#evidence" className="text-slate-300 hover:text-white underline underline-offset-4">{t('home.evidence.jump')}</a>
+            </div>
             <p className="font-mono text-xs text-slate-500">{t('home.hero.footnote')}</p>
           </div>
           <HeroSlip />
+        </section>
+
+        <section id="evidence" className="mb-20 scroll-mt-24 border-y border-dark-100 py-8 lg:grid lg:grid-cols-[1fr_1.65fr] lg:gap-12" aria-labelledby="evidence-heading">
+          <div className="mb-6 lg:mb-0">
+            <h2 id="evidence-heading" className="font-display text-3xl font-semibold text-white mb-3 text-balance">{t('home.evidence.heading')}</h2>
+            <p className="text-slate-300 leading-relaxed max-w-md">{t('home.evidence.intro')}</p>
+          </div>
+          <div>
+            <ul className="divide-y divide-dark-100">
+              {EVIDENCE_CASES.map(({ name, body, source, url }) => (
+                <li key={name} className="py-4 first:pt-0">
+                  <h3 className="font-display text-xl font-semibold text-white mb-1">{name}</h3>
+                  <p className="text-slate-300 text-sm leading-relaxed mb-2">{t(body)}</p>
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-300 hover:text-primary-200 underline underline-offset-4">{t(source)}</a>
+                </li>
+              ))}
+            </ul>
+            <div className="border-t border-dark-100 pt-4">
+              <p className="text-slate-300 text-sm leading-relaxed mb-3">{t('home.evidence.proof')}</p>
+              <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                <Link to="/fleet/bot/receipt/6" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('home.evidence.receipt6')}</Link>
+                <Link to="/fleet/bot/receipt/10" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('home.evidence.receipt10')}</Link>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="mb-20" aria-labelledby="paths-heading">
