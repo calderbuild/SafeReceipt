@@ -4,6 +4,7 @@ import { AgentCard, ReceiptCard } from '../components/FleetSlips';
 import { explorer, fleetPath, receiptNo } from '../lib/fleet';
 import { messageOf } from '../lib/errors';
 import { ACCOUNTABILITY_URL, BOT_CHAIN_URL, FEEDBACK_URL } from '../lib/links';
+import { useT } from '../lib/i18n';
 import { FLEET_NETS, FLEET_PAGE_LIMIT, listAgents, listReceipts, type AgentProfile, type FleetNet, type V2Receipt } from '../lib/v2';
 
 type LoadState =
@@ -34,6 +35,7 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
   const { network, addresses } = FLEET_NETS[net];
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
+  const t = useT();
 
   useEffect(() => {
     let cancelled = false;
@@ -55,7 +57,7 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
       <div className="max-w-6xl mx-auto">
         <header className="mb-12 max-w-3xl">
           <h1 className="font-display text-4xl md:text-5xl font-semibold text-white mb-4">
-            {net === 'bot' ? 'Agent fleet on BOT Chain' : 'Agent fleet'}
+            {net === 'bot' ? t('fleet.bot.title') : t('fleet.monad.title')}
           </h1>
           {net === 'bot' ? <BotIntro /> : <MonadIntro />}
           <p className="font-mono text-xs text-slate-400 mb-3">
@@ -94,19 +96,19 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
             {net === 'monad' && (
               <>
                 <br />
-                This page reads V2.1. The earlier V2.0 registries (Monad and Base Sepolia) are listed in DEPLOYMENTS.md.
+                {t('fleet.v20Note')}
               </>
             )}
           </p>
         </header>
 
-        {state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">Reading the registries on {network.name}…</p>}
+        {state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">{t('fleet.reading', { network: network.name })}</p>}
 
         {state.kind === 'error' && (
           <div className="glass-card p-6 max-w-xl">
-            <p className="text-white font-medium mb-1">Couldn't read the registries on {network.name}.</p>
+            <p className="text-white font-medium mb-1">{t('fleet.errorTitle', { network: network.name })}</p>
             <p className="text-sm text-slate-400 mb-4 font-mono break-words">{state.message}</p>
-            <button onClick={retry} className="btn-secondary text-sm">Try again</button>
+            <button onClick={retry} className="btn-secondary text-sm">{t('fleet.tryAgain')}</button>
           </div>
         )}
 
@@ -114,9 +116,9 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
           <>
             <section className="mb-14" aria-labelledby="agents-heading">
               <h2 id="agents-heading" className="font-display text-xl font-semibold text-white mb-4">
-                Agents <span className="text-slate-500 font-mono text-sm font-normal">({state.agentTotal})</span>
+                {t('fleet.agents')} <span className="text-slate-500 font-mono text-sm font-normal">({state.agentTotal})</span>
               </h2>
-              {state.agentTotal > state.agents.length && <Capped shown={state.agents.length} total={state.agentTotal} what="agents" />}
+              {state.agentTotal > state.agents.length && <Capped shown={state.agents.length} total={state.agentTotal} what={t('fleet.what.agents')} />}
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {state.agents.map((agent) => (
                   <AgentCard
@@ -131,22 +133,21 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
 
             <section aria-labelledby="receipts-heading">
               <h2 id="receipts-heading" className="font-display text-xl font-semibold text-white mb-1">
-                Receipts <span className="text-slate-500 font-mono text-sm font-normal">({state.receiptTotal})</span>
+                {t('fleet.receipts')} <span className="text-slate-500 font-mono text-sm font-normal">({state.receiptTotal})</span>
               </h2>
               <p className="text-sm text-slate-400 mb-6">
-                Newest first. The stamp shows the outcome recorded on-chain. Verify re-checks it here: the evidence is
-                untouched, it belongs to this receipt, and the policy rules give the same verdict. Each receipt number
-                opens its own page, which you can share.
+                {t('fleet.receiptsIntro')}
               </p>
-              {state.receiptTotal > state.receipts.length && <Capped shown={state.receipts.length} total={state.receiptTotal} what="receipts" />}
+              {state.receiptTotal > state.receipts.length && <Capped shown={state.receipts.length} total={state.receiptTotal} what={t('fleet.what.receipts')} />}
               {state.receipts.length === 0 ? (
-                <p className="text-slate-400">No receipts on-chain yet.</p>
+                <p className="text-slate-400">{t('fleet.empty')}</p>
               ) : (
                 <div className="grid lg:grid-cols-2 gap-8 items-start">
                   {state.receipts.map((receipt) =>
                     'error' in receipt ? (
                       <div key={receipt.id} className="glass-card p-5 font-mono text-sm text-slate-400">
-                        <Link className="underline" to={fleetPath(net, `/receipt/${receipt.id}`)}>{receiptNo(receipt.id)}</Link> could not be read: {receipt.error}
+                        <Link className="underline" to={fleetPath(net, `/receipt/${receipt.id}`)}>{receiptNo(receipt.id)}</Link>{' '}
+                        {t('fleet.couldNotReadShort', { error: receipt.error })}
                       </div>
                     ) : (
                       <ReceiptCard key={receipt.id} receipt={receipt} agent={state.agents.find((a) => a.id === receipt.agentId)} net={net} />
@@ -155,13 +156,10 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
                 </div>
               )}
               <p className="text-xs text-slate-500 mt-8 max-w-2xl leading-relaxed">
-                What this check proves: the declared intent was committed before the agent ran, and the published trace
-                has not changed since. What it does not prove: that the trace is a complete account of what the agent
-                did. Details in{' '}
+                {t('fleet.trustNote')}{' '}
                 <a className="underline underline-offset-2 hover:text-slate-300" href={ACCOUNTABILITY_URL} target="_blank" rel="noopener noreferrer">
-                  ACCOUNTABILITY.md
+                  {t('fleet.trustDetails')} ACCOUNTABILITY.md
                 </a>
-                .
               </p>
             </section>
           </>
@@ -172,23 +170,20 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
 }
 
 function MonadIntro() {
+  const t = useT();
   return (
     <>
               <p className="text-slate-300 text-lg leading-relaxed mb-5">
-                Every agent registered on SafeReceipt's registry, each with an identity on-chain. The ones marked{' '}
-                <span className="font-mono text-sm text-primary-300">run by SafeReceipt</span> are mine; anyone can register
-                another. Every receipt below can be checked from this page: your browser fetches the published evidence,
-                hashes it, and compares the result with the hash stored on Monad. You don't have to trust this site to do it.
+                {t('fleet.monad.intro1')}
               </p>
               <p className="text-slate-400 text-sm leading-relaxed mb-5">
-                The agents run from a command line, not from this page: each run commits its intent, does the work,
-                publishes its trace and links it on-chain, and its receipt shows up here.{' '}
+                {t('fleet.monad.intro2')}{' '}
                 <Link to="/start" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
-                  Put your own agent here
+                  {t('fleet.putYourOwn')}
                 </Link>
                 {' · '}
                 <a href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-white underline underline-offset-4">
-                  Tell us what broke
+                  {t('start.stuck.link')}
                 </a>
               </p>
     </>
@@ -197,26 +192,24 @@ function MonadIntro() {
 
 /** The BOT Chain pilot: scope stated up front, since a record on-chain says less than it can seem to. */
 function BotIntro() {
+  const t = useT();
   return (
     <>
       <p className="text-slate-300 text-lg leading-relaxed mb-5">
-        A controlled pilot of SafeReceipt's two V2.1 registries on BOT Chain mainnet, deployed on 2026-10-15. The receipts
-        below are a validation set I filed myself: a normal one, an anonymous one (agent 0), and one whose outcome was
-        linked after its agent was revoked. Verify fetches the published trace, hashes it in your browser, and compares
-        the result with the hash stored on BOT Chain. You don't have to trust this site to do it.
+        {t('fleet.bot.intro1')}
       </p>
       <p className="text-slate-400 text-sm leading-relaxed mb-5">
-        This is a pilot, not an audit, certification or endorsement of SafeReceipt by BOT Chain. A record on-chain proves
-        what was recorded, not that the agent's actions happened as the trace says.
+        {t('fleet.bot.intro2')}
       </p>
     </>
   );
 }
 
 function Capped({ shown, total, what }: { shown: number; total: number; what: string }) {
+  const t = useT();
   return (
     <p className="font-mono text-xs text-slate-500 mb-4">
-      Showing the newest {shown} of {total} {what}; this page reads at most {FLEET_PAGE_LIMIT}. Older ones keep their own pages.
+      {t('fleet.capped', { shown, total, what, limit: FLEET_PAGE_LIMIT })}
     </p>
   );
 }

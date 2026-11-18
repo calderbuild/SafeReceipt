@@ -4,6 +4,8 @@ import { DEMO_SCENARIOS } from '../lib/demoScenarios';
 import { isSignedIn } from '../lib/agentApi';
 import { runAgentDemo } from '../lib/agentRunner';
 import { ACTIVE_CHAIN, explorerTx } from '../lib/contract';
+import { useT } from '../lib/i18n';
+import type { MessageKey } from '../lib/messages';
 import type { AgentStep, AgentDemoResult } from '../lib/agentRunner';
 import type { DemoScenario } from '../lib/demoScenarios';
 
@@ -70,6 +72,7 @@ function getRiskBadge(detail: string | undefined) {
 
 export function AgentDemo() {
   const { address, isConnected, signer } = useWallet();
+  const t = useT();
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<AgentDemoResult | null>(null);
@@ -80,11 +83,11 @@ export function AgentDemo() {
 
   const handleRun = useCallback(async (scenario: DemoScenario) => {
     if (!signer || !address) {
-      setRunError('Connect your wallet to run the demo.');
+      setRunError(t('demo.runError.connect'));
       return;
     }
     if (!onActiveNetwork()) {
-      setRunError(`Switch your wallet to ${ACTIVE_CHAIN.name}, then run the demo again.`);
+      setRunError(t('demo.runError.network', { network: ACTIVE_CHAIN.name }));
       return;
     }
 
@@ -113,7 +116,7 @@ export function AgentDemo() {
     } finally {
       if (runIdRef.current === runId) setIsRunning(false);
     }
-  }, [signer, address]);
+  }, [signer, address, t]);
 
   const cancelRun = useCallback(() => {
     runIdRef.current += 1;
@@ -132,8 +135,8 @@ export function AgentDemo() {
           <PlayIcon />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">Agent Verification Demo</h2>
-          <p className="text-slate-400 text-sm">A live model agent sends a real approve; the receipt checks what it actually did</p>
+          <h2 className="text-xl font-bold text-white">{t('demo.title')}</h2>
+          <p className="text-slate-400 text-sm">{t('demo.subtitle')}</p>
         </div>
       </div>
 
@@ -157,7 +160,7 @@ export function AgentDemo() {
                     }`}
                   >
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-white font-medium">{scenario.label}</span>
+                      <span className="text-white font-medium">{t(`demo.scenario.${scenario.id}.label` as MessageKey)}</span>
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         scenario.expectedRiskLevel === 'HIGH'
                           ? 'bg-red-500/20 text-red-400'
@@ -169,20 +172,20 @@ export function AgentDemo() {
                       </span>
                       {scenario.injected && (
                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
-                          INJECTED METADATA
+                          {t('demo.injected')}
                         </span>
                       )}
                     </div>
-                    <p className="text-slate-500 text-sm">{scenario.description}</p>
+                    <p className="text-slate-500 text-sm">{t(`demo.scenario.${scenario.id}.desc` as MessageKey)}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-slate-400 text-sm mt-4 text-center">Connect your wallet to run the demo</p>
+              <p className="text-slate-400 text-sm mt-4 text-center">{t('demo.connectPrompt')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               <p className="text-slate-400 text-sm mb-4">
-                Pick a scenario. A real model (DeepSeek, called from our server) parses the request, the receipt commits that intent on-chain, then the model reads the token's metadata and decides what to send. Whatever it decides is sent as a real approve on Monad testnet and checked against the receipt. The first run asks for one sign-in signature (no gas); each scenario then needs three wallet confirmations.
+                {t('demo.intro')}
               </p>
               {DEMO_SCENARIOS.map(scenario => (
                 <button
@@ -197,7 +200,7 @@ export function AgentDemo() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-white font-medium">{scenario.label}</span>
+                        <span className="text-white font-medium">{t(`demo.scenario.${scenario.id}.label` as MessageKey)}</span>
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                           scenario.expectedRiskLevel === 'HIGH'
                             ? 'bg-red-500/20 text-red-400'
@@ -209,11 +212,11 @@ export function AgentDemo() {
                         </span>
                         {scenario.injected && (
                           <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
-                            INJECTED METADATA
+                            {t('demo.injected')}
                           </span>
                         )}
                       </div>
-                      <p className="text-slate-500 text-sm">{scenario.description}</p>
+                      <p className="text-slate-500 text-sm">{t(`demo.scenario.${scenario.id}.desc` as MessageKey)}</p>
                     </div>
                     <div className="text-slate-500 group-hover:text-white transition-colors">
                       <PlayIcon />
@@ -231,8 +234,8 @@ export function AgentDemo() {
         <div className="space-y-1 mb-6">
           {selectedScenario && (
             <div className="mb-4 px-3 py-2 bg-white/5 rounded-lg">
-              <span className="text-slate-400 text-xs">Scenario: </span>
-              <span className="text-white text-sm">{selectedScenario.label}</span>
+              <span className="text-slate-400 text-xs">{t('demo.scenario')}: </span>
+              <span className="text-white text-sm">{selectedScenario ? t(`demo.scenario.${selectedScenario.id}.label` as MessageKey) : ''}</span>
             </div>
           )}
           {steps.map((step, i) => (
@@ -273,7 +276,7 @@ export function AgentDemo() {
           onClick={cancelRun}
           className="mb-6 text-sm text-slate-400 hover:text-white underline underline-offset-4"
         >
-          Cancel
+          {t('demo.cancel')}
         </button>
       )}
 
@@ -287,17 +290,17 @@ export function AgentDemo() {
           {result.success ? (
             <div>
               <p className={`${result.verified ? 'text-emerald-400' : 'text-red-400'} font-medium mb-2`}>
-                {result.verified ? 'Execution Verified' : 'Execution Mismatch Detected'}
+                {result.verified ? t('demo.result.verified') : t('demo.result.mismatch')}
               </p>
               <div className="space-y-1 text-sm">
                 <p className="text-slate-400">
-                  Receipt: <span className="text-white font-mono">#{result.receiptId}</span>
+                  {t('demo.result.receipt')} <span className="text-white font-mono">#{result.receiptId}</span>
                 </p>
                 <p className="text-slate-400">
-                  Risk Score: <span className="text-white">{result.riskScore}/100</span>
+                  {t('demo.result.risk')} <span className="text-white">{result.riskScore}/100</span>
                 </p>
                 <p className="text-slate-400">
-                  Tx: <a
+                  {t('demo.result.tx')} <a
                     href={explorerTx(result.executionTxHash ?? '')}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -305,7 +308,7 @@ export function AgentDemo() {
                   >{result.executionTxHash?.slice(0, 14)}...</a>
                 </p>
                 <p className="text-slate-400">
-                  Status: <span className={result.verified ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>
+                  {t('demo.result.status')} <span className={result.verified ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>
                     {result.verified ? 'VERIFIED' : 'MISMATCH'}
                   </span>
                 </p>
@@ -313,16 +316,14 @@ export function AgentDemo() {
                   <div className="mt-3 space-y-2">
                     {selectedScenario?.injected && (
                       <p className={result.deviated ? 'text-red-400' : 'text-emerald-400'}>
-                        {result.deviated
-                          ? 'The model followed the injected rule and sent a different amount than you asked for.'
-                          : 'The model ignored the injected rule this time and sent what you asked for.'}
+                        {result.deviated ? t('demo.deviated') : t('demo.notDeviated')}
                       </p>
                     )}
                     <details className="text-xs">
-                      <summary className="cursor-pointer text-slate-400">What the agent read and decided</summary>
+                      <summary className="cursor-pointer text-slate-400">{t('demo.details')}</summary>
                       <pre className="mt-2 whitespace-pre-wrap font-mono text-slate-400 bg-white/5 p-2 rounded">{result.plan.metadata}</pre>
                       <p className="mt-2 text-slate-400">
-                        {result.plan.model} planned amount <span className="font-mono text-white">{result.plan.call.amount}</span>: "{result.plan.note}"
+                        {t('demo.plan', { model: result.plan.model, amount: result.plan.call.amount, note: result.plan.note })}
                       </p>
                     </details>
                   </div>
@@ -342,7 +343,7 @@ export function AgentDemo() {
             onClick={() => { setResult(null); setSteps([]); setSelectedScenario(null); }}
             className="mt-4 btn-secondary text-sm"
           >
-            Run Another Scenario
+            {t('demo.runAnother')}
           </button>
         </div>
       )}

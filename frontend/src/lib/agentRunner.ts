@@ -25,6 +25,7 @@ import type { ApproveIntent } from './intentParser';
 import type { RiskResult } from './riskEngine';
 import type { CanonicalDigest } from './canonicalize';
 import { messageOf } from './errors';
+import { t } from './i18n';
 
 // Step definition
 export interface AgentStep {
@@ -66,13 +67,13 @@ function ensureActive(signal?: AbortSignal) {
 
 function createSteps(): AgentStep[] {
   return [
-    { id: 'parse', label: 'Model parses your request', status: 'pending' },
-    { id: 'risk', label: 'Risk Analysis', status: 'pending' },
-    { id: 'receipt', label: 'Creating Receipt', status: 'pending' },
-    { id: 'plan', label: 'Model reads token metadata and plans the tx', status: 'pending' },
-    { id: 'execute', label: 'Executing Transaction', status: 'pending' },
-    { id: 'verify', label: 'Verifying Execution', status: 'pending' },
-    { id: 'link', label: 'Recording Verdict', status: 'pending' },
+    { id: 'parse', label: t('demo.step.parse.label'), status: 'pending' },
+    { id: 'risk', label: t('demo.step.risk.label'), status: 'pending' },
+    { id: 'receipt', label: t('demo.step.receipt.label'), status: 'pending' },
+    { id: 'plan', label: t('demo.step.plan.label'), status: 'pending' },
+    { id: 'execute', label: t('demo.step.execute.label'), status: 'pending' },
+    { id: 'verify', label: t('demo.step.verify.label'), status: 'pending' },
+    { id: 'link', label: t('demo.step.link.label'), status: 'pending' },
   ];
 }
 
@@ -107,19 +108,24 @@ export async function runAgentDemo(
       steps = updateStep(
         steps,
         'parse',
-        { status: 'running', detail: 'Waiting for your wallet signature (no gas)…' },
+        { status: 'running', detail: t('demo.step.parse.waiting') },
         onStepChange,
       );
     }
 
     const parsed = await parseIntent(signer, scenario.input, options.signal);
     ensureActive(options.signal);
-    if (parsed.actionType !== 'APPROVE') throw new Error('The model read this as a batch payment, not an approval');
+    if (parsed.actionType !== 'APPROVE') throw new Error(t('demo.step.batchError'));
     const intent: ApproveIntent = { token: parsed.token, spender: parsed.spender, amount: parsed.amount };
 
     steps = updateStep(steps, 'parse', {
       status: 'done',
-      detail: `${parsed.model}: token ${shorten(intent.token)}, spender ${shorten(intent.spender)}, amount ${intent.amount}`,
+      detail: t('demo.step.parse.detail', {
+        model: parsed.model,
+        token: shorten(intent.token),
+        spender: shorten(intent.spender),
+        amount: intent.amount,
+      }),
       result: parsed,
     }, onStepChange);
 
@@ -135,7 +141,7 @@ export async function runAgentDemo(
 
     steps = updateStep(steps, 'risk', {
       status: 'done',
-      detail: `Score: ${riskResult.riskScore}/100 -- ${riskLevel(riskResult.riskScore)}`,
+      detail: t('demo.step.risk.detail', { score: riskResult.riskScore, level: riskLevel(riskResult.riskScore) }),
       result: riskResult,
     }, onStepChange);
 
@@ -183,7 +189,7 @@ export async function runAgentDemo(
 
     steps = updateStep(steps, 'receipt', {
       status: 'done',
-      detail: `Receipt #${receiptId} created`,
+      detail: t('demo.step.receipt.detail', { id: receiptId }),
       result: { receiptId, txHash: createTxHash },
     }, onStepChange);
 
@@ -197,7 +203,11 @@ export async function runAgentDemo(
       plan.call.token.toLowerCase() !== normalizedIntent.token;
     steps = updateStep(steps, 'plan', {
       status: 'done',
-      detail: `Plans amount ${plan.call.amount}${deviated ? ' (differs from the receipt)' : ''}. "${plan.note}"`,
+      detail: t('demo.step.plan.detail', {
+        amount: plan.call.amount,
+        diff: deviated ? t('demo.step.plan.differs') : '',
+        note: plan.note,
+      }),
       result: plan,
     }, onStepChange);
 
@@ -209,7 +219,7 @@ export async function runAgentDemo(
 
     steps = updateStep(steps, 'execute', {
       status: 'done',
-      detail: `Tx: ${shorten(executionTxHash)}`,
+      detail: t('demo.step.execute.detail', { hash: shorten(executionTxHash) }),
       result: { txHash: executionTxHash },
     }, onStepChange);
 
@@ -231,7 +241,7 @@ export async function runAgentDemo(
 
     steps = updateStep(steps, 'verify', {
       status: 'done',
-      detail: verified ? 'Execution matches declared intent' : mismatchDetail,
+      detail: verified ? t('demo.step.verify.match') : mismatchDetail,
       result: check,
     }, onStepChange);
 
@@ -245,7 +255,7 @@ export async function runAgentDemo(
     }
     const status = verified ? 'VERIFIED' : 'MISMATCH';
     updateDigestStatus(receiptId, status, executionTxHash);
-    steps = updateStep(steps, 'link', { status: 'done', detail: `Receipt #${receiptId} marked ${status} on-chain` }, onStepChange);
+    steps = updateStep(steps, 'link', { status: 'done', detail: t('demo.step.link.detail', { id: receiptId, status }) }, onStepChange);
 
     return {
       success: true,

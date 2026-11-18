@@ -4,6 +4,7 @@ import { WalletConnect } from '../components/WalletConnect';
 import { getUserReceipts, getDigest } from '../lib/storage';
 import type { CanonicalDigest } from '../lib/canonicalize';
 import { riskLevel } from '../lib/riskEngine';
+import { localeOf, t, useLang, useT } from '../lib/i18n';
 
 // Heroicons
 const DocumentCheckIcon = () => (
@@ -39,18 +40,18 @@ function getRiskColor(score: number): string {
 function getStatusBadge(status?: string): { color: string; label: string } | null {
   switch (status) {
     case 'VERIFIED':
-      return { color: 'bg-emerald-500/20 text-emerald-400', label: 'Verified' };
+      return { color: 'bg-emerald-500/20 text-emerald-400', label: t('receipts.status.verified') };
     case 'MISMATCH':
-      return { color: 'bg-red-500/20 text-red-400', label: 'Mismatch' };
+      return { color: 'bg-red-500/20 text-red-400', label: t('receipts.status.mismatch') };
     case 'EXECUTED':
-      return { color: 'bg-blue-500/20 text-blue-400', label: 'Executed' };
+      return { color: 'bg-blue-500/20 text-blue-400', label: t('receipts.status.executed') };
     default:
       return null; // Don't show badge for CREATED status
   }
 }
 
-function formatDate(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleString('en-US', {
+function formatDate(timestamp: number, locale: string): string {
+  return new Date(timestamp * 1000).toLocaleString(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -61,6 +62,8 @@ function formatDate(timestamp: number): string {
 
 export function MyReceipts() {
   const { address, isConnected } = useWallet();
+  const lang = useLang();
+  const hud = useT();
 
   // Get user's receipts
   const receiptIds = isConnected && address ? getUserReceipts(address) : [];
@@ -85,22 +88,22 @@ export function MyReceipts() {
               <ArrowLeftIcon />
             </Link>
             <div>
-              <h1 className="font-display text-2xl font-bold text-white">My Receipts</h1>
+              <h1 className="font-display text-2xl font-bold text-white">{hud('receipts.title')}</h1>
               <p className="text-slate-400 text-sm">
-                {receipts.length} receipt{receipts.length !== 1 ? 's' : ''} stored locally
+                {receipts.length === 1 ? hud('receipts.countOne') : hud('receipts.count', { count: receipts.length })}
               </p>
             </div>
           </div>
           <Link to="/?create=1" className="btn-primary flex items-center space-x-2">
             <DocumentCheckIcon />
-            <span>Create New</span>
+            <span>{hud('receipts.createNew')}</span>
           </Link>
         </div>
 
         {/* Content */}
         {!isConnected ? (
           <div className="glass-card p-12 text-center">
-            <p className="text-slate-400 mb-6">Connect your wallet to see the receipts you created in this browser.</p>
+            <p className="text-slate-400 mb-6">{hud('receipts.connectPrompt')}</p>
             <div className="flex justify-center">
               <WalletConnect />
             </div>
@@ -108,9 +111,9 @@ export function MyReceipts() {
         ) : receipts.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <DocumentCheckIcon />
-            <p className="text-slate-400 mt-4 mb-6">No receipts yet</p>
+            <p className="text-slate-400 mt-4 mb-6">{hud('receipts.empty')}</p>
             <Link to="/?create=1" className="btn-primary inline-flex items-center space-x-2">
-              <span>Create your first receipt</span>
+              <span>{hud('receipts.createFirst')}</span>
             </Link>
           </div>
         ) : (
@@ -141,11 +144,11 @@ export function MyReceipts() {
                         </span>
                       )}
                     </div>
-                    <p className="text-slate-500 text-sm">{formatDate(digest.createdAt)}</p>
+                    <p className="text-slate-500 text-sm">{formatDate(digest.createdAt, localeOf(lang))}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 text-slate-500 group-hover:text-white transition-colors">
-                  <span className="text-sm hidden sm:block">View Details</span>
+                  <span className="text-sm hidden sm:block">{hud('receipts.viewDetails')}</span>
                   <ChevronRightIcon />
                 </div>
               </Link>

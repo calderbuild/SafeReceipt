@@ -3,10 +3,13 @@ import { useState } from 'react';
 import { ReceiptSlip, SlipRow, SlipRule, Stamp } from './ReceiptSlip';
 import { messageOf } from '../lib/errors';
 import { agentName, explorer, fleetPath, formatTime, isDeployers, receiptNo } from '../lib/fleet';
+import { t, useT } from '../lib/i18n';
+import type { MessageKey } from '../lib/messages';
 import { DEPLOYER, FLEET_NETS, shortHash, verifyIndependently, type AgentProfile, type FleetNet, type IndependentVerification, type V2Receipt } from '../lib/v2';
 
 export function AgentCard({ agent, count, linked = true, net = 'monad' }: { agent: AgentProfile; count?: number; linked?: boolean; net?: FleetNet }) {
   const name = agentName(agent, agent.id);
+  const t = useT();
   return (
     <article className="glass-card p-5">
       <div className="flex items-baseline justify-between gap-3 mb-2">
@@ -24,30 +27,32 @@ export function AgentCard({ agent, count, linked = true, net = 'monad' }: { agen
       {agent.metadata?.role && <p className="text-sm text-slate-400 mb-4 leading-relaxed">{agent.metadata.role}</p>}
       <div className="flex flex-wrap gap-2 text-xs font-mono">
         {isDeployers(agent) && (
-          <span className="badge-info" title="Registered by the wallet that deployed SafeReceipt">
-            run by SafeReceipt
+          <span className="badge-info" title={t('slip.runByTitle')}>
+            {t('slip.runBy')}
           </span>
         )}
         {agent.metadata?.model && (
-          <span className="badge-info" title="The model named in the on-chain registration. Each receipt's Run line says what actually ran.">
-            registered as {agent.metadata.model}
+          <span className="badge-info" title={t('slip.registeredAsTitle')}>
+            {t('slip.registeredAs', { model: agent.metadata.model })}
           </span>
         )}
-        <span className={agent.active ? 'badge-success' : 'badge-danger'}>{agent.active ? 'active' : 'revoked'}</span>
+        <span className={agent.active ? 'badge-success' : 'badge-danger'}>{agent.active ? t('slip.active') : t('slip.revoked')}</span>
         {count !== undefined && (
-          <span className="text-slate-500 self-center">{count === 0 ? 'no receipts yet' : `${count} receipt${count > 1 ? 's' : ''}`}</span>
+          <span className="text-slate-500 self-center">
+            {count === 0 ? t('slip.noReceipts') : t(count === 1 ? 'slip.receiptCountOne' : 'slip.receiptCount', { count })}
+          </span>
         )}
       </div>
       <p className="font-mono text-xs text-slate-500 mt-3 break-all">
-        owner{' '}
+        {t('slip.owner')}{' '}
         <a className="underline underline-offset-2 hover:text-slate-300" href={explorer(agent.owner, net)} target="_blank" rel="noopener noreferrer">
           {shortHash(agent.owner)}
         </a>
       </p>
       {!agent.metadata && (
         <p className="text-xs text-slate-500 mt-2">
-          Metadata unavailable.{' '}
-          <a className="underline" href={agent.tokenURI} target="_blank" rel="noopener noreferrer">Open token URI</a>
+          {t('slip.metadataUnavailable')}{' '}
+          <a className="underline" href={agent.tokenURI} target="_blank" rel="noopener noreferrer">{t('slip.openTokenUri')}</a>
         </p>
       )}
     </article>
@@ -63,6 +68,7 @@ type VerifyState =
 /** One receipt as a thermal slip. On its own page (`standalone`) the number is not a link to itself. */
 export function ReceiptCard({ receipt, agent, standalone = false, net = 'monad' }: { receipt: V2Receipt; agent?: AgentProfile; standalone?: boolean; net?: FleetNet }) {
   const [verify, setVerify] = useState<VerifyState>({ kind: 'idle' });
+  const t = useT();
 
   const run = async () => {
     setVerify({ kind: 'running' });
@@ -75,7 +81,9 @@ export function ReceiptCard({ receipt, agent, standalone = false, net = 'monad' 
 
   const recorded = receipt.status === 'VERIFIED' ? 'verified' : receipt.status === 'MISMATCH' ? 'mismatch' : 'pending';
   // RUN_NOTES describe the deployer's own runs; another wallet's receipt with the same id is a different run
-  const note = net === 'monad' && receipt.actor.toLowerCase() === DEPLOYER.toLowerCase() ? RUN_NOTES[receipt.id] : undefined;
+  const note = net === 'monad' && receipt.actor.toLowerCase() === DEPLOYER.toLowerCase() && receipt.id in RUN_NOTES
+    ? t(`slip.runNote.${receipt.id}` as MessageKey)
+    : undefined;
 
   return (
     <ReceiptSlip>
@@ -85,32 +93,32 @@ export function ReceiptCard({ receipt, agent, standalone = false, net = 'monad' 
       </div>
       <div className="text-[var(--color-paper-faint)]">{formatTime(receipt.timestamp)}</div>
       <SlipRule />
-      <SlipRow label="Agent">
+      <SlipRow label={t('slip.agent')}>
         {receipt.agentId === 0 ? (
-          'anonymous (no registered agent)'
+          t('slip.anonymous')
         ) : (
           <Link to={fleetPath(net, `/agent/${receipt.agentId}`)}>
             {agent?.metadata?.name ? `${agent.metadata.name} (#${receipt.agentId})` : `#${receipt.agentId}`}
           </Link>
         )}
       </SlipRow>
-      <SlipRow label="Filed by">
+      <SlipRow label={t('slip.filedBy')}>
         <a href={explorer(receipt.actor, net)} target="_blank" rel="noopener noreferrer">{shortHash(receipt.actor)}</a>
       </SlipRow>
-      <SlipRow label="Action">{receipt.actionType}</SlipRow>
-      {note && <SlipRow label="Run">{note}</SlipRow>}
-      <SlipRow label="Intent hash">{shortHash(receipt.intentHash)}</SlipRow>
-      <SlipRow label="Outcome hash">{receipt.status === 'CREATED' ? 'not linked yet' : shortHash(receipt.outcomeHash)}</SlipRow>
-      <SlipRow label="Evidence">
+      <SlipRow label={t('slip.action')}>{receipt.actionType}</SlipRow>
+      {note && <SlipRow label={t('slip.run')}>{note}</SlipRow>}
+      <SlipRow label={t('slip.intentHash')}>{shortHash(receipt.intentHash)}</SlipRow>
+      <SlipRow label={t('slip.outcomeHash')}>{receipt.status === 'CREATED' ? t('slip.notLinked') : shortHash(receipt.outcomeHash)}</SlipRow>
+      <SlipRow label={t('slip.evidence')}>
         {receipt.evidenceURI ? (
           <a href={receipt.evidenceURI} target="_blank" rel="noopener noreferrer">{receipt.evidenceURI.split('/').slice(-2).join('/')}</a>
         ) : (
-          'not linked yet'
+          t('slip.notLinked')
         )}
       </SlipRow>
       <SlipRule />
       <div className="flex items-center justify-between gap-4 py-1">
-        <span className="slip-label">Recorded outcome</span>
+        <span className="slip-label">{t('slip.recordedOutcome')}</span>
         <Stamp kind={recorded} label={receipt.status} />
       </div>
       <SlipRule />
@@ -121,12 +129,16 @@ export function ReceiptCard({ receipt, agent, standalone = false, net = 'monad' 
           disabled={verify.kind === 'running' || !receipt.evidenceURI}
           className="w-full bg-paper-ink text-paper font-mono text-sm py-2.5 rounded-md hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
-          {verify.kind === 'running' ? 'Verifying…' : receipt.evidenceURI ? 'Verify independently' : 'Nothing to verify until the outcome is linked'}
+          {verify.kind === 'running'
+            ? t('slip.verifying')
+            : receipt.evidenceURI
+              ? t('slip.verifyIndependently')
+              : t('slip.nothingToVerify')}
         </button>
       ) : verify.kind === 'error' ? (
         <div>
-          <p className="mb-3">Couldn't verify: {verify.message}</p>
-          <button onClick={run} className="underline">Try again</button>
+          <p className="mb-3">{t('slip.verifyError', { message: verify.message })}</p>
+          <button onClick={run} className="underline">{t('slip.tryAgain')}</button>
         </div>
       ) : (
         <VerificationTrace receipt={receipt} result={verify.result} net={net} />
@@ -135,70 +147,72 @@ export function ReceiptCard({ receipt, agent, standalone = false, net = 'monad' 
   );
 }
 
-// How each of the deployer's receipts was produced. Not recoverable from chain data, so stated here.
-const RUN_NOTES: Record<number, string> = {
-  1: 'the wrapper ran npm run test itself (a script, not an LLM): 50 passing',
-  2: 'staged: run-mismatch-demo.mjs makes the scanner read test/ as well as docs/. The reads really happen; the overstep is scripted',
-  3: 'a real DeepSeek (deepseek-flash) call reviewed contracts/DemoUSD.sol; the full model answer is in the trace',
-  4: 'a real DeepSeek (deepseek-flash) call summarized docs/ACCOUNTABILITY.md for a new reader; the full model answer is in the trace',
-};
+// Which of the deployer's receipts have a hand-written run note; the text lives in the message catalogue.
+const RUN_NOTES: Record<number, true> = { 1: true, 2: true, 3: true, 4: true };
 
 function agentLine(receipt: V2Receipt, agent: IndependentVerification['agent']): string {
-  if (agent.anonymous) return 'Agent id 0: no registered agent stands behind this receipt; any wallet can file one.';
-  const owner = `Filer ${agent.filerOwnsAgent ? 'still owns' : 'no longer owns'} agent #${receipt.agentId}`;
-  if (!agent.revoked) return `${owner}, which is active.`;
-  return `${owner}, which is now revoked. It was active when this receipt was opened; the outcome may have been linked after the revocation.`;
+  if (agent.anonymous) return t('slip.agentLine.anonymous');
+  const key = agent.filerOwnsAgent
+    ? agent.revoked ? 'slip.agentLine.owns.revoked' : 'slip.agentLine.owns.active'
+    : agent.revoked ? 'slip.agentLine.notOwns.revoked' : 'slip.agentLine.notOwns.active';
+  return t(key, { id: receipt.agentId });
 }
 
 function VerificationTrace({ receipt, result, net }: { receipt: V2Receipt; result: IndependentVerification; net: FleetNet }) {
+  const t = useT();
   const intact = result.outcomeMatches && result.intentMatches && result.idsMatch;
   const intent = result.trace.declaredIntent as { goal?: string; declaredScope?: string[] } | undefined;
   const rules = result.policy.rulesTriggered;
   return (
     <div>
       <ol className="space-y-2 mb-4">
-        <li>1. Fetched the published trace ({receipt.evidenceURI.split('/').pop()}).</li>
+        <li>1. {t('slip.verify.step1', { file: receipt.evidenceURI.split('/').pop() ?? '' })}</li>
         <li>
-          2. Hashed it in this browser:
+          2. {t('slip.verify.step2')}
           <br />
           <span className="text-[var(--color-paper-faint)]">{shortHash(result.recomputedOutcomeHash)}</span>
         </li>
         <li>
-          3. Read the hash stored on {FLEET_NETS[net].network.name}:
+          3. {t('slip.verify.step3', { network: FLEET_NETS[net].network.name })}
           <br />
           <span className="text-[var(--color-paper-faint)]">{shortHash(receipt.outcomeHash)}</span>
         </li>
         <li>
-          4. Compared them: outcome {result.outcomeMatches ? 'matches' : 'differs'}, declared intent{' '}
-          {result.intentMatches ? 'matches' : 'differs'}, receipt and agent ids {result.idsMatch ? 'match' : 'differ'}.
+          4. {t('slip.verify.step4', {
+            outcome: result.outcomeMatches ? t('slip.verify.matches') : t('slip.verify.differs'),
+            intent: result.intentMatches ? t('slip.verify.matches') : t('slip.verify.differs'),
+            ids: result.idsMatch ? t('slip.verify.matches') : t('slip.verify.differs'),
+          })}
         </li>
         <li>
-          5. Re-ran the policy rules here: {rules.length ? rules.join(', ') : 'none fired'}
-          {result.policy.outOfScope.length > 0 && ` (outside scope: ${result.policy.outOfScope.join(', ')})`}, so{' '}
-          {result.policy.verified ? 'VERIFIED' : 'MISMATCH'}, which {result.policyAgrees ? 'agrees with' : 'contradicts'} the
-          recorded status.
+          5. {t('slip.verify.policy', { rules: rules.length ? rules.join(', ') : t('slip.verify.noneFired') })}
+          {result.policy.outOfScope.length > 0 && ` ${t('slip.verify.outsideScope', { scope: result.policy.outOfScope.join(', ') })}`}
+          {' '}{t('slip.verify.verdict', {
+            verdict: result.policy.verified ? 'VERIFIED' : 'MISMATCH',
+            agrees: result.policyAgrees ? t('slip.verify.agreesWith') : t('slip.verify.contradicts'),
+          })}
         </li>
         <li>6. {agentLine(receipt, result.agent)}</li>
       </ol>
       {intent?.goal && (
         <>
           <SlipRule />
-          <SlipRow label="Declared goal">{intent.goal}</SlipRow>
-          {intent.declaredScope && <SlipRow label="Declared scope">{intent.declaredScope.join(', ')}</SlipRow>}
+          <SlipRow label={t('slip.verify.declaredGoal')}>{intent.goal}</SlipRow>
+          {intent.declaredScope && <SlipRow label={t('slip.verify.declaredScope')}>{intent.declaredScope.join(', ')}</SlipRow>}
         </>
       )}
       <SlipRule />
       <div className="flex items-center justify-between gap-4 py-1">
         <p className="max-w-[60%]" data-testid="verify-verdict">
           {!intact
-            ? 'The published trace no longer matches what was committed on-chain.'
+            ? t('slip.verify.altered')
             : !result.policyAgrees
-              ? 'The evidence is untouched, but the recorded status disagrees with the policy rules.'
+              ? t('slip.verify.policyDisagrees')
               : receipt.status === 'MISMATCH'
-                ? 'The trace shows the agent going outside what it declared, and it has not changed since it was committed.'
-                : 'The evidence is exactly what was committed on-chain.'}
+                ? t('slip.verify.mismatchExplained')
+                : t('slip.verify.intact')}
         </p>
-        <Stamp kind={intact ? 'verified' : 'mismatch'} label={intact ? 'INTACT' : 'ALTERED'} press />
+        <Stamp kind={intact ? 'verified' : 'mismatch'} label={intact ? t('slip.stamp.intact') : t('slip.stamp.altered')} press />
       </div>
     </div>
   );

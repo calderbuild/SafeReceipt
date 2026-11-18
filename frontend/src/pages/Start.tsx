@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState, type ReactNode } from 'react';
 import { FEEDBACK_URL, REPO_URL } from '../lib/links';
+import { useT } from '../lib/i18n';
 
 const FAUCET_URL = 'https://faucet.monad.xyz';
 const CLIENT_README = `${REPO_URL}/tree/main/packages/client#readme`;
@@ -28,6 +29,7 @@ function useNpmRelease(): NpmState {
 
 function Command({ children }: { children: string }) {
   const [copied, setCopied] = useState(false);
+  const t = useT();
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(children);
@@ -42,8 +44,8 @@ function Command({ children }: { children: string }) {
       <pre className="flex-1 min-w-0 overflow-x-auto rounded-md bg-black/40 border border-white/10 px-3 py-2 font-mono text-[13px] text-slate-200">
         <code>{children}</code>
       </pre>
-      <button onClick={copy} className="shrink-0 font-mono text-xs px-2.5 rounded-md border border-white/10 text-slate-400 hover:text-white hover:border-white/25" aria-label={`Copy: ${children}`}>
-        {copied ? 'copied' : 'copy'}
+      <button onClick={copy} className="shrink-0 font-mono text-xs px-2.5 rounded-md border border-white/10 text-slate-400 hover:text-white hover:border-white/25" aria-label={t('start.copyAria', { command: children })}>
+        {copied ? t('start.copied') : t('start.copy')}
       </button>
     </div>
   );
@@ -68,33 +70,33 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 /** /start, the path from an empty folder to a receipt anyone can verify. Every command here was run as written. */
 export function Start() {
   const npm = useNpmRelease();
+  const t = useT();
   return (
     <main className="pt-24 pb-20 px-4">
       <div className="max-w-3xl mx-auto">
         <header className="mb-8">
-          <p className="font-mono text-xs text-slate-500 mb-3">Monad testnet · about 10 minutes</p>
-          <h1 className="font-display text-4xl md:text-5xl font-semibold text-white mb-4 leading-tight">Put a receipt on your agent's work</h1>
+          <p className="font-mono text-xs text-slate-500 mb-3">{t('start.eyebrow')}</p>
+          <h1 className="font-display text-4xl md:text-5xl font-semibold text-white mb-4 leading-tight">{t('start.title')}</h1>
           <p className="text-slate-300 text-lg leading-relaxed">
-            From an empty folder to a receipt anyone can check. The example agent commits what it will do, does it,
-            publishes its record, and links the record on-chain. Gas is paid in test MON, which is free.
+            {t('start.intro')}
           </p>
         </header>
 
         <ol className="glass-card px-5 sm:px-7">
-          <Step n={1} title="Check Node">
-            <p>Node 18 or later.</p>
+          <Step n={1} title={t('start.step1.title')}>
+            <p>{t('start.step1.body')}</p>
             <Command>node --version</Command>
           </Step>
 
-          <Step n={2} title="Make a folder and install the client">
+          <Step n={2} title={t('start.step2.title')}>
             <Command>mkdir my-agent && cd my-agent</Command>
             <Command>npm init -y</Command>
             <Command>npm install @safereceipt/client ethers</Command>
-            {npm.kind === 'published' && <p className="font-mono text-xs text-primary-300">@safereceipt/client {npm.version} is on npm.</p>}
+            {npm.kind === 'published' && <p className="font-mono text-xs text-primary-300">{t('start.step2.published', { version: npm.version })}</p>}
             {npm.kind === 'missing' && (
               <div className="mt-3 rounded-md border border-accent/30 bg-accent/5 p-3">
-                <p className="text-accent text-xs font-mono mb-1">Not on npm yet</p>
-                <p className="text-slate-300 mb-1">Until it is, build the same package from the repository instead:</p>
+                <p className="text-accent text-xs font-mono mb-1">{t('start.step2.notOnNpm')}</p>
+                <p className="text-slate-300 mb-1">{t('start.step2.buildFromRepo')}</p>
                 <Command>git clone --depth 1 https://github.com/calderbuild/SafeReceipt.git</Command>
                 <Command>npm pack ./SafeReceipt/packages/client</Command>
                 <Command>npm install ethers ./safereceipt-client-0.1.1.tgz</Command>
@@ -102,61 +104,58 @@ export function Start() {
             )}
           </Step>
 
-          <Step n={3} title="Make a test wallet and fund it">
-            <p>This writes a new private key to <code className="text-slate-200">.env</code> in the folder and prints only its address. Use it for testnet only.</p>
+          <Step n={3} title={t('start.step3.title')}>
+            <p>{t('start.step3.body')}</p>
             <Command>{MAKE_WALLET}</Command>
             <p>
-              Paste the address into the{' '}
+              {t('start.step3.faucet1')}{' '}
               <a className="text-primary-300 hover:text-primary-200 underline underline-offset-4" href={FAUCET_URL} target="_blank" rel="noopener noreferrer">
-                Monad testnet faucet
+                {t('start.step3.faucet2')}
               </a>
-              . A run spends about 0.07 MON: one transaction to register the agent and two for the receipt.
+              {t('start.step3.cost')}
             </p>
           </Step>
 
-          <Step n={4} title="Run the example agent">
-            <p>Copy the example out of the package and try it dry first. A dry run sends nothing.</p>
+          <Step n={4} title={t('start.step4.title')}>
+            <p>{t('start.step4.body')}</p>
             <Command>cp node_modules/@safereceipt/client/examples/minimal-agent.mjs .</Command>
             <Command>node minimal-agent.mjs</Command>
             <Output>{`dry run: monad ActionRegistry 0x975bD215C549F315A066306B161119cec480c927
 would commit intentHash 0x2762fea7…`}</Output>
-            <p>Then for real: it registers your agent, files the receipt, uploads the record and links it.</p>
+            <p>{t('start.step4.then')}</p>
             <Command>SAFERECEIPT_SEND=1 node minimal-agent.mjs</Command>
             <Output>{`registered agent #4 (set AGENT_ID=4 to reuse it)
 receipt #5 opened
 …
 open https://safereceipt.vercel.app/fleet/receipt/5 and press Verify independently`}</Output>
-            <p className="text-slate-400">Your numbers will differ. If it says the wallet has no testnet MON, step 3 isn't done yet.</p>
+            <p className="text-slate-400">{t('start.step4.note')}</p>
           </Step>
 
-          <Step n={5} title="Open the link and press Verify">
+          <Step n={5} title={t('start.step5.title')}>
             <p>
-              The page is your receipt. <span className="text-white">Verify independently</span> makes your browser fetch the
-              record, hash it, read the hash stored on Monad and compare. If nothing changed since the agent committed it,
-              the stamp reads INTACT. Your agent also appears on the{' '}
-              <Link to="/fleet" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">agent fleet</Link>.
+              {t('start.step5.body1')} <span className="text-white">{t('start.step5.verify')}</span> {t('start.step5.body2')}{' '}
+              <Link to="/fleet" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step5.fleet')}</Link>{t('start.step5.end')}
             </p>
           </Step>
         </ol>
 
         <section className="mt-10 grid sm:grid-cols-2 gap-4">
           <div className="glass-card p-5">
-            <h2 className="font-display text-lg font-semibold text-white mb-2">Wrap your own agent</h2>
+            <h2 className="font-display text-lg font-semibold text-white mb-2">{t('start.wrap.title')}</h2>
             <p className="text-sm text-slate-400 leading-relaxed mb-3">
-              Three calls go around its work: <code className="text-primary-300">beginAction</code>,{' '}
-              <code className="text-primary-300">emit</code>, <code className="text-primary-300">endAction</code>.
+              {t('start.wrap.body')}
             </p>
             <a className="text-sm text-primary-300 hover:text-primary-200 underline underline-offset-4" href={CLIENT_README} target="_blank" rel="noopener noreferrer">
-              Read the client's README
+              {t('start.wrap.link')}
             </a>
           </div>
           <div className="glass-card p-5">
-            <h2 className="font-display text-lg font-semibold text-white mb-2">Stuck somewhere?</h2>
+            <h2 className="font-display text-lg font-semibold text-white mb-2">{t('start.stuck.title')}</h2>
             <p className="text-sm text-slate-400 leading-relaxed mb-3">
-              Say which step, what you ran, and what it printed. It goes to a public GitHub issue.
+              {t('start.stuck.body')}
             </p>
             <a className="text-sm text-primary-300 hover:text-primary-200 underline underline-offset-4" href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer">
-              Tell us what broke
+              {t('start.stuck.link')}
             </a>
           </div>
         </section>

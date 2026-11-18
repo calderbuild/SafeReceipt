@@ -4,6 +4,7 @@ import { useVerify } from '../hooks/useVerify';
 import { getDigest, getUserReceipts } from '../lib/storage';
 import { useWallet } from '../hooks/useWallet';
 import { riskLevel } from '../lib/riskEngine';
+import { localeOf, useLang, useT } from '../lib/i18n';
 
 interface VerifyProofModalProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
 }) => {
   const { verifyProof, isVerifying, lastResult, error } = useVerify();
   const { address, isConnected } = useWallet();
+  const t = useT();
+  const lang = useLang();
 
   const [receiptId, setReceiptId] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
@@ -29,7 +32,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
     setInputError(null);
 
     if (!receiptId.trim()) {
-      setInputError('Receipt ID is required');
+      setInputError(t('verify.required'));
       return;
     }
 
@@ -37,7 +40,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
     const digest = getDigest(receiptId.trim());
 
     if (!digest) {
-      setInputError('Local data not found for this receipt. Please ensure: 1) The ID is correct; 2) You are using the same browser where the receipt was created');
+      setInputError(t('verify.notLocal'));
       return;
     }
 
@@ -51,24 +54,24 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
   };
 
   const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleString();
+    return new Date(timestamp * 1000).toLocaleString(localeOf(lang));
   };
 
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Verify Proof">
+    <Modal isOpen={isOpen} onClose={handleClose} title={t('verify.title')}>
       <div className="space-y-6">
         {/* Receipt ID Input */}
         <div>
-          <label htmlFor="vp-receipt-id" className="block text-sm font-medium text-slate-300 mb-2">Receipt ID</label>
+          <label htmlFor="vp-receipt-id" className="block text-sm font-medium text-slate-300 mb-2">{t('verify.receiptId')}</label>
           <div className="flex space-x-3">
             <input
               id="vp-receipt-id"
               type="text"
               value={receiptId}
               onChange={(e) => setReceiptId(e.target.value)}
-              placeholder="Enter the Receipt ID from creation"
+              placeholder={t('verify.placeholder')}
               className="input-field font-mono text-sm flex-1"
               disabled={isVerifying}
             />
@@ -80,7 +83,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
               {isVerifying ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Verify'
+                t('verify.button')
               )}
             </button>
           </div>
@@ -88,14 +91,14 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
             <p className="text-crypto-red text-sm mt-2">{inputError}</p>
           )}
           <p className="text-xs text-slate-500 mt-2">
-            Receipt ID is shown after successful creation. Please verify in the same browser.
+            {t('verify.idHint')}
           </p>
         </div>
 
         {/* User's Receipt History */}
         {userReceipts.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-slate-300 mb-2">My Receipts</p>
+            <p className="text-sm font-medium text-slate-300 mb-2">{t('verify.myReceipts')}</p>
             <div className="flex flex-wrap gap-2">
               {userReceipts.slice(0, 10).map((id) => (
                 <button
@@ -112,7 +115,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
               ))}
             </div>
             <p className="text-xs text-slate-500 mt-2">
-              Click a receipt ID to auto-fill
+              {t('verify.clickToFill')}
             </p>
           </div>
         )}
@@ -142,12 +145,12 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
                 </div>
                 <div>
                   <p className={`font-semibold ${lastResult.isValid ? 'text-crypto-green' : 'text-crypto-red'}`}>
-                    {lastResult.isValid ? 'Proof Valid' : 'Proof Invalid'}
+                    {lastResult.isValid ? t('verify.proofValid') : t('verify.proofInvalid')}
                   </p>
                   <p className="text-sm text-slate-400">
                     {lastResult.isValid
-                      ? 'The on-chain proof matches the local digest'
-                      : lastResult.error || 'Hash mismatch detected'}
+                      ? t('verify.proofValidBody')
+                      : lastResult.error || t('verify.hashMismatch')}
                   </p>
                 </div>
               </div>
@@ -155,17 +158,17 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
 
             {/* Hash Comparison */}
             <div className="space-y-3">
-              <p className="text-sm font-medium text-slate-300">Hash Comparison</p>
+              <p className="text-sm font-medium text-slate-300">{t('verify.hashComparison')}</p>
 
               <div className="p-3 bg-white/5 rounded-xl">
-                <p className="text-xs text-slate-500 mb-1">On-Chain Proof Hash</p>
+                <p className="text-xs text-slate-500 mb-1">{t('verify.onChainHash')}</p>
                 <p className="font-mono text-sm text-white break-all">
                   {lastResult.onChainProofHash || 'N/A'}
                 </p>
               </div>
 
               <div className="p-3 bg-white/5 rounded-xl">
-                <p className="text-xs text-slate-500 mb-1">Local Proof Hash</p>
+                <p className="text-xs text-slate-500 mb-1">{t('verify.localHash')}</p>
                 <p className="font-mono text-sm text-white break-all">
                   {lastResult.localProofHash || 'N/A'}
                 </p>
@@ -176,7 +179,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                   </svg>
-                  <span className="text-sm">Hashes match</span>
+                  <span className="text-sm">{t('verify.hashesMatch')}</span>
                 </div>
               )}
             </div>
@@ -184,26 +187,26 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
             {/* Digest Details */}
             {lastResult.digest && (
               <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-300">Receipt Details</p>
+                <p className="text-sm font-medium text-slate-300">{t('verify.details')}</p>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-white/5 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-1">Version</p>
+                    <p className="text-xs text-slate-500 mb-1">{t('detail.version')}</p>
                     <p className="text-sm text-white">{lastResult.digest.version}</p>
                   </div>
 
                   <div className="p-3 bg-white/5 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-1">Action Type</p>
+                    <p className="text-xs text-slate-500 mb-1">{t('verify.actionType')}</p>
                     <p className="text-sm text-white">{lastResult.digest.actionType}</p>
                   </div>
 
                   <div className="p-3 bg-white/5 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-1">Chain ID</p>
+                    <p className="text-xs text-slate-500 mb-1">{t('verify.chainId')}</p>
                     <p className="text-sm text-white">{lastResult.digest.chainId}</p>
                   </div>
 
                   <div className="p-3 bg-white/5 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-1">Risk Score</p>
+                    <p className="text-xs text-slate-500 mb-1">{t('verify.riskScore')}</p>
                     <p className={`text-sm font-bold ${
                       riskLevel(lastResult.digest.riskScore) === 'HIGH'
                         ? 'text-crypto-red'
@@ -217,13 +220,13 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
                 </div>
 
                 <div className="p-3 bg-white/5 rounded-xl">
-                  <p className="text-xs text-slate-500 mb-1">Created At</p>
+                  <p className="text-xs text-slate-500 mb-1">{t('verify.createdAt')}</p>
                   <p className="text-sm text-white">{formatTimestamp(lastResult.digest.createdAt)}</p>
                 </div>
 
                 {lastResult.digest.rulesTriggered.length > 0 && (
                   <div className="p-3 bg-white/5 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-2">Rules Triggered</p>
+                    <p className="text-xs text-slate-500 mb-2">{t('verify.rulesTriggered')}</p>
                     <div className="flex flex-wrap gap-2">
                       {lastResult.digest.rulesTriggered.map((rule, i) => (
                         <span key={i} className="px-2 py-1 text-xs bg-crypto-red/20 text-crypto-red rounded">
@@ -235,7 +238,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
                 )}
 
                 <div className="p-3 bg-accent/10 border border-accent/20 rounded-xl">
-                  <p className="text-xs text-accent mb-1">Liability Notice</p>
+                  <p className="text-xs text-accent mb-1">{t('verify.liabilityNotice')}</p>
                   <p className="text-sm text-slate-300">{lastResult.digest.liabilityNotice}</p>
                 </div>
               </div>
@@ -255,7 +258,7 @@ export const VerifyProofModal: React.FC<VerifyProofModalProps> = ({
           onClick={handleClose}
           className="btn-secondary w-full"
         >
-          Close
+          {t('verify.close')}
         </button>
       </div>
     </Modal>

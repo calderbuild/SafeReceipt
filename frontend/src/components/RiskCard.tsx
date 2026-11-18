@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { riskLevel } from '../lib/riskEngine';
+import { ruleText, useT } from '../lib/i18n';
 import type { RiskResult, RuleDetail } from '../lib/riskEngine';
 
 interface RiskCardProps {
@@ -8,11 +9,11 @@ interface RiskCardProps {
   className?: string;
 }
 
-const getRiskLevel = (score: number): { label: string; color: string; bgColor: string; borderColor: string } => {
+const getRiskLevel = (score: number, t: ReturnType<typeof useT>): { label: string; color: string; bgColor: string; borderColor: string } => {
   const level = riskLevel(score);
   if (level === 'HIGH') {
     return {
-      label: 'High Risk',
+      label: t('risk.high'),
       color: 'text-red-400',
       bgColor: 'bg-red-500/20',
       borderColor: 'border-red-500/30',
@@ -20,31 +21,30 @@ const getRiskLevel = (score: number): { label: string; color: string; bgColor: s
   }
   if (level === 'MEDIUM') {
     return {
-      label: 'Medium Risk',
+      label: t('risk.medium'),
       color: 'text-amber-400',
       bgColor: 'bg-amber-500/20',
       borderColor: 'border-amber-500/30',
     };
   }
   return {
-    label: 'Low Risk',
+    label: t('risk.low'),
     color: 'text-emerald-400',
     bgColor: 'bg-emerald-500/20',
     borderColor: 'border-emerald-500/30',
   };
 };
 
-const RuleItem: React.FC<{ rule: RuleDetail; expanded: boolean; onToggle: () => void }> = ({
-  rule,
-  expanded,
-  onToggle,
-}) => {
+const RuleItem: React.FC<{ rule: RuleDetail }> = ({ rule }) => {
+  const [expanded, setExpanded] = useState(false);
+  const t = useT();
   if (!rule.triggered) return null;
+  const text = ruleText(rule.ruleName);
 
   return (
     <div
       className="p-3 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
-      onClick={onToggle}
+      onClick={() => setExpanded((value) => !value)}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -70,11 +70,11 @@ const RuleItem: React.FC<{ rule: RuleDetail; expanded: boolean; onToggle: () => 
 
       {expanded && (
         <div className="mt-3 pt-3 border-t border-white/5">
-          <p className="text-sm text-slate-400">{rule.description}</p>
-          {rule.recommendation && (
+          <p className="text-sm text-slate-400">{text.description}</p>
+          {text.recommendation && (
             <p className="text-xs text-slate-500 mt-2 flex items-start space-x-1">
-              <span className="text-amber-400">Suggestion:</span>
-              <span>{rule.recommendation}</span>
+              <span className="text-amber-400">{t('risk.suggestion')}</span>
+              <span>{text.recommendation}</span>
             </p>
           )}
         </div>
@@ -84,19 +84,9 @@ const RuleItem: React.FC<{ rule: RuleDetail; expanded: boolean; onToggle: () => 
 };
 
 export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, className = '' }) => {
-  const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
-  const band = getRiskLevel(result.riskScore);
+  const t = useT();
+  const band = getRiskLevel(result.riskScore, t);
   const triggeredRules = result.ruleDetails.filter(r => r.triggered);
-
-  const toggleRule = (ruleName: string) => {
-    const newSet = new Set(expandedRules);
-    if (newSet.has(ruleName)) {
-      newSet.delete(ruleName);
-    } else {
-      newSet.add(ruleName);
-    }
-    setExpandedRules(newSet);
-  };
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -104,7 +94,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
       <div className={`p-5 rounded-2xl border ${band.bgColor} ${band.borderColor}`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-400 mb-1">Risk Score</p>
+            <p className="text-sm text-slate-400 mb-1">{t('risk.score')}</p>
             <div className="flex items-baseline space-x-2">
               <span className={`text-4xl font-bold font-display ${band.color}`}>
                 {result.riskScore}
@@ -138,15 +128,10 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
       {triggeredRules.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-slate-300 px-1">
-            Triggered Rules ({triggeredRules.length})
+            {t('risk.triggered', { count: triggeredRules.length })}
           </p>
           {triggeredRules.map((rule) => (
-            <RuleItem
-              key={rule.ruleName}
-              rule={rule}
-              expanded={expandedRules.has(rule.ruleName)}
-              onToggle={() => toggleRule(rule.ruleName)}
-            />
+            <RuleItem key={rule.ruleName} rule={rule} />
           ))}
         </div>
       )}
@@ -158,7 +143,7 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
             <svg className="w-4 h-4 text-primary-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
-            <p className="text-sm font-medium text-primary-400">AI Risk Analysis</p>
+            <p className="text-sm font-medium text-primary-400">{t('risk.aiAnalysis')}</p>
           </div>
           <p className="text-sm text-slate-300 whitespace-pre-line">{aiExplanation}</p>
         </div>
@@ -170,8 +155,8 @@ export const RiskCard: React.FC<RiskCardProps> = ({ result, aiExplanation, class
           <svg className="w-8 h-8 text-emerald-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
           </svg>
-          <p className="text-emerald-400 font-medium">No Risks Detected</p>
-          <p className="text-sm text-slate-400 mt-1">This transaction appears safe</p>
+          <p className="text-emerald-400 font-medium">{t('risk.noRisks')}</p>
+          <p className="text-sm text-slate-400 mt-1">{t('risk.noRisksBody')}</p>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { riskLevel } from '../lib/riskEngine';
+import { useT } from '../lib/i18n';
 
 interface LiabilityNoticeProps {
   notice: string;
@@ -15,6 +16,7 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
   className = '',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const t = useT();
   const isHighRisk = riskLevel(riskScore) === 'HIGH';
   const isMediumRisk = riskLevel(riskScore) === 'MEDIUM';
 
@@ -47,13 +49,13 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-white">Liability Notice</h3>
+            <h3 className="font-semibold text-white">{t('liability.title')}</h3>
             <p className="text-sm text-slate-400 mt-1">
               {isHighRisk
-                ? 'High risk transaction - please read carefully'
+                ? t('liability.high')
                 : isMediumRisk
-                ? 'Medium risk - review recommended'
-                : 'Low risk - standard notice'}
+                ? t('liability.medium')
+                : t('liability.low')}
             </p>
           </div>
         </div>
@@ -68,7 +70,7 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
 
           {rulesTriggered.length > 0 && (
             <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-xs text-slate-500 mb-2">Triggered risk rules:</p>
+              <p className="text-xs text-slate-500 mb-2">{t('liability.triggered')}</p>
               <div className="flex flex-wrap gap-2">
                 {rulesTriggered.map((rule, i) => (
                   <span
@@ -95,7 +97,7 @@ export const LiabilityNotice: React.FC<LiabilityNoticeProps> = ({
             onClick={() => setIsExpanded(!isExpanded)}
             className="mt-2 text-xs text-primary-400 hover:text-primary-300 flex items-center space-x-1 cursor-pointer"
           >
-            <span>{isExpanded ? 'Collapse' : 'Expand'}</span>
+            <span>{isExpanded ? t('liability.collapse') : t('liability.expand')}</span>
             <svg
               className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"

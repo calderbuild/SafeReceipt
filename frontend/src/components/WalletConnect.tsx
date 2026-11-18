@@ -1,6 +1,8 @@
 import React from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { ACTIVE_CHAIN } from '../lib/contract';
+import { useT } from '../lib/i18n';
+import type { MessageKey } from '../lib/messages';
 
 interface WalletConnectProps {
   className?: string;
@@ -37,6 +39,22 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
   } = useWallet();
 
   const [showDropdown, setShowDropdown] = React.useState(false);
+  const t = useT();
+
+  const errorLabel = (code: string) => {
+    const known = [
+      'WALLET_NOT_FOUND',
+      'USER_REJECTED',
+      'REQUEST_PENDING',
+      'NO_ACTIVE_WALLET',
+      'WRONG_NETWORK',
+      'NETWORK_SWITCH_FAILED',
+      'NETWORK_ADD_FAILED',
+      'CONNECTION_FAILED',
+    ];
+    if (known.includes(code)) return t(`wallet.error.${code}` as MessageKey);
+    return code;
+  };
 
   const truncateAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -52,7 +70,8 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
           rel="noopener noreferrer"
           className={`btn-primary text-sm ${className}`}
         >
-          Install MetaMask
+          <span className="sm:hidden">{t('wallet.installShort')}</span>
+          <span className="hidden sm:inline">{t('wallet.install')}</span>
         </a>
       );
     }
@@ -65,14 +84,14 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
               onClick={switchNetwork}
               className="px-3 py-2 bg-accent/20 hover:bg-accent/30 text-accent text-sm font-medium rounded-xl border border-accent/30 transition-colors cursor-pointer"
             >
-              Switch Network
+              {t('wallet.switchNetwork')}
             </button>
           )}
           <button
             onClick={clearError}
             className="px-3 py-2 bg-crypto-red/20 hover:bg-crypto-red/30 text-crypto-red text-sm font-medium rounded-xl border border-crypto-red/30 transition-colors cursor-pointer"
           >
-            {error.message.slice(0, 20)}...
+            {errorLabel(error.code)}
           </button>
         </div>
       );
@@ -88,12 +107,12 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
           {isConnecting ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Connecting...</span>
+              <span>{t('wallet.connecting')}</span>
             </>
           ) : (
             <>
               <WalletIcon />
-              <span>Connect</span>
+              <span>{t('wallet.connect')}</span>
             </>
           )}
         </button>
@@ -117,16 +136,16 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
             <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} />
             <div className="absolute right-0 top-full mt-2 w-64 glass-card p-4 z-50">
               <div className="mb-4">
-                <p className="text-xs text-slate-500 mb-1">Connected Address</p>
+                <p className="text-xs text-slate-500 mb-1">{t('wallet.connectedAddress')}</p>
                 <p className="text-sm font-mono text-white break-all">{address}</p>
               </div>
 
               <div className="mb-4">
-                <p className="text-xs text-slate-500 mb-1">Network</p>
+                <p className="text-xs text-slate-500 mb-1">{t('wallet.network')}</p>
                 <div className="flex items-center space-x-2">
                   <div className={`w-2 h-2 rounded-full ${isCorrectNetwork ? 'bg-crypto-green' : 'bg-accent'}`}></div>
                   <span className="text-sm text-white">
-                    {isCorrectNetwork ? ACTIVE_CHAIN.name : `Chain ${chainId}`}
+                    {isCorrectNetwork ? ACTIVE_CHAIN.name : t('wallet.chain', { id: chainId ?? '?' })}
                   </span>
                 </div>
               </div>
@@ -136,7 +155,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
                   onClick={() => { switchNetwork(); setShowDropdown(false); }}
                   className="w-full mb-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer"
                 >
-                  Switch Network
+                  {t('wallet.switchNetwork')}
                 </button>
               )}
 
@@ -144,7 +163,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
                 onClick={() => { disconnect(); setShowDropdown(false); }}
                 className="w-full px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-xl transition-colors cursor-pointer"
               >
-                Disconnect
+                {t('wallet.disconnect')}
               </button>
             </div>
           </>
@@ -162,8 +181,8 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
             <WalletIcon />
           </div>
           <div className="flex-1">
-            <h3 className="text-white font-semibold text-lg">MetaMask Required</h3>
-            <p className="text-slate-400 text-sm">Install MetaMask to connect your wallet</p>
+            <h3 className="text-white font-semibold text-lg">{t('wallet.installTitle')}</h3>
+            <p className="text-slate-400 text-sm">{t('wallet.installBody')}</p>
           </div>
           <a
             href="https://metamask.io/download/"
@@ -171,7 +190,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
             rel="noopener noreferrer"
             className="btn-accent"
           >
-            Install MetaMask
+            {t('wallet.install')}
           </a>
         </div>
       </div>
@@ -188,17 +207,17 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-crypto-red font-semibold text-lg">Connection Error</h3>
-            <p className="text-slate-400 text-sm">{error.message}</p>
+            <h3 className="text-crypto-red font-semibold text-lg">{t('wallet.errorTitle')}</h3>
+            <p className="text-slate-400 text-sm">{errorLabel(error.code)}</p>
           </div>
           <div className="flex space-x-2">
             {error.code === 'WRONG_NETWORK' && (
               <button onClick={switchNetwork} className="btn-primary text-sm">
-                Switch Network
+                {t('wallet.switchNetwork')}
               </button>
             )}
             <button onClick={clearError} className="btn-secondary text-sm">
-              Dismiss
+              {t('wallet.dismiss')}
             </button>
           </div>
         </div>
@@ -214,8 +233,8 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
             <WalletIcon />
           </div>
           <div className="flex-1">
-            <h3 className="text-white font-semibold text-lg">Connect Wallet</h3>
-            <p className="text-slate-400 text-sm">Connect your MetaMask wallet to start using SafeReceipt</p>
+            <h3 className="text-white font-semibold text-lg">{t('wallet.connectTitle')}</h3>
+            <p className="text-slate-400 text-sm">{t('wallet.connectBody')}</p>
           </div>
           <button
             onClick={connect}
@@ -225,12 +244,12 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
             {isConnecting ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Connecting...</span>
+                <span>{t('wallet.connecting')}</span>
               </>
             ) : (
               <>
                 <WalletIcon />
-                <span>Connect Wallet</span>
+                <span>{t('wallet.connectWallet')}</span>
               </>
             )}
           </button>
@@ -253,9 +272,9 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
 
         <div className="flex-1">
           <div className="flex items-center space-x-2">
-            <h3 className="text-crypto-green font-semibold text-lg">Connected</h3>
+            <h3 className="text-crypto-green font-semibold text-lg">{t('wallet.connectedTitle')}</h3>
             {!isCorrectNetwork && (
-              <span className="badge-warning">Wrong Network</span>
+              <span className="badge-warning">{t('wallet.wrongNetwork')}</span>
             )}
           </div>
           <div className="flex items-center space-x-4 mt-1">
@@ -263,7 +282,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
             <div className="flex items-center space-x-1">
               <div className={`w-2 h-2 rounded-full ${isCorrectNetwork ? 'bg-crypto-green' : 'bg-accent'}`}></div>
               <span className="text-slate-400 text-xs">
-                {isCorrectNetwork ? ACTIVE_CHAIN.name : `Chain ${chainId}`}
+                {isCorrectNetwork ? ACTIVE_CHAIN.name : t('wallet.chain', { id: chainId ?? '?' })}
               </span>
             </div>
           </div>
@@ -272,11 +291,11 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
         <div className="flex space-x-2">
           {!isCorrectNetwork && (
             <button onClick={switchNetwork} className="btn-primary text-sm">
-              Switch Network
+              {t('wallet.switchNetwork')}
             </button>
           )}
           <button onClick={disconnect} className="btn-secondary text-sm">
-            Disconnect
+            {t('wallet.disconnect')}
           </button>
         </div>
       </div>

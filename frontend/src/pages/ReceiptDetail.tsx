@@ -9,6 +9,7 @@ import { RiskCard } from '../components/RiskCard';
 import { LiabilityNotice } from '../components/LiabilityNotice';
 import { ACTIVE_CHAIN, createReceiptRegistryContract } from '../lib/contract';
 import { messageOf } from '../lib/errors';
+import { localeOf, t, useLang, useT } from '../lib/i18n';
 import type { CanonicalDigest } from '../lib/canonicalize';
 
 // Heroicons
@@ -48,8 +49,8 @@ const ExternalLinkIcon = () => (
   </svg>
 );
 
-function formatDate(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleString('en-US', {
+function formatDate(timestamp: number, locale: string): string {
+  return new Date(timestamp * 1000).toLocaleString(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -90,19 +91,21 @@ function formatIntent(intent: object): { label: string; value: string }[] {
 function getStatusBadge(status: string) {
   switch (status) {
     case 'VERIFIED':
-      return { color: 'bg-emerald-500/20 text-emerald-400', label: 'Verified' };
+      return { color: 'bg-emerald-500/20 text-emerald-400', label: t('receipts.status.verified') };
     case 'MISMATCH':
-      return { color: 'bg-red-500/20 text-red-400', label: 'Mismatch' };
+      return { color: 'bg-red-500/20 text-red-400', label: t('receipts.status.mismatch') };
     case 'EXECUTED':
-      return { color: 'bg-blue-500/20 text-blue-400', label: 'Executed' };
+      return { color: 'bg-blue-500/20 text-blue-400', label: t('receipts.status.executed') };
     default:
-      return { color: 'bg-slate-500/20 text-slate-400', label: 'Created' };
+      return { color: 'bg-slate-500/20 text-slate-400', label: t('receipts.status.created') };
   }
 }
 
 export function ReceiptDetail() {
   const { id } = useParams<{ id: string }>();
   const { address, provider, signer } = useWallet();
+  const lang = useLang();
+  const hud = useT();
   const { verifyProof, isVerifying, lastResult } = useVerify();
   const { verifyExecution, isVerifying: isVerifyingExecution, lastResult: executionResult } = useExecutionVerifier();
   const [digest, setDigest] = useState<CanonicalDigest | null>(() => (id ? getDigest(id) : null));
@@ -133,7 +136,7 @@ export function ReceiptDetail() {
 
     // Validate tx hash format
     if (!/^0x[a-fA-F0-9]{64}$/.test(txHashInput)) {
-      setLinkError('Invalid transaction hash format');
+      setLinkError(t('detail.invalidTx'));
       return;
     }
 
@@ -143,11 +146,11 @@ export function ReceiptDetail() {
       return;
     }
     if (!digest || !provider || !signer) {
-      setLinkError('Connect the wallet that created this receipt to record the result on-chain');
+      setLinkError(t('detail.connectOwner'));
       return;
     }
     if (!onActiveNetwork()) {
-      setLinkError(`Switch your wallet to ${ACTIVE_CHAIN.name}, then try again`);
+      setLinkError(t('detail.switchNetwork', { network: ACTIVE_CHAIN.name }));
       return;
     }
 
@@ -170,9 +173,9 @@ export function ReceiptDetail() {
       <div className="min-h-screen pt-28 pb-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="glass-card p-12 text-center">
-            <p className="text-slate-400">Invalid receipt ID</p>
+            <p className="text-slate-400">{hud('detail.invalid')}</p>
             <Link to="/receipts" className="btn-secondary mt-4 inline-block">
-              Back to Receipts
+              {hud('detail.back')}
             </Link>
           </div>
         </div>
@@ -185,12 +188,12 @@ export function ReceiptDetail() {
       <div className="min-h-screen pt-28 pb-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="glass-card p-12 text-center">
-            <p className="text-slate-400 mb-4">Receipt #{id} not found in local storage</p>
+            <p className="text-slate-400 mb-4">{hud('detail.notFound', { id })}</p>
             <p className="text-slate-500 text-sm mb-6">
-              This receipt may exist on-chain but the local data is missing.
+              {hud('detail.notFoundBody')}
             </p>
             <Link to="/receipts" className="btn-secondary inline-block">
-              Back to Receipts
+              {hud('detail.back')}
             </Link>
           </div>
         </div>
@@ -227,7 +230,7 @@ export function ReceiptDetail() {
                   {statusBadge.label}
                 </span>
               </h1>
-              <p className="text-slate-400 text-sm">{formatDate(digest.createdAt)}</p>
+              <p className="text-slate-400 text-sm">{formatDate(digest.createdAt, localeOf(lang))}</p>
             </div>
           </div>
 
@@ -238,14 +241,14 @@ export function ReceiptDetail() {
               className="btn-secondary flex items-center space-x-2"
             >
               <ShieldCheckIcon />
-              <span>{isVerifying ? 'Verifying...' : 'Verify Proof'}</span>
+              <span>{isVerifying ? hud('detail.verifying') : hud('detail.verifyProof')}</span>
             </button>
             <button
               onClick={handleExport}
               className="btn-primary flex items-center space-x-2"
             >
               <DownloadIcon />
-              <span>Export</span>
+              <span>{hud('detail.export')}</span>
             </button>
           </div>
         </div>
@@ -263,8 +266,8 @@ export function ReceiptDetail() {
                   <ShieldCheckIcon />
                 </div>
                 <div>
-                  <p className="text-emerald-400 font-medium">Proof Verification Passed</p>
-                  <p className="text-slate-400 text-sm">On-chain proof matches local digest</p>
+                  <p className="text-emerald-400 font-medium">{hud('detail.proofPassed')}</p>
+                  <p className="text-slate-400 text-sm">{hud('detail.proofPassedBody')}</p>
                 </div>
               </>
             ) : (
@@ -273,9 +276,9 @@ export function ReceiptDetail() {
                   <ShieldExclamationIcon />
                 </div>
                 <div>
-                  <p className="text-red-400 font-medium">Proof Verification Failed</p>
+                  <p className="text-red-400 font-medium">{hud('detail.proofFailed')}</p>
                   <p className="text-slate-400 text-sm">
-                    {lastResult?.error || 'Hash mismatch or receipt not found on-chain'}
+                    {lastResult?.error || hud('detail.proofFailedBody')}
                   </p>
                 </div>
               </>
@@ -287,7 +290,7 @@ export function ReceiptDetail() {
         <div className="glass-card p-6 mb-6">
           <div className="flex items-center space-x-2 mb-4">
             <LinkIcon />
-            <h3 className="text-lg font-semibold text-white">Link Execution</h3>
+            <h3 className="text-lg font-semibold text-white">{hud('detail.linkExecution')}</h3>
           </div>
 
           {digest.linkedTxHash ? (
@@ -299,7 +302,7 @@ export function ReceiptDetail() {
             }`}>
               <div className="flex items-center justify-between mb-2">
                 <span className={digest.status === 'VERIFIED' ? 'text-emerald-400' : 'text-red-400'}>
-                  {digest.status === 'VERIFIED' ? 'Transaction Verified' : 'Transaction Mismatch'}
+                  {digest.status === 'VERIFIED' ? hud('detail.txVerified') : hud('detail.txMismatch')}
                 </span>
                 <a
                   href={`${ACTIVE_CHAIN.blockExplorer}/tx/${digest.linkedTxHash}`}
@@ -315,25 +318,24 @@ export function ReceiptDetail() {
               </div>
               <p className="text-slate-400 text-sm">
                 {digest.status === 'VERIFIED'
-                  ? 'The executed transaction matches the declared intent.'
-                  : 'The executed transaction does NOT match the declared intent.'}
+                  ? hud('detail.txVerifiedBody')
+                  : hud('detail.txMismatchBody')}
               </p>
             </div>
           ) : (
             // Not linked yet
             <>
               <p className="text-slate-400 text-sm mb-4">
-                Link the actual transaction to verify it matches your declared intent.
-                This proves the execution matches what you said you would do.
+                {hud('detail.linkIntro')}
               </p>
 
               <div className="flex space-x-3">
                 <input
                   type="text"
-                  aria-label="Execution transaction hash"
+                  aria-label={hud('detail.ariaTx')}
                   value={txHashInput}
                   onChange={(e) => setTxHashInput(e.target.value)}
-                  placeholder="0x... transaction hash"
+                  placeholder={hud('detail.txPlaceholder')}
                   className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white font-mono text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 />
                 <button
@@ -342,7 +344,7 @@ export function ReceiptDetail() {
                   className="btn-primary flex items-center space-x-2"
                 >
                   <LinkIcon />
-                  <span>{isVerifyingExecution ? 'Verifying...' : isLinking ? 'Confirm in wallet...' : 'Verify & record on-chain'}</span>
+                  <span>{isVerifyingExecution ? hud('detail.verifying') : isLinking ? hud('detail.confirmWallet') : hud('detail.verifyRecord')}</span>
                 </button>
               </div>
 
@@ -352,7 +354,7 @@ export function ReceiptDetail() {
 
               {executionResult && !executionResult.error && !executionResult.isVerified && (
                 <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <p className="text-red-400 font-medium mb-2">Verification Failed</p>
+                  <p className="text-red-400 font-medium mb-2">{hud('detail.verificationFailed')}</p>
                   <ul className="text-slate-400 text-sm space-y-1">
                     {executionResult.mismatchReasons.map((reason, i) => (
                       <li key={i}>• {reason}</li>
@@ -393,7 +395,7 @@ export function ReceiptDetail() {
 
         {/* Intent Details */}
         <div className="glass-card p-6 mb-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Transaction Intent</h3>
+          <h3 className="text-lg font-semibold text-white mb-4">{hud('detail.intent')}</h3>
           <div className="space-y-3">
             {intentEntries.map(({ label, value }, i) => (
               <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
@@ -406,22 +408,22 @@ export function ReceiptDetail() {
 
         {/* Technical Details */}
         <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Technical Details</h3>
+          <h3 className="text-lg font-semibold text-white mb-4">{hud('detail.technical')}</h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between py-2 border-b border-white/5">
-              <span className="text-slate-400">Version</span>
+              <span className="text-slate-400">{hud('detail.version')}</span>
               <span className="text-white font-mono">{digest.version}</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-white/5">
-              <span className="text-slate-400">Chain ID</span>
+              <span className="text-slate-400">{hud('detail.chainId')}</span>
               <span className="text-white font-mono">{digest.chainId}</span>
             </div>
             <div className="flex items-center justify-between py-2 border-b border-white/5">
-              <span className="text-slate-400">Created At</span>
-              <span className="text-white font-mono">{formatDate(digest.createdAt)}</span>
+              <span className="text-slate-400">{hud('detail.createdAt')}</span>
+              <span className="text-white font-mono">{formatDate(digest.createdAt, localeOf(lang))}</span>
             </div>
             <div className="flex items-start justify-between py-2">
-              <span className="text-slate-400">Rules Triggered</span>
+              <span className="text-slate-400">{hud('detail.rulesTriggered')}</span>
               <div className="flex flex-wrap justify-end gap-1">
                 {digest.rulesTriggered.length > 0 ? (
                   digest.rulesTriggered.map((rule, i) => (
@@ -430,7 +432,7 @@ export function ReceiptDetail() {
                     </span>
                   ))
                 ) : (
-                  <span className="text-emerald-400">None</span>
+                  <span className="text-emerald-400">{hud('detail.none')}</span>
                 )}
               </div>
             </div>
