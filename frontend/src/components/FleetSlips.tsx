@@ -127,7 +127,8 @@ export function ReceiptCard({ receipt, agent, standalone = false, net = 'monad' 
         <button
           onClick={run}
           disabled={verify.kind === 'running' || !receipt.evidenceURI}
-          className="w-full bg-paper-ink text-paper font-mono text-sm py-2.5 rounded-md hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          aria-busy={verify.kind === 'running'}
+          className="w-full bg-paper-ink text-paper font-semibold py-3 rounded-md hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
           {verify.kind === 'running'
             ? t('slip.verifying')
@@ -136,7 +137,7 @@ export function ReceiptCard({ receipt, agent, standalone = false, net = 'monad' 
               : t('slip.nothingToVerify')}
         </button>
       ) : verify.kind === 'error' ? (
-        <div>
+        <div role="alert">
           <p className="mb-3">{t('slip.verifyError', { message: verify.message })}</p>
           <button onClick={run} className="underline">{t('slip.tryAgain')}</button>
         </div>

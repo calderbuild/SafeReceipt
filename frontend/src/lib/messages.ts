@@ -25,6 +25,8 @@ export const en = {
   'nav.homeAria': 'SafeReceipt home',
   'nav.networkTitle': 'Network used when you create a receipt with your wallet',
   'nav.breadcrumb': 'Breadcrumb',
+  'nav.main': 'Main navigation',
+  'nav.skip': 'Skip to content',
 
   'wallet.connect': 'Connect',
   'wallet.connecting': 'Connecting...',
@@ -53,10 +55,10 @@ export const en = {
   'wallet.error.NETWORK_ADD_FAILED': 'Could not add the network',
   'wallet.error.CONNECTION_FAILED': 'Connection failed',
 
-  'home.hero.title1': 'Every agent action',
-  'home.hero.title2': 'leaves a receipt.',
+  'home.hero.title1': 'Agent actions.',
+  'home.hero.title2': 'On the record.',
   'home.hero.body':
-    'SafeReceipt commits what an AI agent says it will do on-chain, before it acts, then checks what it actually did. When they differ, the receipt says so, and anyone can re-check it.',
+    'Commit what an AI agent plans to do before it acts. Then let anyone use the receipt to check the transaction or verify the published execution record.',
   'home.hero.fleetCta': 'Inspect the agent fleet',
   'home.hero.createCta': 'Create a receipt',
   'home.hero.footnote': 'Running on Monad testnet and BOT Chain mainnet (pilot) · MIT licensed',
@@ -106,7 +108,7 @@ export const en = {
   'home.paths.offchain.title': 'Off-chain actions',
   'home.paths.offchain.tag': 'research · review · decisions',
   'home.paths.offchain.body':
-    'The intent is committed before the agent runs. Afterwards its full trace is published and its hash linked on-chain. Change one byte of the trace and the hash no longer matches.',
+    'The agent commits its intent before it runs. Afterwards it publishes a trace and links the hash on-chain. Anyone can recompute it to detect changes to the recorded content.',
   'home.paths.offchain.claim': 'Tamper-evident, not attested.',
   'home.paths.offchain.note':
     "It can't prove the trace is complete. That needs TEE attestation, which is on the roadmap.",
@@ -372,7 +374,7 @@ export const en = {
   'slip.verify.altered': 'The published trace no longer matches what was committed on-chain.',
   'slip.verify.policyDisagrees': 'The evidence is untouched, but the recorded status disagrees with the policy rules.',
   'slip.verify.mismatchExplained':
-    'The trace shows the agent going outside what it declared, and it has not changed since it was committed.',
+    'The run failed its policy checks. The published trace matches what was committed on-chain.',
   'slip.verify.intact': 'The evidence is exactly what was committed on-chain.',
   'slip.stamp.intact': 'INTACT',
   'slip.stamp.altered': 'ALTERED',
@@ -527,6 +529,8 @@ export const zh: Record<MessageKey, string> = {
   'nav.homeAria': 'SafeReceipt 首页',
   'nav.networkTitle': '用钱包创建收据时使用的网络',
   'nav.breadcrumb': '面包屑',
+  'nav.main': '主导航',
+  'nav.skip': '跳到正文',
 
   'wallet.connect': '连接钱包',
   'wallet.connecting': '连接中…',
@@ -555,10 +559,10 @@ export const zh: Record<MessageKey, string> = {
   'wallet.error.NETWORK_ADD_FAILED': '添加网络失败',
   'wallet.error.CONNECTION_FAILED': '连接失败',
 
-  'home.hero.title1': '每一次代理行动，',
-  'home.hero.title2': '都留下一张收据。',
+  'home.hero.title1': '代理做了什么，',
+  'home.hero.title2': '收据可核验。',
   'home.hero.body':
-    'SafeReceipt 在 AI 代理行动之前，把它声称要做的事提交到链上；行动之后再检查它实际做了什么。两者不一致时，收据会写明，而且任何人都能重新核对。',
+    'AI 代理行动前提交意图。行动后，任何人都能凭收据核对链上交易，或验证公开的执行记录。',
   'home.hero.fleetCta': '查看代理舰队',
   'home.hero.createCta': '创建一张收据',
   'home.hero.footnote': '运行在 Monad 测试网和 BOT Chain 主网（试点）· MIT 许可',
@@ -608,7 +612,7 @@ export const zh: Record<MessageKey, string> = {
   'home.paths.offchain.title': '链下行动',
   'home.paths.offchain.tag': '调研 · 审查 · 决策',
   'home.paths.offchain.body':
-    '代理运行之前先提交意图。运行结束后公开完整记录，并把记录的哈希链接到链上。改动记录里的任何一个字节，哈希就对不上。',
+    '代理运行前提交意图，结束后公开执行记录并把哈希关联到链上。任何人都能重算哈希，检查记录的内容有没有被改动。',
   'home.paths.offchain.claim': '可证未改，但不证明完整。',
   'home.paths.offchain.note': '它无法证明记录是完整的。这需要 TEE 认证，写在路线图里。',
   'home.paths.fleetLink': '查看已注册的代理和它们的收据',
@@ -867,7 +871,7 @@ export const zh: Record<MessageKey, string> = {
   'slip.verify.altered': '公开的记录与链上提交的内容已经不一致。',
   'slip.verify.policyDisagrees': '证据没有改动，但记录的状态与策略规则不一致。',
   'slip.verify.mismatchExplained':
-    '记录显示代理超出了声明的范围，而且提交之后没有改动。',
+    '这次执行未通过规则检查。公开记录与链上提交的内容一致。',
   'slip.verify.intact': '证据与链上提交的内容完全一致。',
   'slip.stamp.intact': 'INTACT',
   'slip.stamp.altered': '已改动',

@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
-/* Palette: ink desk, graphite panels, thermal paper, rubber-stamp green/red. */
+/* Ink blue, cool paper and receipt stamps. */
 @theme {
   --color-primary-50: #e8f7f1;
   --color-primary-100: #c7eddf;
   --color-primary-200: #93dcc4;
-  --color-primary-300: #5cc7a6;
-  --color-primary-400: #33b28c;
-  --color-primary-500: #1e9e74;
+  --color-primary-300: #84e9cf;
+  --color-primary-400: #64e0bb;
+  --color-primary-500: #4ed3a9;
   --color-primary-600: #178461;
   --color-primary-700: #136a4f;
   --color-primary-800: #10543f;
@@ -22,23 +22,23 @@
   --color-crypto-blue: #5b8def;
   --color-crypto-cyan: #4fb6c4;
 
-  --color-dark: #0e1013;
-  --color-dark-50: #171a1f;
-  --color-dark-100: #2a2e35;
-  --color-dark-200: #3d434c;
-  --color-dark-300: #6b727d;
+  --color-dark: #0c1320;
+  --color-dark-50: #131e2e;
+  --color-dark-100: #2a3d54;
+  --color-dark-200: #445b74;
+  --color-dark-300: #879bb0;
 
-  --color-paper: #e4e6e3;
-  --color-paper-ink: #1c1f23;
-  --color-paper-faint: #7a7f85;
-  --color-stamp-green: #1b8c66;
-  --color-stamp-red: #c2372f;
+  --color-paper: #f1f5f9;
+  --color-paper-ink: #142337;
+  --color-paper-faint: #4c5c70;
+  --color-stamp-green: #136848;
+  --color-stamp-red: #ab3028;
 
   /* Tailwind's default scales, re-pointed at this palette so older screens that
      still use slate/emerald/red/amber/blue classes stay on-token. */
-  --color-slate-300: #b4b8bd;
-  --color-slate-400: #979ca3;
-  --color-slate-500: #7a7f85;
+  --color-slate-300: #c5d2e0;
+  --color-slate-400: #aebed0;
+  --color-slate-500: #93a7bd;
   --color-slate-600: #5d626a;
   --color-slate-700: #3d434c;
   --color-slate-900: #171a1f;
@@ -258,14 +258,67 @@ pre {
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(14, 16, 19, 0.92);
-  backdrop-filter: blur(8px);
+  background: var(--color-dark);
   border-bottom: 1px solid var(--color-dark-100);
-  padding: 0.75rem clamp(1rem, 3vw, 2rem);
+  padding: 0.75rem clamp(0.625rem, 3vw, 2rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: clamp(0.25rem, 2vw, 1rem);
+}
+
+.site-page {
+  min-height: 78vh;
+  padding: clamp(6rem, 10vw, 9rem) clamp(1rem, 4vw, 2.5rem) clamp(3rem, 7vw, 6rem);
+}
+
+.page-heading {
+  font-size: clamp(2.25rem, 5vw, 4.5rem);
+  font-weight: 650;
+  line-height: 1.03;
+  text-wrap: balance;
+}
+
+.page-intro {
+  padding-bottom: clamp(1.25rem, 3vw, 2.25rem);
+  border-bottom: 1px solid var(--color-dark-100);
+  margin-bottom: clamp(1.5rem, 4vw, 3rem);
+}
+
+.route-status {
+  padding: 1.15rem 1.35rem;
+  border-left: 3px solid var(--color-primary-500);
+  background: var(--color-dark-50);
+  color: var(--color-slate-300);
+}
+
+.hero-title {
+  font-size: clamp(2.8rem, 6.8vw, 6.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.028em;
+}
+
+.hero-title:lang(zh) {
+  font-size: clamp(2.25rem, 5.2vw, 5rem);
+}
+
+.hero-evidence {
+  min-width: 0;
+  padding: clamp(0.85rem, 3vw, 2.75rem);
+  background: #1a2e45;
+  border-top: 4px solid var(--color-primary-500);
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 60;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
 }
 
 /* Kept for existing markup; now a flat highlight, no animated gradient. */

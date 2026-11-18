@@ -76,19 +76,20 @@ export function MyReceipts() {
     .sort((a, b) => b.digest.createdAt - a.digest.createdAt); // newest first
 
   return (
-    <div className="min-h-screen pt-28 pb-12 px-4">
+    <main id="main-content" tabIndex={-1} className="site-page">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <header className="page-intro flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <Link
               to="/"
+              aria-label={hud('nav.homeAria')}
               className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
             >
               <ArrowLeftIcon />
             </Link>
             <div>
-              <h1 className="font-display text-2xl font-bold text-white">{hud('receipts.title')}</h1>
+              <h1 className="page-heading text-white">{hud('receipts.title')}</h1>
               <p className="text-slate-400 text-sm">
                 {receipts.length === 1 ? hud('receipts.countOne') : hud('receipts.count', { count: receipts.length })}
               </p>
@@ -98,18 +99,18 @@ export function MyReceipts() {
             <DocumentCheckIcon />
             <span>{hud('receipts.createNew')}</span>
           </Link>
-        </div>
+        </header>
 
         {/* Content */}
         {!isConnected ? (
-          <div className="glass-card p-12 text-center">
+          <div className="glass-card px-5 py-10 sm:p-12 text-center">
             <p className="text-slate-400 mb-6">{hud('receipts.connectPrompt')}</p>
             <div className="flex justify-center">
               <WalletConnect />
             </div>
           </div>
         ) : receipts.length === 0 ? (
-          <div className="glass-card p-12 text-center">
+          <div className="glass-card px-5 py-10 sm:p-12 text-center">
             <DocumentCheckIcon />
             <p className="text-slate-400 mt-4 mb-6">{hud('receipts.empty')}</p>
             <Link to="/?create=1" className="btn-primary inline-flex items-center space-x-2">
@@ -122,14 +123,14 @@ export function MyReceipts() {
               <Link
                 key={receiptId}
                 to={`/receipt/${receiptId}`}
-                className="glass-card-hover p-5 flex items-center justify-between group cursor-pointer"
+                className="glass-card-hover p-4 sm:p-5 flex items-center gap-2 justify-between group cursor-pointer"
               >
                 <div className="flex items-center space-x-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${getRiskColor(digest.riskScore)}`}>
                     {digest.riskScore}
                   </div>
                   <div>
-                    <div className="flex items-center space-x-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="font-mono text-white">#{receiptId}</span>
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                         digest.actionType === 'APPROVE'
@@ -156,6 +157,6 @@ export function MyReceipts() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

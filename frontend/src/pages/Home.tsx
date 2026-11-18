@@ -113,13 +113,13 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
   }, [hash]);
 
   return (
-    <main className="pt-24 pb-16 px-4">
-      <div className="max-w-6xl mx-auto">
-        <section className="grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-16 items-center py-10 lg:py-16 mb-16 animate-fade-up">
+    <main id="main-content" tabIndex={-1} className="site-page">
+      <div className="max-w-7xl mx-auto">
+        <section className="grid lg:grid-cols-[1.15fr_1fr] gap-9 lg:gap-12 items-center pb-10 lg:pb-16 mb-10 lg:mb-16">
           <div>
-            <h1 className="font-display text-[2.6rem] sm:text-5xl md:text-6xl font-semibold text-white leading-[1.04] mb-6 text-balance">
-              {t('home.hero.title1')} <br className="hidden md:block" />
-              {t('home.hero.title2')}
+            <h1 className="hero-title font-display font-semibold text-white mb-6 text-balance">
+              <span className="block">{t('home.hero.title1')}</span>
+              <span className="block text-primary-300">{t('home.hero.title2')}</span>
             </h1>
             <p className="text-lg text-slate-300 max-w-xl mb-8 leading-relaxed">
               {t('home.hero.body')}
@@ -136,7 +136,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
             </div>
             <p className="font-mono text-xs text-slate-500">{t('home.hero.footnote')}</p>
           </div>
-          <HeroSlip />
+          <div className="hero-evidence"><HeroSlip /></div>
         </section>
 
         <section id="evidence" className="mb-20 scroll-mt-24 border-y border-dark-100 py-8 lg:grid lg:grid-cols-[1fr_1.65fr] lg:gap-12" aria-labelledby="evidence-heading">

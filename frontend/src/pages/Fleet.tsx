@@ -53,19 +53,18 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
   };
 
   return (
-    <main className="pt-24 pb-20 px-4">
+    <main id="main-content" tabIndex={-1} className="site-page">
       <div className="max-w-6xl mx-auto">
-        <header className="mb-12 max-w-3xl">
-          <h1 className="font-display text-4xl md:text-5xl font-semibold text-white mb-4">
+        <header className="page-intro">
+          <h1 className="page-heading text-white mb-4">
             {net === 'bot' ? t('fleet.bot.title') : t('fleet.monad.title')}
           </h1>
           {net === 'bot' ? <BotIntro /> : <MonadIntro />}
-          <p className="font-mono text-xs text-slate-400 mb-3">
-            {(['monad', 'bot'] as const).map((n, i) => (
+          <p className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-300 mb-4">
+            {(['monad', 'bot'] as const).map((n) => (
               <span key={n}>
-                {i > 0 && ' · '}
                 {n === net ? (
-                  <span className="text-slate-200" aria-current="page">{FLEET_NETS[n].network.name}</span>
+                  <span className="font-semibold text-primary-300" aria-current="page">{FLEET_NETS[n].network.name}</span>
                 ) : (
                   <Link to={fleetPath(n)} className="underline underline-offset-2 hover:text-slate-200">{FLEET_NETS[n].network.name}</Link>
                 )}
@@ -102,10 +101,10 @@ export function Fleet({ net = 'monad' }: { net?: FleetNet }) {
           </p>
         </header>
 
-        {state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">{t('fleet.reading', { network: network.name })}</p>}
+        {state.kind === 'loading' && <p role="status" className="route-status">{t('fleet.reading', { network: network.name })}</p>}
 
         {state.kind === 'error' && (
-          <div className="glass-card p-6 max-w-xl">
+          <div role="alert" className="glass-card p-6 max-w-xl">
             <p className="text-white font-medium mb-1">{t('fleet.errorTitle', { network: network.name })}</p>
             <p className="text-sm text-slate-400 mb-4 font-mono break-words">{state.message}</p>
             <button onClick={retry} className="btn-secondary text-sm">{t('fleet.tryAgain')}</button>

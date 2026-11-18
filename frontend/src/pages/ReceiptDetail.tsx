@@ -170,24 +170,24 @@ export function ReceiptDetail() {
 
   if (!id) {
     return (
-      <div className="min-h-screen pt-28 pb-12 px-4">
+      <main id="main-content" tabIndex={-1} className="site-page">
         <div className="max-w-4xl mx-auto">
-          <div className="glass-card p-12 text-center">
+          <div className="glass-card px-5 py-10 sm:p-12 text-center">
             <p className="text-slate-400">{hud('detail.invalid')}</p>
             <Link to="/receipts" className="btn-secondary mt-4 inline-block">
               {hud('detail.back')}
             </Link>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (!digest) {
     return (
-      <div className="min-h-screen pt-28 pb-12 px-4">
+      <main id="main-content" tabIndex={-1} className="site-page">
         <div className="max-w-4xl mx-auto">
-          <div className="glass-card p-12 text-center">
+          <div className="glass-card px-5 py-10 sm:p-12 text-center">
             <p className="text-slate-400 mb-4">{hud('detail.notFound', { id })}</p>
             <p className="text-slate-500 text-sm mb-6">
               {hud('detail.notFoundBody')}
@@ -197,7 +197,7 @@ export function ReceiptDetail() {
             </Link>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -205,20 +205,21 @@ export function ReceiptDetail() {
   const statusBadge = getStatusBadge(digest.status || 'CREATED');
 
   return (
-    <div className="min-h-screen pt-28 pb-12 px-4">
+    <main id="main-content" tabIndex={-1} className="site-page">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <header className="page-intro flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center space-x-4">
             <Link
               to="/receipts"
+              aria-label={hud('detail.back')}
               className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer"
             >
               <ArrowLeftIcon />
             </Link>
             <div>
-              <h1 className="font-display text-2xl font-bold text-white flex items-center space-x-3">
-                <span>Receipt #{id}</span>
+              <h1 className="text-white flex flex-wrap items-center gap-2">
+                <span className="page-heading">{hud('fleet.receiptCrumb', { no: `#${id}` })}</span>
                 <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
                   digest.actionType === 'APPROVE'
                     ? 'bg-blue-500/20 text-blue-400'
@@ -234,7 +235,7 @@ export function ReceiptDetail() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleVerify}
               disabled={isVerifying}
@@ -251,11 +252,11 @@ export function ReceiptDetail() {
               <span>{hud('detail.export')}</span>
             </button>
           </div>
-        </div>
+        </header>
 
         {/* Proof Verification Result */}
         {verified !== null && (
-          <div className={`glass-card p-4 mb-6 flex items-center space-x-3 ${
+          <div role="status" className={`glass-card p-4 mb-6 flex items-center space-x-3 ${
             verified
               ? 'border-emerald-500/30 bg-emerald-500/5'
               : 'border-red-500/30 bg-red-500/5'
@@ -439,6 +440,6 @@ export function ReceiptDetail() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

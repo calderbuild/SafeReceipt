@@ -42,7 +42,7 @@ export function FleetAgent({ net = 'monad' }: { net?: FleetNet }) {
   };
 
   return (
-    <main className="pt-24 pb-20 px-4">
+    <main id="main-content" tabIndex={-1} className="site-page">
       <div className="max-w-6xl mx-auto">
         <nav className="font-mono text-xs text-slate-500 mb-6" aria-label={t('nav.breadcrumb')}>
           <Link to={fleetPath(net)} className="hover:text-slate-300 underline underline-offset-2">{t('nav.fleet')}</Link>
@@ -52,10 +52,10 @@ export function FleetAgent({ net = 'monad' }: { net?: FleetNet }) {
 
         {!valid && <p className="text-white">{t('fleet.agentInvalid')}</p>}
 
-        {valid && state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">{t('fleet.agentReading', { id, network: networkName })}</p>}
+        {valid && state.kind === 'loading' && <p role="status" className="route-status">{t('fleet.agentReading', { id, network: networkName })}</p>}
 
         {valid && state.kind === 'error' && (
-          <div className="glass-card p-6 max-w-xl">
+          <div role="alert" className="glass-card p-6 max-w-xl">
             <p className="text-white font-medium mb-1">{t('fleet.agentError', { id, network: networkName })}</p>
             <p className="text-sm text-slate-400 mb-4 font-mono break-words">{state.message}</p>
             <button onClick={retry} className="btn-secondary text-sm">{t('fleet.tryAgain')}</button>
@@ -64,7 +64,7 @@ export function FleetAgent({ net = 'monad' }: { net?: FleetNet }) {
 
         {valid && state.kind === 'ready' && (
           <>
-            <h1 className="font-display text-4xl font-semibold text-white mb-6 break-words">{agentName(state.agent, id)}</h1>
+            <h1 className="page-heading text-white mb-6 break-words">{agentName(state.agent, id)}</h1>
             <div className="max-w-md mb-12">
               <AgentCard agent={state.agent} count={state.total} linked={false} net={net} />
             </div>

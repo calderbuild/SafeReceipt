@@ -72,11 +72,11 @@ export function Start() {
   const npm = useNpmRelease();
   const t = useT();
   return (
-    <main className="pt-24 pb-20 px-4">
+    <main id="main-content" tabIndex={-1} className="site-page">
       <div className="max-w-3xl mx-auto">
-        <header className="mb-8">
+        <header className="page-intro">
           <p className="font-mono text-xs text-slate-500 mb-3">{t('start.eyebrow')}</p>
-          <h1 className="font-display text-4xl md:text-5xl font-semibold text-white mb-4 leading-tight">{t('start.title')}</h1>
+          <h1 className="page-heading text-white mb-4">{t('start.title')}</h1>
           <p className="text-slate-300 text-lg leading-relaxed">
             {t('start.intro')}
           </p>

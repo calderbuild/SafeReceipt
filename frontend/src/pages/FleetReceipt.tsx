@@ -27,9 +27,12 @@ export function FleetReceipt({ net = 'monad' }: { net?: FleetNet }) {
     (async () => {
       try {
         const receipt = await readReceipt(id, net);
-        // The agent only adds a name; the receipt stands without it
-        const agent = await readAgent(receipt.agentId, net).catch(() => undefined);
-        if (!cancelled) setState({ kind: 'ready', receipt, agent });
+        if (cancelled) return;
+        setState({ kind: 'ready', receipt });
+        if (receipt.agentId > 0) {
+          const agent = await readAgent(receipt.agentId, net).catch(() => undefined);
+          if (!cancelled && agent) setState({ kind: 'ready', receipt, agent });
+        }
       } catch (error) {
         if (!cancelled) setState({ kind: 'error', message: messageOf(error) });
       }
@@ -45,8 +48,8 @@ export function FleetReceipt({ net = 'monad' }: { net?: FleetNet }) {
   };
 
   return (
-    <main className="pt-24 pb-20 px-4">
-      <div className="max-w-xl mx-auto">
+    <main id="main-content" tabIndex={-1} className="site-page">
+      <div className="max-w-2xl mx-auto">
         <nav className="font-mono text-xs text-slate-500 mb-6" aria-label={t('nav.breadcrumb')}>
           <Link to={fleetPath(net)} className="hover:text-slate-300 underline underline-offset-2">{t('nav.fleet')}</Link>
           <span className="mx-2">/</span>
@@ -55,10 +58,10 @@ export function FleetReceipt({ net = 'monad' }: { net?: FleetNet }) {
 
         {!valid && <p className="text-white">{t('fleet.receiptInvalid')}</p>}
 
-        {valid && state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">{t('fleet.receiptReading', { id, network: networkName })}</p>}
+        {valid && state.kind === 'loading' && <p role="status" className="route-status">{t('fleet.receiptReading', { id, network: networkName })}</p>}
 
         {valid && state.kind === 'error' && (
-          <div className="glass-card p-6">
+          <div role="alert" className="glass-card p-6">
             <p className="text-white font-medium mb-1">{t('fleet.receiptError', { id, network: networkName })}</p>
             <p className="text-sm text-slate-400 mb-4 font-mono break-words">{state.message}</p>
             <button onClick={retry} className="btn-secondary text-sm">{t('fleet.tryAgain')}</button>
@@ -67,7 +70,11 @@ export function FleetReceipt({ net = 'monad' }: { net?: FleetNet }) {
 
         {valid && state.kind === 'ready' && (
           <>
-            <ReceiptCard receipt={state.receipt} agent={state.agent} standalone net={net} />
+            <header className="mb-6">
+              <p className="text-sm text-slate-400 mb-2">{networkName}</p>
+              <h1 className="page-heading text-white">{t('fleet.receiptCrumb', { no: receiptNo(id) })}</h1>
+            </header>
+            <ReceiptCard key={state.receipt.id} receipt={state.receipt} agent={state.agent} standalone net={net} />
             <p className="text-xs text-slate-500 mt-8 leading-relaxed">
               {t('fleet.receiptNote', { network: networkName })}
               <a className="underline underline-offset-2 hover:text-slate-300" href={ACCOUNTABILITY_URL} target="_blank" rel="noopener noreferrer">
@@ -76,9 +83,11 @@ export function FleetReceipt({ net = 'monad' }: { net?: FleetNet }) {
               {t('fleet.receiptNoteEnd')}
             </p>
             <p className="text-sm mt-4 flex flex-wrap gap-x-5 gap-y-2">
-              <Link to={fleetPath(net, `/agent/${state.receipt.agentId}`)} className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
-                {t('fleet.allFromAgent', { id: state.receipt.agentId })}
-              </Link>
+              {state.receipt.agentId > 0 && (
+                <Link to={fleetPath(net, `/agent/${state.receipt.agentId}`)} className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
+                  {t('fleet.allFromAgent', { id: state.receipt.agentId })}
+                </Link>
+              )}
               <a href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white underline underline-offset-4">
                 {t('start.stuck.link')}
               </a>

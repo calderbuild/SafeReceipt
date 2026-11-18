@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Link, NavLink, useLocation, useSearchParams } from 'react-router-dom'
 import { Toaster, toast } from 'react-hot-toast'
 import { WalletConnect } from './components/WalletConnect'
@@ -38,7 +38,11 @@ const MonadLogo = () => (
 function App() {
   const t = useT()
   // The pill names the chain the wallet flow writes to; the BOT fleet pages are read-only and use no wallet
-  const onBotFleet = useLocation().pathname.startsWith('/fleet/bot')
+  const { pathname, hash } = useLocation()
+  const onBotFleet = pathname.startsWith('/fleet/bot')
+  useEffect(() => {
+    if (!hash) window.scrollTo(0, 0)
+  }, [hash, pathname])
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false)
   // Other pages open the create modal by linking to /?create=1
@@ -62,6 +66,7 @@ function App() {
 
   return (
     <div className="min-h-screen">
+      <a className="skip-link btn-primary" href="#main-content">{t('nav.skip')}</a>
       {/* Toast Container */}
       <Toaster position="top-right" />
 
@@ -77,7 +82,7 @@ function App() {
       />
 
       {/* Floating Navbar */}
-      <nav className="navbar-float">
+      <nav className="navbar-float" aria-label={t('nav.main')}>
         <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label={t('nav.homeAria')}>
           <ReceiptMark />
           {/* Phones show the mark alone so the four nav items fit at 390px */}
@@ -95,12 +100,12 @@ function App() {
             </div>
           )}
           <LanguageToggle />
-          <WalletConnect className="!py-1.5 !px-3" />
+          <WalletConnect className="!py-1.5 !px-2 sm:!px-3" />
         </div>
       </nav>
 
       {/* Routes */}
-      <Suspense fallback={<p className="pt-28 px-4 max-w-6xl mx-auto font-mono text-sm text-slate-400">{t('nav.loading')}</p>}>
+      <Suspense fallback={<main id="main-content" tabIndex={-1} className="site-page"><p role="status" className="route-status max-w-6xl mx-auto">{t('nav.loading')}</p></main>}>
       <Routes>
         <Route
           path="/"
