@@ -333,7 +333,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
             <div className="flex items-center justify-center space-x-2 p-1 bg-white/5 rounded-xl">
               <button
                 onClick={() => setInputMode('ai')}
-                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-lg font-medium transition-all cursor-pointer ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-lg font-medium transition-colors cursor-pointer ${
                   inputMode === 'ai'
                     ? 'bg-primary-500 text-[#06140F]'
                     : 'text-slate-400 hover:text-white'
@@ -346,7 +346,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               </button>
               <button
                 onClick={() => setInputMode('manual')}
-                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-lg font-medium transition-all cursor-pointer ${
+                className={`flex-1 flex items-center justify-center space-x-2 py-2.5 px-4 rounded-lg font-medium transition-colors cursor-pointer ${
                   inputMode === 'manual'
                     ? 'bg-white/10 text-white'
                     : 'text-slate-400 hover:text-white'
@@ -369,6 +369,8 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 </label>
                 <textarea
                   id="cr-nl"
+                  name="intent"
+                  autoComplete="off"
                   value={naturalLanguageInput}
                   onChange={(e) => setNaturalLanguageInput(e.target.value)}
                   placeholder={t('create.describePlaceholder')}
@@ -445,7 +447,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
             <div className="flex space-x-3">
               <button
                 onClick={() => setActionType('APPROVE')}
-                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all cursor-pointer ${
+                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-colors cursor-pointer ${
                   actionType === 'APPROVE'
                     ? 'bg-primary-600 text-white'
                     : 'bg-white/5 text-slate-400 hover:bg-white/10'
@@ -455,7 +457,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               </button>
               <button
                 onClick={() => setActionType('BATCH_PAY')}
-                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all cursor-pointer ${
+                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-colors cursor-pointer ${
                   actionType === 'BATCH_PAY'
                     ? 'bg-primary-600 text-white'
                     : 'bg-white/5 text-slate-400 hover:bg-white/10'
@@ -473,10 +475,13 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 <label htmlFor="cr-token" className="block text-sm font-medium text-slate-300 mb-2">{t('create.tokenAddress')}</label>
                 <input
                   id="cr-token"
+                  name="token"
                   type="text"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
-                  placeholder="0x..."
+                  placeholder="0x…"
                   className="input-field font-mono text-sm"
                 />
                 {formErrors.token && (
@@ -489,10 +494,13 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 <label htmlFor="cr-spender" className="block text-sm font-medium text-slate-300 mb-2">{t('create.spenderAddress')}</label>
                 <input
                   id="cr-spender"
+                  name="spender"
                   type="text"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={spender}
                   onChange={(e) => setSpender(e.target.value)}
-                  placeholder="0x..."
+                  placeholder="0x…"
                   className="input-field font-mono text-sm"
                 />
                 {formErrors.spender && (
@@ -506,7 +514,10 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                 <div className="flex items-center space-x-3">
                   <input
                     id="cr-amount"
+                    name="amount"
                     type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
                     value={isUnlimited ? 'Unlimited' : amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder={t('create.amountPlaceholder')}
@@ -516,6 +527,7 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
+                      name="unlimited"
                       checked={isUnlimited}
                       onChange={(e) => setIsUnlimited(e.target.checked)}
                       className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-primary-600 focus:ring-primary-500"
@@ -536,9 +548,12 @@ export const CreateReceiptModal: React.FC<CreateReceiptModalProps> = ({
               </label>
               <textarea
                 id="cr-csv"
+                name="recipients"
+                autoComplete="off"
+                spellCheck={false}
                 value={csvText}
                 onChange={(e) => setCsvText(e.target.value)}
-                placeholder="0x1234...,1000000000000000000&#10;0x5678...,2000000000000000000"
+                placeholder="0x1234…,1000000000000000000&#10;0x5678…,2000000000000000000"
                 rows={6}
                 className="input-field font-mono text-sm resize-none"
               />

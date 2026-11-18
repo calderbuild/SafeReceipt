@@ -111,7 +111,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
       <div className="max-w-6xl mx-auto">
         <section className="grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-16 items-center py-10 lg:py-16 mb-16 animate-fade-up">
           <div>
-            <h1 className="font-display text-[2.6rem] sm:text-5xl md:text-6xl font-semibold text-white leading-[1.04] mb-6">
+            <h1 className="font-display text-[2.6rem] sm:text-5xl md:text-6xl font-semibold text-white leading-[1.04] mb-6 text-balance">
               {t('home.hero.title1')} <br className="hidden md:block" />
               {t('home.hero.title2')}
             </h1>
