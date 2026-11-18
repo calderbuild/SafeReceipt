@@ -4,6 +4,8 @@ import { Toaster, toast } from 'react-hot-toast'
 import { WalletConnect } from './components/WalletConnect'
 import { CreateReceiptModal } from './components/CreateReceiptModal'
 import { VerifyProofModal } from './components/VerifyProofModal'
+import { LanguageToggle } from './components/LanguageToggle'
+import { useT } from './lib/i18n'
 import { Home } from './pages/Home'
 
 // Home is the landing page; the rest load on first visit.
@@ -23,7 +25,7 @@ const ReceiptMark = ({ className = 'w-7 h-7' }: { className?: string }) => (
 )
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `text-sm whitespace-nowrap px-2 sm:px-2.5 py-1.5 rounded-md transition-colors ${isActive ? 'text-white bg-white/[0.06]' : 'text-slate-400 hover:text-white'}`
+  `text-xs sm:text-sm whitespace-nowrap px-1.5 sm:px-2.5 py-1.5 rounded-md transition-colors ${isActive ? 'text-white bg-white/[0.06]' : 'text-slate-400 hover:text-white'}`
 
 // Monad Logo (simplified)
 const MonadLogo = () => (
@@ -34,6 +36,7 @@ const MonadLogo = () => (
 )
 
 function App() {
+  const t = useT()
   // The pill names the chain the wallet flow writes to; the BOT fleet pages are read-only and use no wallet
   const onBotFleet = useLocation().pathname.startsWith('/fleet/bot')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -47,7 +50,7 @@ function App() {
   }
 
   const handleCreateSuccess = (receiptId: string) => {
-    toast.success(`Receipt #${receiptId} created`, {
+    toast.success(t('toast.receiptCreated', { id: receiptId }), {
       duration: 5000,
       style: {
         background: 'var(--color-dark-50)',
@@ -75,28 +78,29 @@ function App() {
 
       {/* Floating Navbar */}
       <nav className="navbar-float">
-        <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label="SafeReceipt home">
+        <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label={t('nav.homeAria')}>
           <ReceiptMark />
           {/* Phones show the mark alone so the four nav items fit at 390px */}
           <span className="hidden sm:inline font-display font-semibold text-lg text-white tracking-tight">SafeReceipt</span>
         </Link>
 
-        <div className="flex items-center gap-1 sm:gap-3">
-          <NavLink to="/start" className={navLinkClass}>Start</NavLink>
-          <NavLink to="/fleet" className={navLinkClass}><span className="sm:hidden">Fleet</span><span className="hidden sm:inline">Agent fleet</span></NavLink>
-          <NavLink to="/receipts" className={navLinkClass}><span className="sm:hidden">Receipts</span><span className="hidden sm:inline">My receipts</span></NavLink>
+        <div className="flex items-center gap-1 sm:gap-3 min-w-0">
+          <NavLink to="/start" className={navLinkClass}><span className="sm:hidden">{t('nav.startShort')}</span><span className="hidden sm:inline">{t('nav.start')}</span></NavLink>
+          <NavLink to="/fleet" className={navLinkClass}><span className="sm:hidden">{t('nav.fleetShort')}</span><span className="hidden sm:inline">{t('nav.fleet')}</span></NavLink>
+          <NavLink to="/receipts" className={navLinkClass}><span className="sm:hidden">{t('nav.receiptsShort')}</span><span className="hidden sm:inline">{t('nav.receipts')}</span></NavLink>
           {!onBotFleet && (
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 border border-white/10 rounded-md" title="Network used when you create a receipt with your wallet">
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 border border-white/10 rounded-md" title={t('nav.networkTitle')}>
               <MonadLogo />
-              <span>Monad Testnet</span>
+              <span>{t('nav.monad')}</span>
             </div>
           )}
+          <LanguageToggle />
           <WalletConnect className="!py-1.5 !px-3" />
         </div>
       </nav>
 
       {/* Routes */}
-      <Suspense fallback={<p className="pt-28 px-4 max-w-6xl mx-auto font-mono text-sm text-slate-400">Loading…</p>}>
+      <Suspense fallback={<p className="pt-28 px-4 max-w-6xl mx-auto font-mono text-sm text-slate-400">{t('nav.loading')}</p>}>
       <Routes>
         <Route
           path="/"

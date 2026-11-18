@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useT } from '../lib/i18n';
 
 interface ModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ const CloseIcon = () => (
 // Native <dialog>: Escape closes, focus stays inside while open and returns to the opener on close.
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
   const ref = useRef<HTMLDialogElement>(null);
+  const t = useT();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -43,7 +45,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             <h2 id="modal-title" className="font-display text-xl font-bold text-white">{title}</h2>
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('modal.close')}
               className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
             >
               <CloseIcon />

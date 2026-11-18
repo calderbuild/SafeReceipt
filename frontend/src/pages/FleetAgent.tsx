@@ -4,6 +4,7 @@ import { AgentCard, ReceiptCard } from '../components/FleetSlips';
 import { agentName, fleetPath, receiptNo } from '../lib/fleet';
 import { messageOf } from '../lib/errors';
 import { FEEDBACK_URL } from '../lib/links';
+import { useT } from '../lib/i18n';
 import { FLEET_NETS, FLEET_PAGE_LIMIT, listAgentReceipts, readAgent, type AgentProfile, type FleetNet, type V2Receipt } from '../lib/v2';
 
 type LoadState =
@@ -18,6 +19,7 @@ export function FleetAgent({ net = 'monad' }: { net?: FleetNet }) {
   const valid = Number.isSafeInteger(id) && id > 0;
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
+  const t = useT();
 
   useEffect(() => {
     if (!valid) return;
@@ -42,21 +44,21 @@ export function FleetAgent({ net = 'monad' }: { net?: FleetNet }) {
   return (
     <main className="pt-24 pb-20 px-4">
       <div className="max-w-6xl mx-auto">
-        <nav className="font-mono text-xs text-slate-500 mb-6" aria-label="Breadcrumb">
-          <Link to={fleetPath(net)} className="hover:text-slate-300 underline underline-offset-2">Agent fleet</Link>
+        <nav className="font-mono text-xs text-slate-500 mb-6" aria-label={t('nav.breadcrumb')}>
+          <Link to={fleetPath(net)} className="hover:text-slate-300 underline underline-offset-2">{t('nav.fleet')}</Link>
           <span className="mx-2">/</span>
-          <span className="text-slate-300">Agent #{valid ? id : ''}</span>
+          <span className="text-slate-300">{t('fleet.agentCrumb', { id: valid ? id : '' })}</span>
         </nav>
 
-        {!valid && <p className="text-white">That isn't an agent number. Agent pages look like /fleet/agent/1.</p>}
+        {!valid && <p className="text-white">{t('fleet.agentInvalid')}</p>}
 
-        {valid && state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">Reading agent #{id} on {networkName}…</p>}
+        {valid && state.kind === 'loading' && <p className="font-mono text-sm text-slate-400">{t('fleet.agentReading', { id, network: networkName })}</p>}
 
         {valid && state.kind === 'error' && (
           <div className="glass-card p-6 max-w-xl">
-            <p className="text-white font-medium mb-1">Couldn't read agent #{id} on {networkName}.</p>
+            <p className="text-white font-medium mb-1">{t('fleet.agentError', { id, network: networkName })}</p>
             <p className="text-sm text-slate-400 mb-4 font-mono break-words">{state.message}</p>
-            <button onClick={retry} className="btn-secondary text-sm">Try again</button>
+            <button onClick={retry} className="btn-secondary text-sm">{t('fleet.tryAgain')}</button>
           </div>
         )}
 
@@ -67,23 +69,25 @@ export function FleetAgent({ net = 'monad' }: { net?: FleetNet }) {
               <AgentCard agent={state.agent} count={state.total} linked={false} net={net} />
             </div>
             <h2 className="font-display text-xl font-semibold text-white mb-1">
-              Receipts <span className="text-slate-500 font-mono text-sm font-normal">({state.total})</span>
+              {t('fleet.receipts')} <span className="text-slate-500 font-mono text-sm font-normal">({state.total})</span>
             </h2>
             <p className="text-sm text-slate-400 mb-6">
-              Newest first{state.total > FLEET_PAGE_LIMIT ? `, the latest ${FLEET_PAGE_LIMIT}` : ''}. Verify re-checks any of them in
-              this browser.{' '}
+              {t('fleet.agentReceiptsIntro', {
+                limit: state.total > FLEET_PAGE_LIMIT ? t('fleet.agentReceiptsLimit', { limit: FLEET_PAGE_LIMIT }) : '',
+              })}{' '}
               <a href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-white">
-                Tell us what broke
+                {t('start.stuck.link')}
               </a>
             </p>
             {state.receipts.length === 0 ? (
-              <p className="text-slate-400">This agent hasn't filed a receipt yet.</p>
+              <p className="text-slate-400">{t('fleet.agentEmpty')}</p>
             ) : (
               <div className="grid lg:grid-cols-2 gap-8 items-start">
                 {state.receipts.map((receipt) =>
                   'error' in receipt ? (
                     <div key={receipt.id} className="glass-card p-5 font-mono text-sm text-slate-400">
-                      <Link className="underline" to={fleetPath(net, `/receipt/${receipt.id}`)}>{receiptNo(receipt.id)}</Link> could not be read: {receipt.error}
+                      <Link className="underline" to={fleetPath(net, `/receipt/${receipt.id}`)}>{receiptNo(receipt.id)}</Link>{' '}
+                      {t('fleet.couldNotReadShort', { error: receipt.error })}
                     </div>
                   ) : (
                     <ReceiptCard key={receipt.id} receipt={receipt} agent={state.agent} net={net} />

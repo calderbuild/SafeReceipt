@@ -7,9 +7,33 @@
 
 import type { ethers } from 'ethers';
 import type { ApproveIntent } from './intentParser';
+import { t } from './i18n';
 
 export const AGENT_ENDPOINT = '/api/agent';
 const REUSE_MS = 25 * 60 * 1000; // server accepts 30 min
+const SIGN_TIMEOUT_MS = 90_000;
+const CALL_TIMEOUT_MS = 60_000;
+
+/** A wallet signature prompt cannot be cancelled; fail with a clear message instead of spinning forever. */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+export function isCancelled(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
 
 interface Auth {
   address: string;
@@ -29,7 +53,11 @@ async function auth(signer: ethers.Signer): Promise<Auth> {
   const fresh = session && session.address === address && Date.now() - Date.parse(session.issuedAt) < REUSE_MS;
   if (fresh && session) return session;
   const issuedAt = new Date().toISOString();
-  const signature = await signer.signMessage(signInMessage(address, issuedAt));
+  const signature = await withTimeout(
+    signer.signMessage(signInMessage(address, issuedAt)),
+    SIGN_TIMEOUT_MS,
+    t('agent.signInTimeout'),
+  );
   session = { address, issuedAt, signature };
   return session;
 }
@@ -39,16 +67,37 @@ export function isSignedIn(address: string | null): boolean {
   return !!session && !!address && session.address === address.toLowerCase() && Date.now() - Date.parse(session.issuedAt) < REUSE_MS;
 }
 
-async function call<T>(signer: ethers.Signer, body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(AGENT_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...body, auth: await auth(signer) }),
-  });
-  const data = await res.json().catch(() => ({ error: `Agent API returned ${res.status}` }));
-  if (res.status === 401) session = null;
-  if (!res.ok) throw new Error(data.error ?? `Agent API returned ${res.status}`);
-  return data as T;
+async function call<T>(signer: ethers.Signer, body: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
+  if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
+  const authBody = await auth(signer);
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(new DOMException(t('agent.apiTimeout'), 'TimeoutError')),
+    CALL_TIMEOUT_MS,
+  );
+  const onAbort = () => controller.abort(signal?.reason);
+  signal?.addEventListener('abort', onAbort, { once: true });
+  try {
+    const res = await fetch(AGENT_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...body, auth: authBody }),
+      signal: controller.signal,
+    });
+    const data = await res.json().catch(() => ({ error: `Agent API returned ${res.status}` }));
+    if (res.status === 401) session = null;
+    if (!res.ok) throw new Error(data.error ?? `Agent API returned ${res.status}`);
+    return data as T;
+  } catch (error) {
+    if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new Error(t('agent.apiTimeout'));
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onAbort);
+  }
 }
 
 /** Whether the server has a model configured. Never throws. */
@@ -65,8 +114,8 @@ export type ParsedIntent =
   | ({ actionType: 'APPROVE'; reasoning: string; model: string } & ApproveIntent)
   | { actionType: 'BATCH_PAY'; recipients: { address: string; amount: string }[]; reasoning: string; model: string };
 
-export function parseIntent(signer: ethers.Signer, input: string): Promise<ParsedIntent> {
-  return call(signer, { op: 'parse', input });
+export function parseIntent(signer: ethers.Signer, input: string, signal?: AbortSignal): Promise<ParsedIntent> {
+  return call(signer, { op: 'parse', input }, signal);
 }
 
 export interface ApprovePlan {
@@ -77,8 +126,8 @@ export interface ApprovePlan {
 }
 
 /** The agent reads the token metadata for this scenario and decides what to send. */
-export function planApprove(signer: ethers.Signer, scenarioId: string, intent: ApproveIntent): Promise<ApprovePlan> {
-  return call(signer, { op: 'plan', scenarioId, intent });
+export function planApprove(signer: ethers.Signer, scenarioId: string, intent: ApproveIntent, signal?: AbortSignal): Promise<ApprovePlan> {
+  return call(signer, { op: 'plan', scenarioId, intent }, signal);
 }
 
 export async function explainRisks(signer: ethers.Signer, rules: string[], score: number, context: string): Promise<string> {

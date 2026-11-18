@@ -4,6 +4,8 @@ import { AgentDemo } from '../components/AgentDemo';
 import { ReceiptSlip, SlipRow, SlipRule, Stamp } from '../components/ReceiptSlip';
 import { V2_ADDRESSES, V2_NETWORK } from '../lib/v2';
 import { CONTRACT_CONFIG, explorerAddress, explorerTx } from '../lib/contract';
+import { useT } from '../lib/i18n';
+import type { MessageKey } from '../lib/messages';
 
 interface HomeProps {
   onCreateClick: () => void;
@@ -12,44 +14,26 @@ interface HomeProps {
 
 const V1_REGISTRY = `${explorerAddress(CONTRACT_CONFIG.address)}#code`;
 
-const STEPS = [
-  {
-    title: 'Commit the intent',
-    body: 'Before the agent acts, what it says it will do is normalized, hashed with keccak256, and written on-chain. It cannot be rewritten after the fact.',
-  },
-  {
-    title: 'Let the agent work',
-    body: 'Risk rules score the action first. The agent then sends its transaction, or runs its task off-chain and records a trace.',
-  },
-  {
-    title: 'Check what happened',
-    body: 'The transaction is decoded, or the trace is hashed, and compared against the commitment. The receipt ends up VERIFIED or MISMATCH.',
-  },
+const STEPS: { title: MessageKey; body: MessageKey }[] = [
+  { title: 'home.steps.1.title', body: 'home.steps.1.body' },
+  { title: 'home.steps.2.title', body: 'home.steps.2.body' },
+  { title: 'home.steps.3.title', body: 'home.steps.3.body' },
 ];
 
-const RULES = [
-  { rule: 'UNLIMITED_ALLOWANCE', weight: 40, desc: 'Max uint256 approvals' },
-  { rule: 'SPENDER_IS_UNKNOWN_CONTRACT', weight: 25, desc: 'Spender not on the known-protocol list' },
-  { rule: 'REPEAT_APPROVE_PATTERN', weight: 15, desc: 'Repeated approvals to one spender' },
-  { rule: 'DUPLICATE_RECIPIENTS', weight: 10, desc: 'Same address twice in a batch' },
-  { rule: 'RECIPIENT_IS_CONTRACT', weight: 5, desc: 'Recipient has contract code' },
-  { rule: 'OUTLIER_AMOUNT', weight: 5, desc: 'Over 10x your usual amount for that token' },
+const RULES: { rule: string; weight: number; desc: MessageKey }[] = [
+  { rule: 'UNLIMITED_ALLOWANCE', weight: 40, desc: 'home.rules.unlimited' },
+  { rule: 'SPENDER_IS_UNKNOWN_CONTRACT', weight: 25, desc: 'home.rules.unknown' },
+  { rule: 'REPEAT_APPROVE_PATTERN', weight: 15, desc: 'home.rules.repeat' },
+  { rule: 'DUPLICATE_RECIPIENTS', weight: 10, desc: 'home.rules.duplicate' },
+  { rule: 'RECIPIENT_IS_CONTRACT', weight: 5, desc: 'home.rules.contractRecipient' },
+  { rule: 'OUTLIER_AMOUNT', weight: 5, desc: 'home.rules.outlier' },
 ];
 
 
-const INTEGRATION_CALLS = [
-  {
-    call: 'beginAction()',
-    body: 'Before the agent starts: hash what it says it will do and its scope, and write that on-chain. This opens the receipt.',
-  },
-  {
-    call: 'emit()',
-    body: 'While it works: record each step, including the files it touched and the model it called. This becomes the trace.',
-  },
-  {
-    call: 'endAction()',
-    body: 'When it finishes: check the trace against the declared scope, publish it, and link its hash on-chain.',
-  },
+const INTEGRATION_CALLS: { call: string; body: MessageKey }[] = [
+  { call: 'beginAction()', body: 'home.integrate.call1' },
+  { call: 'emit()', body: 'home.integrate.call2' },
+  { call: 'endAction()', body: 'home.integrate.call3' },
 ];
 
 const INTEGRATION_SNIPPET = `import { AccountabilityClient, evaluatePolicy } from "@safereceipt/client";
@@ -78,35 +62,36 @@ await client.endAction({ policyResult: policy });`;
 const HERO_TX = '0xb6c5c0cb84c350f80906cc925f519e36ea59c960363b4367a1bb9353c1b29809';
 
 function HeroSlip() {
+  const t = useT();
   return (
     <a
       href={explorerTx(HERO_TX)}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rotate-[1.5deg] hover:rotate-0 transition-transform duration-300 max-w-sm mx-auto lg:mx-0 lg:ml-auto"
-      aria-label="Receipt No. 0011, open its transaction on MonadScan"
+      className="block w-full max-w-full sm:max-w-sm rotate-[1.5deg] hover:rotate-0 transition-transform duration-300 mx-auto lg:mx-0 lg:ml-auto"
+      aria-label={t('home.slip.aria')}
     >
       <ReceiptSlip>
         <div className="slip-row font-semibold">
           <span>SAFERECEIPT</span>
-          <span>No. 0011</span>
+          <span>{t('home.slip.no')}</span>
         </div>
         <div className="text-[var(--color-paper-faint)]">2026-09-29 06:07 UTC · Monad</div>
         <SlipRule />
-        <SlipRow label="Agent">deepseek-flash, live</SlipRow>
-        <SlipRow label="Declared">approve 100 dUSD to Permit2</SlipRow>
-        <SlipRow label="Metadata said">minimum allowance 10,000</SlipRow>
+        <SlipRow label={t('home.slip.agent')}>deepseek-flash, live</SlipRow>
+        <SlipRow label={t('home.slip.declared')}>{t('home.slip.declaredValue')}</SlipRow>
+        <SlipRow label={t('home.slip.metadataSaid')}>{t('home.slip.metadataValue')}</SlipRow>
         <SlipRule />
-        <SlipRow label="Sent">approve 10,000 dUSD</SlipRow>
-        <SlipRow label="Model's reason">"below the token's enforced 10,000 dUSD minimum allowance… so I'm approving the minimum"</SlipRow>
-        <SlipRow label="Check">amount differs from the receipt</SlipRow>
+        <SlipRow label={t('home.slip.sent')}>{t('home.slip.sentValue')}</SlipRow>
+        <SlipRow label={t('home.slip.reason')}>"below the token's enforced 10,000 dUSD minimum allowance… so I'm approving the minimum"</SlipRow>
+        <SlipRow label={t('home.slip.check')}>{t('home.slip.checkValue')}</SlipRow>
         <SlipRule />
         <div className="flex items-center justify-between py-1">
-          <span className="slip-label">Outcome</span>
+          <span className="slip-label">{t('home.slip.outcome')}</span>
           <Stamp kind="mismatch" label="MISMATCH" />
         </div>
         <SlipRule />
-        <p className="text-[var(--color-paper-faint)] text-xs">Not scripted: the model was injected. Check the tx on MonadScan →</p>
+        <p className="text-[var(--color-paper-faint)] text-xs">{t('home.slip.note')}</p>
       </ReceiptSlip>
     </a>
   );
@@ -114,6 +99,7 @@ function HeroSlip() {
 
 export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
   const { hash } = useLocation();
+  const t = useT();
 
   // React Router doesn't scroll to a hash; /fleet links to #integrate.
   useEffect(() => {
@@ -126,68 +112,60 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         <section className="grid lg:grid-cols-[1.15fr_1fr] gap-12 lg:gap-16 items-center py-10 lg:py-16 mb-16 animate-fade-up">
           <div>
             <h1 className="font-display text-[2.6rem] sm:text-5xl md:text-6xl font-semibold text-white leading-[1.04] mb-6">
-              Every agent action <br className="hidden md:block" />
-              leaves a receipt.
+              {t('home.hero.title1')} <br className="hidden md:block" />
+              {t('home.hero.title2')}
             </h1>
             <p className="text-lg text-slate-300 max-w-xl mb-8 leading-relaxed">
-              SafeReceipt commits what an AI agent says it will do on-chain, before it acts, then checks what it
-              actually did. When they differ, the receipt says so, and anyone can re-check it.
+              {t('home.hero.body')}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
-              <Link to="/fleet" className="btn-primary text-center">Inspect the agent fleet</Link>
-              <button onClick={onCreateClick} className="btn-secondary">Create a receipt</button>
+              <Link to="/fleet" className="btn-primary text-center">{t('home.hero.fleetCta')}</Link>
+              <button onClick={onCreateClick} className="btn-secondary">{t('home.hero.createCta')}</button>
             </div>
-            <p className="font-mono text-xs text-slate-500">Running on Monad testnet · MIT licensed</p>
+            <p className="font-mono text-xs text-slate-500">{t('home.hero.footnote')}</p>
           </div>
           <HeroSlip />
         </section>
 
         <section className="mb-20" aria-labelledby="paths-heading">
-          <h2 id="paths-heading" className="font-display text-3xl font-semibold text-white mb-2">Two kinds of actions, two honest guarantees</h2>
-          <p className="text-slate-400 mb-8 max-w-2xl">Not every check is equally strong. SafeReceipt says which one you are getting.</p>
+          <h2 id="paths-heading" className="font-display text-3xl font-semibold text-white mb-2">{t('home.paths.heading')}</h2>
+          <p className="text-slate-400 mb-8 max-w-2xl">{t('home.paths.sub')}</p>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="glass-card p-6">
-              <h3 className="font-display text-xl font-semibold text-white mb-1">On-chain actions</h3>
-              <p className="font-mono text-xs text-primary-300 mb-4">ERC20 approve</p>
+              <h3 className="font-display text-xl font-semibold text-white mb-1">{t('home.paths.onchain.title')}</h3>
+              <p className="font-mono text-xs text-primary-300 mb-4">{t('home.paths.onchain.tag')}</p>
               <p className="text-slate-300 text-sm leading-relaxed mb-4">
-                The transaction is fetched by hash, its calldata decoded and compared with the declared intent: token,
-                spender, amount, sender, and that it came after the receipt. The inputs are public and the code is open,
-                so anyone gets the same answer.
+                {t('home.paths.onchain.body')}
               </p>
               <p className="text-sm text-white">
-                <span className="text-primary-300 font-medium">Re-checkable by anyone.</span> The VERIFIED or MISMATCH
-                flag on-chain is written by the receipt owner, so treat it as a claim and re-run the check.
+                <span className="text-primary-300 font-medium">{t('home.paths.onchain.claim')}</span> {t('home.paths.onchain.note')}
               </p>
             </div>
             <div className="glass-card p-6">
-              <h3 className="font-display text-xl font-semibold text-white mb-1">Off-chain actions</h3>
-              <p className="font-mono text-xs text-accent mb-4">research · review · decisions</p>
+              <h3 className="font-display text-xl font-semibold text-white mb-1">{t('home.paths.offchain.title')}</h3>
+              <p className="font-mono text-xs text-accent mb-4">{t('home.paths.offchain.tag')}</p>
               <p className="text-slate-300 text-sm leading-relaxed mb-4">
-                The intent is committed before the agent runs. Afterwards its full trace is published and its hash
-                linked on-chain. Change one byte of the trace and the hash no longer matches.
+                {t('home.paths.offchain.body')}
               </p>
               <p className="text-sm text-white">
-                <span className="text-accent font-medium">Tamper-evident, not attested.</span> It can't prove the trace
-                is complete. That needs TEE attestation, which is on the roadmap.
+                <span className="text-accent font-medium">{t('home.paths.offchain.claim')}</span> {t('home.paths.offchain.note')}
               </p>
             </div>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <Link to="/fleet" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">See the registered agents and their receipts</Link>
+            <Link to="/fleet" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('home.paths.fleetLink')}</Link>
             <a className="text-slate-400 hover:text-white underline underline-offset-4" href="https://github.com/calderbuild/SafeReceipt/blob/main/docs/ACCOUNTABILITY.md" target="_blank" rel="noopener noreferrer">
-              Read the full trust boundary
+              {t('home.paths.boundaryLink')}
             </a>
           </div>
         </section>
 
-        <section className="mb-20" aria-labelledby="demo-heading">
-          <h2 id="demo-heading" className="font-display text-3xl font-semibold text-white mb-2">Try it with a transaction</h2>
+        <section className="mb-20 scroll-mt-24" aria-labelledby="demo-heading">
+          <h2 id="demo-heading" className="font-display text-3xl font-semibold text-white mb-2">{t('home.demo.heading')}</h2>
           <p className="text-slate-400 mb-6 max-w-2xl">
-            A live model agent sends three real approvals on Monad testnet with a test token: a safe one, a risky one,
-            and one where the token's metadata tries to talk the agent into approving 10,000 instead of 100. You need a
-            little testnet MON for gas.
+            {t('home.demo.intro')}
             <button onClick={onVerifyClick} className="ml-2 text-primary-300 hover:text-primary-200 underline underline-offset-4">
-              Already have a receipt? Verify it
+              {t('home.demo.verifyLink')}
             </button>
           </p>
           <div className="glass-card-elevated p-1">
@@ -196,10 +174,9 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         </section>
 
         <section id="integrate" className="mb-20 scroll-mt-24" aria-labelledby="integrate-heading">
-          <h2 id="integrate-heading" className="font-display text-3xl font-semibold text-white mb-2">Put receipts on your own agent</h2>
+          <h2 id="integrate-heading" className="font-display text-3xl font-semibold text-white mb-2">{t('home.integrate.heading')}</h2>
           <p className="text-slate-400 mb-8 max-w-2xl">
-            Agents don't run from this site. Your agent runs wherever it already runs, and three calls around its work
-            produce the receipt. The fleet's receipts were made this way.
+            {t('home.integrate.intro')}
           </p>
           <div className="grid lg:grid-cols-[1fr_1.25fr] gap-8 items-start">
             <ol className="space-y-5">
@@ -208,7 +185,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                   <span className="font-mono text-xs text-slate-500 pt-1 w-4 shrink-0">{i + 1}</span>
                   <div>
                     <code className="text-primary-300 text-sm">{c.call}</code>
-                    <p className="text-slate-300 text-sm leading-relaxed mt-1">{c.body}</p>
+                    <p className="text-slate-300 text-sm leading-relaxed mt-1">{t(c.body)}</p>
                   </div>
                 </li>
               ))}
@@ -218,27 +195,27 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                   <code className="block font-mono text-[13px] text-slate-200 bg-black/40 border border-white/10 rounded-md px-3 py-2 mb-2 overflow-x-auto">
                     npm install @safereceipt/client ethers
                   </code>
-                  The record is stored on this site unless you host it yourself.{' '}
+                  {t('home.integrate.installNote')}{' '}
                   <Link to="/start" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">
-                    Run the example agent in about 10 minutes
+                    {t('home.integrate.startLink')}
                   </Link>
                 </div>
               </li>
             </ol>
-            <pre className="glass-card p-5 overflow-x-auto text-[13px] leading-relaxed font-mono text-slate-300" aria-label="Example: wrapping one agent action">
+            <pre className="glass-card p-5 overflow-x-auto text-[13px] leading-relaxed font-mono text-slate-300" aria-label={t('home.integrate.aria')}>
               <code>{INTEGRATION_SNIPPET}</code>
             </pre>
           </div>
         </section>
 
         <section className="mb-20" aria-labelledby="how-heading">
-          <h2 id="how-heading" className="font-display text-3xl font-semibold text-white mb-8">How a receipt is made</h2>
+          <h2 id="how-heading" className="font-display text-3xl font-semibold text-white mb-8">{t('home.steps.heading')}</h2>
           <ol className="grid md:grid-cols-3 gap-px bg-dark-100 rounded-xl overflow-hidden">
             {STEPS.map((step, i) => (
               <li key={step.title} className="bg-dark-50 p-6">
-                <span className="font-mono text-xs text-slate-500">Step {i + 1}</span>
-                <h3 className="font-display text-xl font-semibold text-white mt-2 mb-3">{step.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{step.body}</p>
+                <span className="font-mono text-xs text-slate-500">{t('home.steps.step', { n: i + 1 })}</span>
+                <h3 className="font-display text-xl font-semibold text-white mt-2 mb-3">{t(step.title)}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{t(step.body)}</p>
               </li>
             ))}
           </ol>
@@ -247,8 +224,8 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
         <section className="mb-20" aria-labelledby="rules-heading">
           <div className="flex items-end justify-between flex-wrap gap-4 mb-6">
             <div>
-              <h2 id="rules-heading" className="font-display text-3xl font-semibold text-white mb-2">Risk rules</h2>
-              <p className="text-slate-400">Scored before every on-chain action. Weights add up to 100.</p>
+              <h2 id="rules-heading" className="font-display text-3xl font-semibold text-white mb-2">{t('home.rules.heading')}</h2>
+              <p className="text-slate-400">{t('home.rules.sub')}</p>
             </div>
           </div>
           <div className="grid md:grid-cols-2 gap-x-8">
@@ -259,7 +236,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                 </span>
                 <div className="min-w-0">
                   <code className="text-sm text-white break-all">{item.rule}</code>
-                  <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{t(item.desc)}</p>
                 </div>
               </div>
             ))}
@@ -273,7 +250,7 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
             { label: 'ActionRegistry (V2.1)', href: `${V2_NETWORK.blockExplorer}/address/${V2_ADDRESSES.actionRegistry}` },
           ].map((c) => (
             <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white">
-              <span className="block font-mono text-xs text-slate-500 mb-1">Contract on MonadScan</span>
+              <span className="block font-mono text-xs text-slate-500 mb-1">{t('home.contracts.label')}</span>
               {c.label} ↗
             </a>
           ))}
