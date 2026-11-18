@@ -7,6 +7,7 @@
 
 import type { ethers } from 'ethers';
 import type { ApproveIntent } from './intentParser';
+import { t } from './i18n';
 
 export const AGENT_ENDPOINT = '/api/agent';
 const REUSE_MS = 25 * 60 * 1000; // server accepts 30 min
@@ -55,7 +56,7 @@ async function auth(signer: ethers.Signer): Promise<Auth> {
   const signature = await withTimeout(
     signer.signMessage(signInMessage(address, issuedAt)),
     SIGN_TIMEOUT_MS,
-    'Your wallet is still waiting for the sign-in signature. Open MetaMask, approve "SafeReceipt sign-in" (no gas), then run the demo again.',
+    t('agent.signInTimeout'),
   );
   session = { address, issuedAt, signature };
   return session;
@@ -71,7 +72,7 @@ async function call<T>(signer: ethers.Signer, body: Record<string, unknown>, sig
   const authBody = await auth(signer);
   const controller = new AbortController();
   const timer = setTimeout(
-    () => controller.abort(new DOMException('The agent API took too long to answer. Try again.', 'TimeoutError')),
+    () => controller.abort(new DOMException(t('agent.apiTimeout'), 'TimeoutError')),
     CALL_TIMEOUT_MS,
   );
   const onAbort = () => controller.abort(signal?.reason);
@@ -90,7 +91,7 @@ async function call<T>(signer: ethers.Signer, body: Record<string, unknown>, sig
   } catch (error) {
     if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
     if (error instanceof DOMException && error.name === 'TimeoutError') {
-      throw new Error('The agent API took too long to answer. Try again.');
+      throw new Error(t('agent.apiTimeout'));
     }
     throw error;
   } finally {

@@ -14,15 +14,6 @@ const dictionaries: Record<Lang, Record<MessageKey, string>> = { en, zh };
 
 function detectLang(): Lang {
   if (typeof window === 'undefined') return 'en';
-  const fromQuery = new URLSearchParams(window.location.search).get('lang');
-  if (fromQuery === 'en' || fromQuery === 'zh') {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, fromQuery);
-    } catch {
-      // The URL still decides for this page view.
-    }
-    return fromQuery;
-  }
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved === 'en' || saved === 'zh') return saved;

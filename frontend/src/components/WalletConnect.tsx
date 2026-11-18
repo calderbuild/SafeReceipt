@@ -53,7 +53,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ className = '', co
       'CONNECTION_FAILED',
     ];
     if (known.includes(code)) return t(`wallet.error.${code}` as MessageKey);
-    return code;
+    return t('wallet.error.CONNECTION_FAILED');
   };
 
   const truncateAddress = (addr: string) => {

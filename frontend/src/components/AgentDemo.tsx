@@ -126,7 +126,10 @@ export function AgentDemo() {
     setSteps([]);
     setSelectedScenario(null);
     setResult(null);
+    setRunError(null);
   }, []);
+
+  const executionStarted = steps.some((step) => step.id === 'execute' && step.status !== 'pending');
 
   return (
     <div className="p-6 md:p-8">
@@ -271,7 +274,7 @@ export function AgentDemo() {
         </div>
       )}
 
-      {isRunning && (
+      {isRunning && !executionStarted && (
         <button
           onClick={cancelRun}
           className="mb-6 text-sm text-slate-400 hover:text-white underline underline-offset-4"

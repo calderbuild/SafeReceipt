@@ -60,7 +60,7 @@ function formatDate(timestamp: number, locale: string): string {
   });
 }
 
-function formatIntent(intent: object): { label: string; value: string }[] {
+function formatIntent(intent: object, itemsLabel: (count: number) => string): { label: string; value: string }[] {
   const entries: { label: string; value: string }[] = [];
 
   const formatValue = (_key: string, value: unknown): string => {
@@ -75,7 +75,7 @@ function formatIntent(intent: object): { label: string; value: string }[] {
 
   Object.entries(intent).forEach(([key, value]) => {
     if (Array.isArray(value)) {
-      entries.push({ label: key, value: `${value.length} items` });
+      entries.push({ label: key, value: itemsLabel(value.length) });
     } else if (typeof value === 'object' && value !== null) {
       Object.entries(value).forEach(([k, v]) => {
         entries.push({ label: `${key}.${k}`, value: formatValue(k, v) });
@@ -201,7 +201,7 @@ export function ReceiptDetail() {
     );
   }
 
-  const intentEntries = formatIntent(digest.normalizedIntent);
+  const intentEntries = formatIntent(digest.normalizedIntent, (count) => hud('detail.items', { count }));
   const statusBadge = getStatusBadge(digest.status || 'CREATED');
 
   return (

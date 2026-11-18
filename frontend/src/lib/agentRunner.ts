@@ -212,7 +212,7 @@ export async function runAgentDemo(
     }, onStepChange);
 
     // --- Step 5: Execute exactly what the model planned ---
-    steps = updateStep(steps, 'execute', { status: 'running' }, onStepChange);
+    steps = updateStep(steps, 'execute', { status: 'running', detail: t('demo.step.execute.waiting') }, onStepChange);
 
     const executionTxHash = await executeApprove(signer, plan.call.token, plan.call.spender, plan.call.amount);
     ensureActive(options.signal);
@@ -272,7 +272,7 @@ export async function runAgentDemo(
     if (options.signal?.aborted || isCancelled(error)) {
       steps = steps.map(s => (s.status === 'running' ? { ...s, status: 'pending' as const, detail: undefined } : s));
       onStepChange(steps);
-      return { success: false, error: 'Cancelled', steps };
+      return { success: false, error: t('demo.step.cancelled'), steps };
     }
 
     // Mark current running step as error
