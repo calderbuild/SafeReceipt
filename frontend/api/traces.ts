@@ -18,7 +18,7 @@
  * imports into src/ would need file extensions the Vite code doesn't use.
  */
 
-import { Contract, JsonRpcProvider, ZeroHash, keccak256, toUtf8Bytes, verifyMessage } from 'ethers';
+import { Contract, FetchRequest, JsonRpcProvider, ZeroHash, keccak256, toUtf8Bytes, verifyMessage } from 'ethers';
 import { BlobNotFoundError, get, head, list, put } from '@vercel/blob';
 
 export type HostedChainName = 'monad' | 'bot';
@@ -144,7 +144,10 @@ const RECEIPT_ABI = [
 
 export const liveDeps: TraceDeps = {
   async readReceipt(receiptId, chain) {
-    const provider = new JsonRpcProvider(chain.rpcUrl, chain.chainId, { staticNetwork: true });
+    const request = new FetchRequest(chain.rpcUrl);
+    request.timeout = 10_000;
+    request.retryFunc = async () => false;
+    const provider = new JsonRpcProvider(request, chain.chainId, { staticNetwork: true });
     const r = await new Contract(chain.actionRegistry, RECEIPT_ABI, provider).getReceipt(receiptId);
     return {
       actor: r.actor,
@@ -327,7 +330,7 @@ export async function handle(request: Request, deps: TraceDeps = liveDeps): Prom
     return await storeTrace(request, deps);
   } catch (error) {
     if (error instanceof HttpError) return Response.json({ error: error.message }, { status: error.status, headers: CORS });
-    console.error('traces api error', error instanceof Error ? error.message : 'unknown');
+    console.error('traces api error', error instanceof Error ? error.name : 'unknown');
     return Response.json({ error: 'Trace request failed' }, { status: 500, headers: CORS });
   }
 }

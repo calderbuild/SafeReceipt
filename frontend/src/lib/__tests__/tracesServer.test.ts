@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { Wallet, ZeroHash } from 'ethers';
+import { FetchRequest, Wallet, ZeroHash, makeError } from 'ethers';
+import type { FetchGetUrlFunc } from 'ethers';
 import {
   ACTION_REGISTRY,
   AlreadyStoredError,
@@ -12,6 +13,7 @@ import {
   handle,
   hashIntent,
   hashTrace,
+  liveDeps,
   monthPrefix,
   resetRateLimits,
   traceUploadMessage,
@@ -261,6 +263,111 @@ describe('traces api: GET', () => {
     const got = await getTrace(deps);
     expect(got.headers.get('x-content-type-options')).toBe('nosniff');
     expect(got.headers.get('content-security-policy')).toBe("default-src 'none'");
+  });
+});
+
+describe('traces api: upstream error logging', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('does not log raw upstream response bodies from RPC errors', async () => {
+    const { deps } = fakeDeps();
+    const marker = 'PRIVATE_RPC_BODY_MARKER';
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    deps.readReceipt = vi.fn().mockRejectedValue(new Error(`RPC response: ${marker}`));
+    const res = await getTrace(deps);
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'Trace request failed' });
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(log).toHaveBeenCalled();
+    expect(JSON.stringify(log.mock.calls)).not.toContain(marker);
+  });
+
+  it('does not log raw upstream response bodies from Blob errors', async () => {
+    const { deps } = fakeDeps();
+    const marker = 'PRIVATE_BLOB_BODY_MARKER';
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    deps.load = vi.fn().mockRejectedValue(new Error(`Blob response: ${marker}`));
+    const res = await getTrace(deps);
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'Trace request failed' });
+    expect(log).toHaveBeenCalled();
+    expect(JSON.stringify(log.mock.calls)).not.toContain(marker);
+  });
+});
+
+describe('traces api: RPC timeout', () => {
+  const transport = vi.fn<FetchGetUrlFunc>((request) => new Promise((_resolve, reject) => {
+    setTimeout(() => reject(makeError('request timeout', 'TIMEOUT')), request.timeout);
+  }));
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    transport.mockClear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const send = FetchRequest.prototype.send;
+    vi.spyOn(FetchRequest.prototype, 'send').mockImplementation(function (this: FetchRequest) {
+      this.getUrlFunc = transport;
+      return send.call(this);
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('returns the existing GET error without waiting for an RPC retry', async () => {
+    transport.mockResolvedValueOnce({
+      statusCode: 429,
+      statusMessage: 'Too Many Requests',
+      headers: { 'retry-after': '60000' },
+      body: null,
+    });
+    const { deps } = fakeDeps();
+    deps.readReceipt = liveDeps.readReceipt;
+    const settled = vi.fn();
+    const response = getTrace(deps).then(settled);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(transport).toHaveBeenCalledOnce();
+    expect(settled).toHaveBeenCalledWith(expect.objectContaining({ status: 500 }));
+    await response;
+  });
+
+  it.each(['monad', 'bot'] as const)('bounds a stalled %s RPC read and returns the existing GET error with CORS', async (chain) => {
+    const { deps } = fakeDeps();
+    deps.readReceipt = liveDeps.readReceipt;
+    deps.load = vi.fn();
+    const response = getTrace(deps, '7.json', chain);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(transport).toHaveBeenCalledOnce();
+    expect(transport.mock.calls[0][0].url).toBe(HOSTED_CHAINS[chain].rpcUrl);
+    expect(transport.mock.calls[0][0].timeout).toBe(10_000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    const res = await response;
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'Trace request failed' });
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(deps.load).not.toHaveBeenCalled();
+  });
+
+  it('bounds a stalled RPC read during POST before any Blob operation', async () => {
+    const { deps } = fakeDeps();
+    deps.readReceipt = liveDeps.readReceipt;
+    deps.exists = vi.fn();
+    deps.listMonth = vi.fn();
+    deps.store = vi.fn();
+    const response = upload(deps);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(transport).toHaveBeenCalledOnce();
+    expect(transport.mock.calls[0][0].timeout).toBe(10_000);
+    await vi.advanceTimersByTimeAsync(10_000);
+    const res = await response;
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'Trace request failed' });
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(deps.exists).not.toHaveBeenCalled();
+    expect(deps.listMonth).not.toHaveBeenCalled();
+    expect(deps.store).not.toHaveBeenCalled();
   });
 });
 
