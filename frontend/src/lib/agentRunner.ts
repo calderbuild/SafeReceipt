@@ -10,7 +10,7 @@
  */
 
 import { ethers } from 'ethers';
-import { parseIntent, planApprove } from './agentApi';
+import { isCancelled, parseIntent, planApprove } from './agentApi';
 import type { ApprovePlan } from './agentApi';
 import { evaluateApprove, recordApproval, riskLevel } from './riskEngine';
 import { createCanonicalDigest, computeIntentHash, computeProofHash } from './canonicalize';
@@ -53,6 +53,17 @@ export interface AgentDemoResult {
 
 type OnStepChange = (steps: AgentStep[]) => void;
 
+export interface RunOptions {
+  /** Cancels the run between steps; a pending wallet signature is bounded by agentApi's timeout. */
+  signal?: AbortSignal;
+  /** The first model call asks for a wallet sign-in signature; say so instead of spinning silently. */
+  awaitingSignIn?: boolean;
+}
+
+function ensureActive(signal?: AbortSignal) {
+  if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
+}
+
 function createSteps(): AgentStep[] {
   return [
     { id: 'parse', label: 'Model parses your request', status: 'pending' },
@@ -83,7 +94,8 @@ export async function runAgentDemo(
   scenario: DemoScenario,
   signer: ethers.JsonRpcSigner,
   address: string,
-  onStepChange: OnStepChange
+  onStepChange: OnStepChange,
+  options: RunOptions = {}
 ): Promise<AgentDemoResult> {
   let steps = createSteps();
   onStepChange(steps);
@@ -91,8 +103,17 @@ export async function runAgentDemo(
   try {
     // --- Step 1: Parse Intent ---
     steps = updateStep(steps, 'parse', { status: 'running' }, onStepChange);
+    if (options.awaitingSignIn) {
+      steps = updateStep(
+        steps,
+        'parse',
+        { status: 'running', detail: 'Waiting for your wallet signature (no gas)…' },
+        onStepChange,
+      );
+    }
 
-    const parsed = await parseIntent(signer, scenario.input);
+    const parsed = await parseIntent(signer, scenario.input, options.signal);
+    ensureActive(options.signal);
     if (parsed.actionType !== 'APPROVE') throw new Error('The model read this as a batch payment, not an approval');
     const intent: ApproveIntent = { token: parsed.token, spender: parsed.spender, amount: parsed.amount };
 
@@ -154,6 +175,7 @@ export async function runAgentDemo(
       receiptId = result.receiptId;
       createTxHash = result.txHash;
     }
+    ensureActive(options.signal);
 
     saveDigest(receiptId, digest);
     addReceiptToUser(address, receiptId);
@@ -167,7 +189,8 @@ export async function runAgentDemo(
 
     // --- Step 4: The model plans the tx after reading the token metadata ---
     steps = updateStep(steps, 'plan', { status: 'running' }, onStepChange);
-    const plan = await planApprove(signer, scenario.id, intent);
+    const plan = await planApprove(signer, scenario.id, intent, options.signal);
+    ensureActive(options.signal);
     const deviated =
       plan.call.amount !== intent.amount ||
       plan.call.spender.toLowerCase() !== normalizedIntent.spender ||
@@ -182,6 +205,7 @@ export async function runAgentDemo(
     steps = updateStep(steps, 'execute', { status: 'running' }, onStepChange);
 
     const executionTxHash = await executeApprove(signer, plan.call.token, plan.call.spender, plan.call.amount);
+    ensureActive(options.signal);
 
     steps = updateStep(steps, 'execute', {
       status: 'done',
@@ -212,6 +236,7 @@ export async function runAgentDemo(
     }, onStepChange);
 
     // --- Step 7: Record the verdict on-chain ---
+    ensureActive(options.signal);
     steps = updateStep(steps, 'link', { status: 'running' }, onStepChange);
     if (isMock) {
       await sleep(800);
@@ -234,6 +259,12 @@ export async function runAgentDemo(
       steps,
     };
   } catch (error) {
+    if (options.signal?.aborted || isCancelled(error)) {
+      steps = steps.map(s => (s.status === 'running' ? { ...s, status: 'pending' as const, detail: undefined } : s));
+      onStepChange(steps);
+      return { success: false, error: 'Cancelled', steps };
+    }
+
     // Mark current running step as error
     steps = steps.map(s =>
       s.status === 'running' ? { ...s, status: 'error' as const, detail: messageOf(error) } : s

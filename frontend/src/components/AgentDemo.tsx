@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useWallet, onActiveNetwork } from '../hooks/useWallet';
 import { DEMO_SCENARIOS } from '../lib/demoScenarios';
+import { isSignedIn } from '../lib/agentApi';
 import { runAgentDemo } from '../lib/agentRunner';
-import { explorerTx } from '../lib/contract';
+import { ACTIVE_CHAIN, explorerTx } from '../lib/contract';
 import type { AgentStep, AgentDemoResult } from '../lib/agentRunner';
 import type { DemoScenario } from '../lib/demoScenarios';
 
@@ -73,24 +74,56 @@ export function AgentDemo() {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<AgentDemoResult | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<DemoScenario | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+  const runIdRef = useRef(0);
+  const controllerRef = useRef<AbortController | null>(null);
 
   const handleRun = useCallback(async (scenario: DemoScenario) => {
-    if (!signer || !address || !onActiveNetwork()) return;
+    if (!signer || !address) {
+      setRunError('Connect your wallet to run the demo.');
+      return;
+    }
+    if (!onActiveNetwork()) {
+      setRunError(`Switch your wallet to ${ACTIVE_CHAIN.name}, then run the demo again.`);
+      return;
+    }
+
+    setRunError(null);
+    const runId = ++runIdRef.current;
+    const controller = new AbortController();
+    controllerRef.current = controller;
 
     setSelectedScenario(scenario);
     setIsRunning(true);
     setResult(null);
+    setSteps([]);
 
-    const demoResult = await runAgentDemo(
-      scenario,
-      signer,
-      address,
-      (updatedSteps) => setSteps([...updatedSteps])
-    );
-
-    setResult(demoResult);
-    setIsRunning(false);
+    try {
+      const demoResult = await runAgentDemo(
+        scenario,
+        signer,
+        address,
+        (updatedSteps) => {
+          if (runIdRef.current === runId) setSteps([...updatedSteps]);
+        },
+        { signal: controller.signal, awaitingSignIn: !isSignedIn(address) }
+      );
+      if (runIdRef.current !== runId) return;
+      setResult(demoResult);
+    } finally {
+      if (runIdRef.current === runId) setIsRunning(false);
+    }
   }, [signer, address]);
+
+  const cancelRun = useCallback(() => {
+    runIdRef.current += 1;
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setIsRunning(false);
+    setSteps([]);
+    setSelectedScenario(null);
+    setResult(null);
+  }, []);
 
   return (
     <div className="p-6 md:p-8">
@@ -103,6 +136,10 @@ export function AgentDemo() {
           <p className="text-slate-400 text-sm">A live model agent sends a real approve; the receipt checks what it actually did</p>
         </div>
       </div>
+
+      {runError && (
+        <p className="mb-4 text-sm text-red-400" role="alert">{runError}</p>
+      )}
 
       {/* Scenario Selection */}
       {!isRunning && !result && (
@@ -229,6 +266,15 @@ export function AgentDemo() {
             </div>
           ))}
         </div>
+      )}
+
+      {isRunning && (
+        <button
+          onClick={cancelRun}
+          className="mb-6 text-sm text-slate-400 hover:text-white underline underline-offset-4"
+        >
+          Cancel
+        </button>
       )}
 
       {/* Result Summary */}
