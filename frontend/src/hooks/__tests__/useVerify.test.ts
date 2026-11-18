@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useVerify } from '../useVerify';
 import * as storage from '../../lib/storage';
 import * as canonicalize from '../../lib/canonicalize';
@@ -191,17 +191,11 @@ describe('useVerify', () => {
     // Render hook
     const { result } = renderHook(() => useVerify());
 
-    // Call verifyProof
-    const verificationPromise = result.current.verifyProof(testReceiptId);
-
-    // Wait for verification to complete
-    await waitFor(() => expect(result.current.isVerifying).toBe(false));
-
-    const verificationResult = await verificationPromise;
-
-    // Assertions
-    expect(verificationResult.isValid).toBe(false);
-    expect(verificationResult.error).toContain('Network error');
+    await act(async () => {
+      const verificationResult = await result.current.verifyProof(testReceiptId);
+      expect(verificationResult.isValid).toBe(false);
+      expect(verificationResult.error).toContain('Network error');
+    });
     expect(result.current.error).toContain('Network error');
   });
 
