@@ -161,14 +161,6 @@ export function Home({ onCreateClick, onVerifyClick }: HomeProps) {
                 <Link to="/fleet/bot/receipt/10" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('home.evidence.receipt10')}</Link>
               </div>
             </div>
-            <div className="mt-6">
-              <h3 className="font-display text-xl font-semibold text-white mb-2">{t('home.evidence.openHeading')}</h3>
-              <p className="text-slate-300 leading-relaxed mb-3">{t('home.evidence.openBody')}</p>
-              <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-                <a href="https://github.com/calderbuild/SafeReceipt/blob/main/docs/HASHING.md" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('home.evidence.format')}</a>
-                <a href="https://github.com/calderbuild/SafeReceipt/blob/main/wrapper/verify.mjs" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('home.evidence.verifier')}</a>
-              </div>
-            </div>
           </div>
         </section>
 

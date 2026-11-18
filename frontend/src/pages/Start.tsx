@@ -137,6 +137,10 @@ open https://safereceipt.vercel.app/fleet/receipt/5 and press Verify independent
               {t('start.step5.body1')} <span className="text-white">{t('start.step5.verify')}</span> {t('start.step5.body2')}{' '}
               <Link to="/fleet" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step5.fleet')}</Link>{t('start.step5.end')}
             </p>
+            <p className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+              <a href="https://github.com/calderbuild/SafeReceipt/blob/main/docs/HASHING.md" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step5.format')}</a>
+              <a href="https://github.com/calderbuild/SafeReceipt/blob/main/wrapper/verify.mjs" className="text-primary-300 hover:text-primary-200 underline underline-offset-4">{t('start.step5.verifier')}</a>
+            </p>
           </Step>
         </ol>
 
