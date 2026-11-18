@@ -23,6 +23,14 @@ export const WMON = '0xfb8bf4c1cc7a94c73d209a149ea2abea852bc541';
 
 const MAX_INPUT = 500;
 const SIGN_IN_TTL_MS = 30 * 60 * 1000;
+const RULE_NAMES = new Set([
+  'UNLIMITED_ALLOWANCE',
+  'SPENDER_IS_UNKNOWN_CONTRACT',
+  'REPEAT_APPROVE_PATTERN',
+  'DUPLICATE_RECIPIENTS',
+  'RECIPIENT_IS_CONTRACT',
+  'OUTLIER_AMOUNT',
+]);
 
 // ---------------------------------------------------------------------------
 // Sign-in
@@ -169,8 +177,9 @@ async function complete(system: string, user: string): Promise<string> {
     signal: AbortSignal.timeout(25_000),
   });
   if (!res.ok) throw new HttpError(502, `Model API returned ${res.status}`);
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const content = data.choices?.[0]?.message?.content;
+  const data = (await res.json()) as { choices?: { message?: { content?: unknown } }[] } | null;
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== 'string') throw new HttpError(422, 'Model returned non-string content');
   if (!content) throw new HttpError(502, 'Model returned an empty answer');
   return content;
 }
@@ -203,9 +212,9 @@ async function parseOp(body: Record<string, unknown>) {
 }
 
 async function planOp(body: Record<string, unknown>) {
-  const scenario = typeof body.scenarioId === 'string' ? body.scenarioId : '';
+  const scenario = body.scenarioId;
+  if (typeof scenario !== 'string' || !Object.hasOwn(TOKEN_METADATA, scenario)) throw new HttpError(400, 'Unknown scenario');
   const metadata = TOKEN_METADATA[scenario];
-  if (!metadata) throw new HttpError(400, 'Unknown scenario');
   const intent = validateApprove(body.intent);
   const request = `User request: approve token ${intent.token}, spender ${intent.spender}, amount ${intent.amount} (base units).\n\n${metadata}`;
   const out = extractJson(await complete(PLAN_PROMPT, request));
@@ -213,10 +222,11 @@ async function planOp(body: Record<string, unknown>) {
 }
 
 async function explainOp(body: Record<string, unknown>) {
-  // Rule ids are short constants; anything longer isn't one
-  const rules = Array.isArray(body.rules) ? body.rules.filter((r) => typeof r === 'string' && /^[A-Z_]{1,40}$/.test(r)).slice(0, 6) : [];
+  if (!Array.isArray(body.rules) || body.rules.some((r) => typeof r !== 'string')) throw new HttpError(400, 'rules must be an array of strings');
+  const rules = body.rules.filter((r) => RULE_NAMES.has(r)).slice(0, 6);
   if (rules.length === 0) throw new HttpError(400, 'rules is required');
-  const score = Number(body.score);
+  const score = body.score;
+  if (typeof score !== 'number' || !Number.isFinite(score)) throw new HttpError(400, 'score must be a finite number');
   const context = text(body.context, 'context');
   const explanation = await complete(EXPLAIN_PROMPT, `Transaction: ${context}\nRisk score: ${score}/100\nFlags: ${rules.join(', ')}`);
   return { explanation, model: MODEL };
@@ -248,8 +258,9 @@ export async function handle(request: Request): Promise<Response> {
     const body = (await request.json().catch(() => {
       throw new HttpError(400, 'Body must be JSON');
     })) as Record<string, unknown>;
-    const op = OPS[String(body.op)];
-    if (!op) throw new HttpError(400, 'Unknown op');
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) throw new HttpError(400, 'Body must be an object');
+    const op = body.op;
+    if (typeof op !== 'string' || !Object.hasOwn(OPS, op)) throw new HttpError(400, 'Unknown op');
     // Vercel sets these and overwrites client-supplied values
     const ip = request.headers.get('x-vercel-forwarded-for') ?? request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
     rateLimit(`ip:${ip}`, 10, 60_000);
@@ -257,10 +268,10 @@ export async function handle(request: Request): Promise<Response> {
     // New wallets are free to make, so the per-address limit alone doesn't bound cost
     rateLimit(`addr:${address}`, 40, 60 * 60_000);
     rateLimit('all', 300, 60 * 60_000);
-    return Response.json(await op(body));
+    return Response.json(await OPS[op](body));
   } catch (error) {
     if (error instanceof HttpError) return Response.json({ error: error.message }, { status: error.status });
-    console.error('agent api error', error instanceof Error ? error.message : 'unknown');
+    console.error('agent api error', error instanceof Error ? error.name : 'unknown');
     return Response.json({ error: 'Agent request failed' }, { status: 500 });
   }
 }
