@@ -1,7 +1,7 @@
 /**
  * One language store for the whole app, read with useSyncExternalStore so
  * every screen updates the moment the navbar toggle changes it. The choice is
- * remembered per browser; first visit follows the browser language.
+ * remembered per browser; first visit defaults to English.
  */
 
 import { useCallback, useSyncExternalStore } from 'react';
@@ -18,10 +18,9 @@ function detectLang(): Lang {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved === 'en' || saved === 'zh') return saved;
   } catch {
-    // Private mode can block storage; fall back to the browser language.
+    // Private mode can block storage; use the default.
   }
-  const nav = typeof navigator !== 'undefined' ? navigator.language : 'en';
-  return nav.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+  return 'en';
 }
 
 let current: Lang = detectLang();
