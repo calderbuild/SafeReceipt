@@ -572,7 +572,7 @@ export const zh: Record<MessageKey, string> = {
   'home.hero.title1': '代理做了什么，',
   'home.hero.title2': '收据可核验。',
   'home.hero.body':
-    'AI 代理行动前提交意图。行动后，任何人都能凭收据核对链上交易，或验证公开的执行记录。',
+    'SafeReceipt 在 AI 代理行动之前，把它声称要做的事提交到链上；行动之后再检查它实际做了什么。两者不一致时，收据会写明，而且任何人都能重新核对。',
   'home.hero.fleetCta': '查看代理舰队',
   'home.hero.createCta': '创建一张收据',
   'home.hero.footnote': '运行在 Monad 测试网和 BOT Chain 主网（试点）· MIT 许可',
